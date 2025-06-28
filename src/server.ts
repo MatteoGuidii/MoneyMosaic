@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import createLinkToken from './routes/createLinkToken';
 import exchangeToken from './routes/exchangeToken';
 import sandboxRoutes from './routes/sandbox';
+import transactionsRoutes from './routes/transactions';
 
 dotenv.config();
 const app = express();
@@ -18,6 +19,7 @@ app.get('/', (_req, res) => {
 app.use('/api', createLinkToken);
 app.use('/api', exchangeToken);
 app.use('/api', sandboxRoutes);
+app.use('/api', transactionsRoutes);
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () =>

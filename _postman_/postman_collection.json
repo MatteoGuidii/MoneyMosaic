@@ -18,14 +18,9 @@
         "url": {
           "raw": "http://localhost:3000/api/create_link_token",
           "protocol": "http",
-          "host": [
-            "localhost"
-          ],
+          "host": ["localhost"],
           "port": "3000",
-          "path": [
-            "api",
-            "create_link_token"
-          ]
+          "path": ["api", "create_link_token"]
         },
         "body": {
           "mode": "raw",
@@ -47,14 +42,9 @@
         "url": {
           "raw": "http://localhost:3000/api/exchange_public_token",
           "protocol": "http",
-          "host": [
-            "localhost"
-          ],
+          "host": ["localhost"],
           "port": "3000",
-          "path": [
-            "api",
-            "exchange_public_token"
-          ]
+          "path": ["api", "exchange_public_token"]
         },
         "body": {
           "mode": "raw",
@@ -76,20 +66,37 @@
         "url": {
           "raw": "http://localhost:3000/api/sandbox/public_token/create",
           "protocol": "http",
-          "host": [
-            "localhost"
-          ],
+          "host": ["localhost"],
           "port": "3000",
-          "path": [
-            "api",
-            "sandbox",
-            "public_token",
-            "create"
-          ]
+          "path": ["api", "sandbox", "public_token", "create"]
         },
         "body": {
           "mode": "raw",
           "raw": "{\n  \"institution_id\": \"ins_109508\",\n  \"initial_products\": [\"transactions\"]\n}"
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Fetch Transactions",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "http://localhost:3000/api/fetch_transactions",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "3000",
+          "path": ["api", "fetch_transactions"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"access_token\": \"<ACCESS_TOKEN>\",\n  \"days\": 30\n}"
         }
       },
       "response": []
