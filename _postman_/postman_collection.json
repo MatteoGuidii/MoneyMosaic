@@ -1,0 +1,98 @@
+{
+  "info": {
+    "name": "FinTracker API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "12345678-90ab-cdef-1234-567890abcdef"
+  },
+  "item": [
+    {
+      "name": "Create Link Token",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "http://localhost:3000/api/create_link_token",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "api",
+            "create_link_token"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{}"
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Exchange Public Token",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "http://localhost:3000/api/exchange_public_token",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "api",
+            "exchange_public_token"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"public_token\": \"<PUBLIC_TOKEN>\"\n}"
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Create Sandbox Public Token",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "http://localhost:3000/api/sandbox/public_token/create",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "api",
+            "sandbox",
+            "public_token",
+            "create"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"institution_id\": \"ins_109508\",\n  \"initial_products\": [\"transactions\"]\n}"
+        }
+      },
+      "response": []
+    }
+  ]
+}
