@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>FinTracker Dashboard</title>
+  <script src="https://cdn.plaid.com/link/v2/stable/link-initialize.js"></script>
+  <style>
+    body { font-family: sans-serif; padding: 2rem; }
+    #transactions { margin-top: 2rem; }
+    table { border-collapse: collapse; width: 100%; }
+    th,td { padding: 0.5rem; border: 1px solid #ddd; }
+  </style>
+</head>
+<body>
+  <h1>FinTracker Dashboard</h1>
+  <button id="connect-bank">Connect your bank</button>
+  <button id="load-transactions" disabled>Load Transactions</button>
+
+  <div id="transactions"></div>
+
+  <script>
+    let accessToken = null;
+
+    async function createLinkToken() {
+      const res = await fetch('/api/create_link_token', { method: 'POST' });
+      return (await res.json()).link_token;
+    }
+
+    async function onSuccess(public_token) {
+      const res = await fetch('/api/exchange_public_token', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ public_token })
+      });
+      const json = await res.json();
+      accessToken = json.access_token;
+      document.getElementById('load-transactions').disabled = false;
+      alert('Bank connected!');
+    }
+
+    document.getElementById('connect-bank').onclick = async () => {
+      const token = await createLinkToken();
+      const handler = Plaid.create({ token, onSuccess, onExit:console.error });
+      handler.open();
+    };
+
+    document.getElementById('load-transactions').onclick = async () => {
+      const res = await fetch('/api/fetch_transactions', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ access_token: accessToken, days: 30 })
+      });
+      const { transactions, summary } = await res.json();
+
+      // Render summary
+      const txDiv = document.getElementById('transactions');
+      txDiv.innerHTML = `
+        <h2>Summary</h2>
+        <p>Spending: \$${summary.totals.spending.toFixed(2)}</p>
+        <p>Income: \$${summary.totals.income.toFixed(2)}</p>
+        <h2>Transactions (last 30 days)</h2>
+        <table>
+          <thead><tr>
+            <th>Date</th><th>Name</th><th>Amount</th><th>Type</th><th>Category</th>
+          </tr></thead>
+          <tbody>
+            ${transactions.map(tx => `
+              <tr>
+                <td>${tx.date}</td>
+                <td>${tx.name}</td>
+                <td>${tx.amount.toFixed(2)}</td>
+                <td>${tx.type}</td>
+                <td>${tx.category}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+    };
+  </script>
+</body>
+</html>
