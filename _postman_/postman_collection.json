@@ -1,105 +1,638 @@
 {
   "info": {
-    "name": "FinTracker API",
+    "name": "MoneyMosaic API - Comprehensive Tests",
+    "description": "Complete API testing collection for MoneyMosaic personal finance application with Plaid integration",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "_postman_id": "12345678-90ab-cdef-1234-567890abcdef"
+    "_postman_id": "moneymosaic-api-2024"
   },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000/api",
+      "type": "string"
+    },
+    {
+      "key": "link_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "public_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "access_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "institution_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Global pre-request script",
+          "console.log('Running request to: ' + pm.request.url);"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Global test script",
+          "pm.test('Response time is less than 5000ms', function () {",
+          "    pm.expect(pm.response.responseTime).to.be.below(5000);",
+          "});",
+          "",
+          "pm.test('Status code is not 500', function () {",
+          "    pm.expect(pm.response.code).to.not.equal(500);",
+          "});"
+        ]
+      }
+    }
+  ],
   "item": [
     {
-      "name": "Create Link Token",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
+      "name": "Authentication & Setup",
+      "item": [
+        {
+          "name": "Create Link Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has link_token', function () {",
+                  "    pm.expect(pm.response.json()).to.have.property('link_token');",
+                  "    pm.expect(pm.response.json().link_token).to.be.a('string');",
+                  "});",
+                  "",
+                  "// Store link_token for future requests",
+                  "if (pm.response.json().link_token) {",
+                  "    pm.collectionVariables.set('link_token', pm.response.json().link_token);",
+                  "    console.log('Link token stored: ' + pm.response.json().link_token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/create_link_token",
+              "host": ["{{baseUrl}}"],
+              "path": ["create_link_token"]
+            },
+            "description": "Creates a Plaid Link token for initializing the Link flow"
           }
-        ],
-        "url": {
-          "raw": "http://localhost:3000/api/create_link_token",
-          "protocol": "http",
-          "host": ["localhost"],
-          "port": "3000",
-          "path": ["api", "create_link_token"]
-        },
-        "body": {
-          "mode": "raw",
-          "raw": "{}"
         }
-      },
-      "response": []
+      ]
     },
     {
-      "name": "Exchange Public Token",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
+      "name": "Sandbox Testing",
+      "item": [
+        {
+          "name": "Create Sandbox Public Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has public_token', function () {",
+                  "    pm.expect(pm.response.json()).to.have.property('public_token');",
+                  "    pm.expect(pm.response.json().public_token).to.be.a('string');",
+                  "});",
+                  "",
+                  "// Store public_token for exchange",
+                  "if (pm.response.json().public_token) {",
+                  "    pm.collectionVariables.set('public_token', pm.response.json().public_token);",
+                  "    console.log('Public token stored: ' + pm.response.json().public_token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"institution_id\": \"ins_109508\",\n  \"initial_products\": [\"transactions\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/sandbox/public_token/create",
+              "host": ["{{baseUrl}}"],
+              "path": ["sandbox", "public_token", "create"]
+            },
+            "description": "Creates a sandbox public token for testing (Chase Bank)"
           }
-        ],
-        "url": {
-          "raw": "http://localhost:3000/api/exchange_public_token",
-          "protocol": "http",
-          "host": ["localhost"],
-          "port": "3000",
-          "path": ["api", "exchange_public_token"]
         },
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"public_token\": \"<PUBLIC_TOKEN>\"\n}"
+        {
+          "name": "Create Sandbox Public Token - Bank of America",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has public_token', function () {",
+                  "    pm.expect(pm.response.json()).to.have.property('public_token');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"institution_id\": \"ins_109511\",\n  \"initial_products\": [\"transactions\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/sandbox/public_token/create",
+              "host": ["{{baseUrl}}"],
+              "path": ["sandbox", "public_token", "create"]
+            },
+            "description": "Creates a sandbox public token for Bank of America"
+          }
         }
-      },
-      "response": []
+      ]
     },
     {
-      "name": "Create Sandbox Public Token",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
+      "name": "Bank Connection Management",
+      "item": [
+        {
+          "name": "Exchange Public Token",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Ensure we have a public_token",
+                  "if (!pm.collectionVariables.get('public_token')) {",
+                  "    console.log('No public_token found. Please run \"Create Sandbox Public Token\" first.');",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has access_token and item_id', function () {",
+                  "    pm.expect(pm.response.json()).to.have.property('access_token');",
+                  "    pm.expect(pm.response.json()).to.have.property('item_id');",
+                  "});",
+                  "",
+                  "// Store access_token for future requests",
+                  "if (pm.response.json().access_token) {",
+                  "    pm.collectionVariables.set('access_token', pm.response.json().access_token);",
+                  "    console.log('Access token stored');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"public_token\": \"{{public_token}}\",\n  \"institution\": {\n    \"institution_id\": \"ins_109508\",\n    \"name\": \"Chase Bank\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/exchange_public_token",
+              "host": ["{{baseUrl}}"],
+              "path": ["exchange_public_token"]
+            },
+            "description": "Exchanges a public token for an access token and saves the bank connection"
           }
-        ],
-        "url": {
-          "raw": "http://localhost:3000/api/sandbox/public_token/create",
-          "protocol": "http",
-          "host": ["localhost"],
-          "port": "3000",
-          "path": ["api", "sandbox", "public_token", "create"]
         },
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"institution_id\": \"ins_109508\",\n  \"initial_products\": [\"transactions\"]\n}"
+        {
+          "name": "Get Connected Banks",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has banks array', function () {",
+                  "    pm.expect(pm.response.json()).to.have.property('banks');",
+                  "    pm.expect(pm.response.json().banks).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test('Banks have required properties', function () {",
+                  "    const banks = pm.response.json().banks;",
+                  "    if (banks.length > 0) {",
+                  "        pm.expect(banks[0]).to.have.property('id');",
+                  "        pm.expect(banks[0]).to.have.property('name');",
+                  "        pm.expect(banks[0]).to.have.property('institution_id');",
+                  "        ",
+                  "        // Store first institution ID for deletion test",
+                  "        pm.collectionVariables.set('institution_id', banks[0].id);",
+                  "    }",
+                  "});",
+                  "",
+                  "console.log('Connected banks: ' + pm.response.json().banks.length);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/connected_banks",
+              "host": ["{{baseUrl}}"],
+              "path": ["connected_banks"]
+            },
+            "description": "Retrieves all connected bank institutions"
+          }
+        },
+        {
+          "name": "Health Check",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has health status', function () {",
+                  "    pm.expect(pm.response.json()).to.have.property('healthy');",
+                  "    pm.expect(pm.response.json()).to.have.property('unhealthy');",
+                  "    pm.expect(pm.response.json().healthy).to.be.an('array');",
+                  "    pm.expect(pm.response.json().unhealthy).to.be.an('array');",
+                  "});",
+                  "",
+                  "const health = pm.response.json();",
+                  "console.log('Healthy connections: ' + health.healthy.length);",
+                  "console.log('Unhealthy connections: ' + health.unhealthy.length);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health_check",
+              "host": ["{{baseUrl}}"],
+              "path": ["health_check"]
+            },
+            "description": "Checks the health of all bank connections"
+          }
         }
-      },
-      "response": []
+      ]
     },
     {
-      "name": "Fetch Transactions",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
+      "name": "Transaction Management",
+      "item": [
+        {
+          "name": "Fetch Transactions (30 days)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has transactions and summary', function () {",
+                  "    pm.expect(pm.response.json()).to.have.property('transactions');",
+                  "    pm.expect(pm.response.json()).to.have.property('summary');",
+                  "    pm.expect(pm.response.json().transactions).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test('Summary has required fields', function () {",
+                  "    const summary = pm.response.json().summary;",
+                  "    pm.expect(summary).to.have.property('totalSpending');",
+                  "    pm.expect(summary).to.have.property('totalIncome');",
+                  "    pm.expect(summary).to.have.property('byCategory');",
+                  "    pm.expect(summary).to.have.property('byInstitution');",
+                  "});",
+                  "",
+                  "const response = pm.response.json();",
+                  "console.log('Transactions fetched: ' + response.transactions.length);",
+                  "console.log('Total spending: $' + response.summary.totalSpending);",
+                  "console.log('Total income: $' + response.summary.totalIncome);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"days\": 30\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/fetch_transactions",
+              "host": ["{{baseUrl}}"],
+              "path": ["fetch_transactions"]
+            },
+            "description": "Fetches transactions for the last 30 days from all connected banks"
           }
-        ],
-        "url": {
-          "raw": "http://localhost:3000/api/fetch_transactions",
-          "protocol": "http",
-          "host": ["localhost"],
-          "port": "3000",
-          "path": ["api", "fetch_transactions"]
         },
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"access_token\": \"<ACCESS_TOKEN>\",\n  \"days\": 30\n}"
+        {
+          "name": "Fetch Transactions (7 days)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response structure is correct', function () {",
+                  "    pm.expect(pm.response.json()).to.have.property('transactions');",
+                  "    pm.expect(pm.response.json()).to.have.property('summary');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"days\": 7\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/fetch_transactions",
+              "host": ["{{baseUrl}}"],
+              "path": ["fetch_transactions"]
+            },
+            "description": "Fetches transactions for the last 7 days"
+          }
+        },
+        {
+          "name": "Manual Sync",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Sync completed successfully', function () {",
+                  "    pm.expect(pm.response.json()).to.have.property('success');",
+                  "    pm.expect(pm.response.json().success).to.be.true;",
+                  "    pm.expect(pm.response.json()).to.have.property('message');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/sync",
+              "host": ["{{baseUrl}}"],
+              "path": ["sync"]
+            },
+            "description": "Manually triggers a sync of all bank transactions"
+          }
         }
-      },
-      "response": []
+      ]
+    },
+    {
+      "name": "System Status",
+      "item": [
+        {
+          "name": "Scheduler Status",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response contains scheduler information', function () {",
+                  "    // The response structure depends on scheduler implementation",
+                  "    pm.expect(pm.response.json()).to.be.an('object');",
+                  "});",
+                  "",
+                  "console.log('Scheduler status: ' + JSON.stringify(pm.response.json(), null, 2));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/scheduler_status",
+              "host": ["{{baseUrl}}"],
+              "path": ["scheduler_status"]
+            },
+            "description": "Gets the status of the background scheduler"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Cleanup & Error Testing",
+      "item": [
+        {
+          "name": "Remove Bank Connection",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Ensure we have an institution_id",
+                  "if (!pm.collectionVariables.get('institution_id')) {",
+                  "    console.log('No institution_id found. Please run \"Get Connected Banks\" first.');",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Bank removed successfully', function () {",
+                  "    pm.expect(pm.response.json()).to.have.property('success');",
+                  "    pm.expect(pm.response.json().success).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/banks/{{institution_id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["banks", "{{institution_id}}"]
+            },
+            "description": "Removes a bank connection"
+          }
+        },
+        {
+          "name": "Test Invalid Endpoint",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 404', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/invalid_endpoint",
+              "host": ["{{baseUrl}}"],
+              "path": ["invalid_endpoint"]
+            },
+            "description": "Tests error handling for invalid endpoints"
+          }
+        },
+        {
+          "name": "Test Invalid JSON",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{ invalid json }"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/create_link_token",
+              "host": ["{{baseUrl}}"],
+              "path": ["create_link_token"]
+            },
+            "description": "Tests error handling for invalid JSON"
+          }
+        }
+      ]
     }
   ]
 }

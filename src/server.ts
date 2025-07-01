@@ -6,6 +6,8 @@ import createLinkToken from './routes/createLinkToken';
 import exchangeToken from './routes/exchangeToken';
 import sandboxRoutes from './routes/sandbox';
 import transactionsRoutes from './routes/transactions';
+import { database } from './database';
+import { schedulerService } from './services/schedulerService';
 
 dotenv.config();
 const app = express();
@@ -24,6 +26,29 @@ app.get('*', (_req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () =>
-  console.log(`Server listening on http://localhost:${PORT}`)
-);
+
+app.listen(PORT, () => {
+  console.log(`Server listening on http://localhost:${PORT}`);
+  
+  // Initialize database and start background jobs
+  console.log('🗄️ Database initialized');
+  
+  // Start background jobs (sync every 6 hours by default)
+  const syncHours = parseInt(process.env.SYNC_INTERVAL_HOURS || '6');
+  schedulerService.startAll(syncHours);
+});
+
+// Graceful shutdown
+process.on('SIGINT', () => {
+  console.log('\n⏹️ Shutting down gracefully...');
+  schedulerService.stopAll();
+  database.close();
+  process.exit(0);
+});
+
+process.on('SIGTERM', () => {
+  console.log('\n⏹️ Shutting down gracefully...');
+  schedulerService.stopAll();
+  database.close();
+  process.exit(0);
+});

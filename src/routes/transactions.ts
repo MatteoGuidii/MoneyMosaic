@@ -1,74 +1,75 @@
 import { Router } from 'express';
-import { plaidClient } from '../plaidClient';
-import { subDays, formatISO } from 'date-fns';
+import { bankService } from '../services/bankService';
+import { schedulerService } from '../services/schedulerService';
+import { database } from '../database';
 
 const router = Router();
 
-interface FetchBody {
-  access_token: string;
-  days?: number;
-}
-
+// Fetch transactions for all connected banks
 router.post('/fetch_transactions', async (req, res) => {
   try {
-    const { access_token, days = 30 } = req.body as FetchBody;
-
-    // 1) Define date range
-    const endDate   = formatISO(new Date(), { representation: 'date' });
-    const startDate = formatISO(subDays(new Date(), days), { representation: 'date' });
-
-    // 2) Fetch transactions from Plaid
-    const { data: { transactions: txns } } = await plaidClient.transactionsGet({
-      access_token,
-      start_date:  startDate,
-      end_date:    endDate,
-      options:     { count: 500, offset: 0 },
-    });
-
-    // 3) Map & categorize each transaction
-    const categorized = txns.map(tx => {
-      // a) Determine type
-      const type = tx.amount > 0 ? 'spending' : 'income';
-
-      // b) Extract top-level category from personal_finance_category
-      let category: string;
-      const pfc = tx.personal_finance_category;
-      if (Array.isArray(pfc) && pfc.length > 0) {
-        // e.g. ["Food and Drink", "Restaurants"]
-        category = pfc[0];
-      } else if (typeof pfc === 'string') {
-        category = pfc;
-      } else {
-        category = 'Uncategorized';
-      }
-
-      return {
-        date:      tx.date,
-        name:      tx.name,
-        amount:    tx.amount,
-        type,
-        category,
-      };
-    });
-
-    // 4) Build summary totals
-    const summary = categorized.reduce<{
-      totals: Record<'spending' | 'income', number>;
-      byCategory: Record<string, number>;
-    }>(
-      (acc, tx) => {
-        acc.totals[tx.type as 'spending' | 'income'] = (acc.totals[tx.type as 'spending' | 'income'] || 0) + Math.abs(tx.amount);
-        acc.byCategory[tx.category] = (acc.byCategory[tx.category] || 0) + Math.abs(tx.amount);
-        return acc;
-      },
-      { totals: { spending: 0, income: 0 }, byCategory: {} }
-    );
-
-    // 5) Respond
-    res.json({ transactions: categorized, summary });
+    const { days = 30 } = req.body;
+    const result = await bankService.fetchAllTransactions(days);
+    res.json(result);
   } catch (err) {
     console.error('fetchTransactions error:', err);
     res.status(500).json({ error: 'Failed to fetch transactions' });
+  }
+});
+
+// Get all connected banks
+router.get('/connected_banks', async (req, res) => {
+  try {
+    const banks = await bankService.getConnectedBanks();
+    res.json({ banks });
+  } catch (err) {
+    console.error('getConnectedBanks error:', err);
+    res.status(500).json({ error: 'Failed to fetch connected banks' });
+  }
+});
+
+// Remove a bank connection
+router.delete('/banks/:institutionId', async (req, res) => {
+  try {
+    const { institutionId } = req.params;
+    await bankService.removeBankConnection(parseInt(institutionId));
+    res.json({ success: true });
+  } catch (err) {
+    console.error('removeBankConnection error:', err);
+    res.status(500).json({ error: 'Failed to remove bank connection' });
+  }
+});
+
+// Check connection health
+router.get('/health_check', async (req, res) => {
+  try {
+    const health = await bankService.checkConnectionHealth();
+    res.json(health);
+  } catch (err) {
+    console.error('healthCheck error:', err);
+    res.status(500).json({ error: 'Failed to check connection health' });
+  }
+});
+
+// Manual sync trigger
+router.post('/sync', async (req, res) => {
+  try {
+    await schedulerService.triggerTransactionSync();
+    res.json({ success: true, message: 'Sync completed' });
+  } catch (err) {
+    console.error('manualSync error:', err);
+    res.status(500).json({ error: 'Failed to sync transactions' });
+  }
+});
+
+// Get scheduler status
+router.get('/scheduler_status', (req, res) => {
+  try {
+    const status = schedulerService.getJobStatus();
+    res.json(status);
+  } catch (err) {
+    console.error('schedulerStatus error:', err);
+    res.status(500).json({ error: 'Failed to get scheduler status' });
   }
 });
 

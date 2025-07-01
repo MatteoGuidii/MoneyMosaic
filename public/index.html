@@ -2,81 +2,433 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>FinTracker Dashboard</title>
+  <title>MoneyMosaic - Personal Finance Dashboard</title>
   <script src="https://cdn.plaid.com/link/v2/stable/link-initialize.js"></script>
   <style>
-    body { font-family: sans-serif; padding: 2rem; }
-    #transactions { margin-top: 2rem; }
-    table { border-collapse: collapse; width: 100%; }
-    th,td { padding: 0.5rem; border: 1px solid #ddd; }
+    body { 
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+      margin: 0;
+      padding: 2rem; 
+      background-color: #f5f7fa;
+    }
+    
+    .container { max-width: 1200px; margin: 0 auto; }
+    
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 2rem;
+      border-radius: 12px;
+      margin-bottom: 2rem;
+      text-align: center;
+    }
+    
+    .header h1 { margin: 0; font-size: 2.5rem; }
+    .header p { margin: 0.5rem 0 0 0; opacity: 0.9; }
+    
+    .section {
+      background: white;
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    
+    .section h2 {
+      margin-top: 0;
+      color: #333;
+      border-bottom: 2px solid #e1e5e9;
+      padding-bottom: 0.5rem;
+    }
+    
+    .bank-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    
+    .bank-card {
+      border: 1px solid #e1e5e9;
+      border-radius: 8px;
+      padding: 1rem;
+      background: #f8f9fa;
+    }
+    
+    .bank-card h3 { margin: 0 0 0.5rem 0; color: #495057; }
+    .bank-card small { color: #6c757d; }
+    
+    .button {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 1rem;
+      margin: 0.25rem;
+      transition: transform 0.2s;
+    }
+    
+    .button:hover { transform: translateY(-1px); }
+    .button:disabled { 
+      background: #6c757d; 
+      cursor: not-allowed;
+      transform: none;
+    }
+    
+    .button.secondary {
+      background: #6c757d;
+    }
+    
+    .button.danger {
+      background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+    }
+    
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    
+    .summary-card {
+      background: #f8f9fa;
+      padding: 1.5rem;
+      border-radius: 8px;
+      text-align: center;
+      border-left: 4px solid #667eea;
+    }
+    
+    .summary-card.income { border-left-color: #51cf66; }
+    .summary-card.spending { border-left-color: #ff6b6b; }
+    
+    .summary-card h3 { margin: 0; color: #495057; font-size: 0.9rem; }
+    .summary-card .amount { font-size: 1.8rem; font-weight: bold; margin: 0.5rem 0; }
+    
+    table { 
+      border-collapse: collapse; 
+      width: 100%; 
+      margin-top: 1rem;
+    }
+    
+    th, td { 
+      padding: 0.75rem; 
+      border: 1px solid #dee2e6; 
+      text-align: left;
+    }
+    
+    th { 
+      background-color: #f8f9fa; 
+      font-weight: 600;
+      color: #495057;
+    }
+    
+    tr:nth-child(even) { background-color: #f8f9fa; }
+    
+    .status-indicator {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-right: 0.5rem;
+    }
+    
+    .status-indicator.healthy { background-color: #51cf66; }
+    .status-indicator.unhealthy { background-color: #ff6b6b; }
+    
+    .loading {
+      text-align: center;
+      padding: 2rem;
+      color: #6c757d;
+    }
+    
+    .error {
+      background-color: #fee;
+      border: 1px solid #fcc;
+      color: #c33;
+      padding: 1rem;
+      border-radius: 6px;
+      margin: 1rem 0;
+    }
   </style>
 </head>
 <body>
-  <h1>FinTracker Dashboard</h1>
-  <button id="connect-bank">Connect your bank</button>
-  <button id="load-transactions" disabled>Load Transactions</button>
+  <div class="container">
+    <div class="header">
+      <h1>💰 MoneyMosaic</h1>
+      <p>Your Personal Finance Dashboard - Track all your banks in one place</p>
+    </div>
 
-  <div id="transactions"></div>
+    <div class="section">
+      <h2>🏦 Connected Banks</h2>
+      <div id="connected-banks">
+        <div class="loading">Loading connected banks...</div>
+      </div>
+      
+      <button id="connect-bank" class="button">+ Connect New Bank</button>
+      <button id="sync-all" class="button secondary">🔄 Sync All</button>
+      <button id="health-check" class="button secondary">🏥 Health Check</button>
+    </div>
+
+    <div class="section">
+      <h2>📊 Financial Summary</h2>
+      <div id="summary">
+        <div class="loading">Click "Load Transactions" to see your summary</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>💳 Recent Transactions</h2>
+      <button id="load-transactions" class="button">Load Transactions (Last 30 days)</button>
+      <div id="transactions"></div>
+    </div>
+  </div>
 
   <script>
-    let accessToken = null;
+    let connectedBanks = [];
+
+    // Load connected banks on page load
+    window.addEventListener('load', loadConnectedBanks);
 
     async function createLinkToken() {
       const res = await fetch('/api/create_link_token', { method: 'POST' });
       return (await res.json()).link_token;
     }
 
-    async function onSuccess(public_token) {
-      const res = await fetch('/api/exchange_public_token', {
-        method: 'POST',
-        headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ public_token })
-      });
-      const json = await res.json();
-      accessToken = json.access_token;
-      document.getElementById('load-transactions').disabled = false;
-      alert('Bank connected!');
+    async function onSuccess(public_token, metadata) {
+      try {
+        const res = await fetch('/api/exchange_public_token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ public_token, institution: metadata.institution })
+        });
+        
+        if (res.ok) {
+          alert(`✅ Successfully connected ${metadata.institution.name}!`);
+          loadConnectedBanks(); // Refresh the banks list
+        } else {
+          throw new Error('Failed to connect bank');
+        }
+      } catch (error) {
+        alert('❌ Failed to connect bank. Please try again.');
+        console.error('Connection error:', error);
+      }
     }
 
     document.getElementById('connect-bank').onclick = async () => {
-      const token = await createLinkToken();
-      const handler = Plaid.create({ token, onSuccess, onExit:console.error });
-      handler.open();
+      try {
+        const token = await createLinkToken();
+        const handler = Plaid.create({
+          token,
+          onSuccess,
+          onExit: (err, metadata) => {
+            if (err) console.error('Plaid Link error:', err);
+          }
+        });
+        handler.open();
+      } catch (error) {
+        alert('❌ Failed to initialize bank connection. Please try again.');
+        console.error('Link token error:', error);
+      }
+    };
+
+    async function loadConnectedBanks() {
+      try {
+        const res = await fetch('/api/connected_banks');
+        const data = await res.json();
+        connectedBanks = data.banks || [];
+        displayConnectedBanks();
+      } catch (error) {
+        document.getElementById('connected-banks').innerHTML = 
+          '<div class="error">Failed to load connected banks</div>';
+      }
+    }
+
+    function displayConnectedBanks() {
+      const container = document.getElementById('connected-banks');
+      
+      if (connectedBanks.length === 0) {
+        container.innerHTML = '<p>No banks connected yet. Click "Connect New Bank" to get started!</p>';
+        return;
+      }
+
+      const banksHTML = connectedBanks.map(bank => `
+        <div class="bank-card">
+          <h3>${bank.name}</h3>
+          <small>Connected: ${new Date(bank.created_at).toLocaleDateString()}</small><br>
+          <small>Last updated: ${new Date(bank.updated_at).toLocaleDateString()}</small>
+          <div style="margin-top: 0.5rem;">
+            <button class="button danger" onclick="removeBank(${bank.id})">Remove</button>
+          </div>
+        </div>
+      `).join('');
+
+      container.innerHTML = `<div class="bank-grid">${banksHTML}</div>`;
+    }
+
+    async function removeBank(institutionId) {
+      if (!confirm('Are you sure you want to remove this bank connection?')) return;
+      
+      try {
+        const res = await fetch(`/api/banks/${institutionId}`, { method: 'DELETE' });
+        if (res.ok) {
+          alert('✅ Bank connection removed');
+          loadConnectedBanks();
+        } else {
+          throw new Error('Failed to remove bank');
+        }
+      } catch (error) {
+        alert('❌ Failed to remove bank connection');
+        console.error('Remove bank error:', error);
+      }
+    }
+
+    document.getElementById('sync-all').onclick = async () => {
+      const button = document.getElementById('sync-all');
+      button.disabled = true;
+      button.textContent = '🔄 Syncing...';
+      
+      try {
+        const res = await fetch('/api/sync', { method: 'POST' });
+        if (res.ok) {
+          alert('✅ All transactions synced successfully!');
+        } else {
+          throw new Error('Sync failed');
+        }
+      } catch (error) {
+        alert('❌ Failed to sync transactions');
+        console.error('Sync error:', error);
+      } finally {
+        button.disabled = false;
+        button.textContent = '🔄 Sync All';
+      }
+    };
+
+    document.getElementById('health-check').onclick = async () => {
+      try {
+        const res = await fetch('/api/health_check');
+        const health = await res.json();
+        
+        let message = '';
+        if (health.healthy.length > 0) {
+          message += `✅ Healthy: ${health.healthy.join(', ')}\n`;
+        }
+        if (health.unhealthy.length > 0) {
+          message += `❌ Issues: ${health.unhealthy.map(h => `${h.name} (${h.error})`).join(', ')}`;
+        }
+        
+        alert(message || 'No banks connected');
+      } catch (error) {
+        alert('❌ Failed to check health');
+        console.error('Health check error:', error);
+      }
     };
 
     document.getElementById('load-transactions').onclick = async () => {
-      const res = await fetch('/api/fetch_transactions', {
-        method: 'POST',
-        headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ access_token: accessToken, days: 30 })
-      });
-      const { transactions, summary } = await res.json();
+      if (connectedBanks.length === 0) {
+        alert('Please connect at least one bank first!');
+        return;
+      }
 
-      // Render summary
+      const button = document.getElementById('load-transactions');
+      button.disabled = true;
+      button.textContent = 'Loading...';
+
+      try {
+        const res = await fetch('/api/fetch_transactions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ days: 30 })
+        });
+        
+        const { transactions, summary } = await res.json();
+        displaySummary(summary);
+        displayTransactions(transactions);
+      } catch (error) {
+        document.getElementById('transactions').innerHTML = 
+          '<div class="error">Failed to load transactions</div>';
+        console.error('Load transactions error:', error);
+      } finally {
+        button.disabled = false;
+        button.textContent = 'Load Transactions (Last 30 days)';
+      }
+    };
+
+    function displaySummary(summary) {
+      const summaryDiv = document.getElementById('summary');
+      
+      summaryDiv.innerHTML = `
+        <div class="summary-grid">
+          <div class="summary-card spending">
+            <h3>Total Spending</h3>
+            <div class="amount">$${summary.totalSpending.toFixed(2)}</div>
+          </div>
+          <div class="summary-card income">
+            <h3>Total Income</h3>
+            <div class="amount">$${summary.totalIncome.toFixed(2)}</div>
+          </div>
+          <div class="summary-card">
+            <h3>Net</h3>
+            <div class="amount">$${(summary.totalIncome - summary.totalSpending).toFixed(2)}</div>
+          </div>
+        </div>
+        
+        <h3>By Category</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.5rem;">
+          ${Object.entries(summary.byCategory).map(([cat, amount]) => `
+            <div style="background: #f8f9fa; padding: 0.5rem; border-radius: 4px;">
+              <strong>${cat}:</strong> $${amount.toFixed(2)}
+            </div>
+          `).join('')}
+        </div>
+
+        <h3>By Institution</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.5rem;">
+          ${Object.entries(summary.byInstitution).map(([inst, amount]) => `
+            <div style="background: #f8f9fa; padding: 0.5rem; border-radius: 4px;">
+              <strong>${inst}:</strong> $${amount.toFixed(2)}
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+
+    function displayTransactions(transactions) {
       const txDiv = document.getElementById('transactions');
+
+      if (transactions.length === 0) {
+        txDiv.innerHTML = '<p>No transactions found for the selected period.</p>';
+        return;
+      }
+
       txDiv.innerHTML = `
-        <h2>Summary</h2>
-        <p>Spending: \$${summary.totals.spending.toFixed(2)}</p>
-        <p>Income: \$${summary.totals.income.toFixed(2)}</p>
-        <h2>Transactions (last 30 days)</h2>
+        <p><strong>${transactions.length}</strong> transactions found</p>
         <table>
-          <thead><tr>
-            <th>Date</th><th>Name</th><th>Amount</th><th>Type</th><th>Category</th>
-          </tr></thead>
+          <thead>
+            <tr>
+              <th>Bank</th><th>Account</th><th>Date</th><th>Description</th>
+              <th>Amount</th><th>Type</th><th>Category</th>
+            </tr>
+          </thead>
           <tbody>
             ${transactions.map(tx => `
               <tr>
+                <td>${tx.institution_name}</td>
+                <td>${tx.account_name}</td>
                 <td>${tx.date}</td>
                 <td>${tx.name}</td>
-                <td>${tx.amount.toFixed(2)}</td>
+                <td style="color: ${tx.type === 'spending' ? '#ff6b6b' : '#51cf66'}">
+                  ${tx.type === 'spending' ? '-' : '+'}$${Math.abs(tx.amount).toFixed(2)}
+                </td>
                 <td>${tx.type}</td>
-                <td>${tx.category}</td>
+                <td>${tx.category_primary || 'Uncategorized'}</td>
               </tr>
             `).join('')}
           </tbody>
         </table>
       `;
-    };
+    }
   </script>
 </body>
 </html>
