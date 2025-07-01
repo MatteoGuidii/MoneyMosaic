@@ -12,6 +12,9 @@ This guide covers the comprehensive testing setup for MoneyMosaic, including uni
 - [Postman API Testing](#postman-api-testing)
 - [Test Coverage](#test-coverage)
 - [Best Practices](#best-practices)
+- [Continuous Integration](#continuous-integration)
+- [Debugging Tests](#debugging-tests)
+- [Contributing](#contributing)
 
 ## Testing Framework
 

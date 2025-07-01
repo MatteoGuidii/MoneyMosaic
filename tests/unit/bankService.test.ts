@@ -21,7 +21,7 @@ describe('BankService', () => {
 
   beforeEach(async () => {
     // Create a unique test database for each test
-    testDbPath = global.getUniqueTestDbPath();
+    testDbPath = (global as any).getUniqueTestDbPath();
     
     // Clean up test database
     if (fs.existsSync(testDbPath)) {

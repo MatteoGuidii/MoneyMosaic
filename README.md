@@ -12,9 +12,23 @@ A comprehensive personal finance dashboard that lets you connect multiple banks 
 - [📈 Advanced Usage](#-advanced-usage)
 - [🔒 Security Considerations](#-security-considerations)
 - [🛠️ Development](#️-development)
+- [🧪 Testing](#-testing)
 - [❓ Troubleshooting](#-troubleshooting)
 - [📋 Plaid API Answers](#-plaid-api-answers)
 - [🎯 Next Steps](#-next-steps)
+
+## 🧪 Test Coverage
+
+- ✅ **Unit Tests**: Database, BankService, SchedulerService, PlaidClient
+- ✅ **Integration Tests**: Complete API endpoint coverage
+- ✅ **Comprehensive Coverage**: All core functionality tested
+- ✅ **Clean Execution**: No memory leaks, proper resource cleanup
+- ✅ **Fast Performance**: Quick test execution
+
+### Testing Documentation
+
+- 📖 **Complete Testing Guide**: [`tests/README.md`](tests/README.md) - Comprehensive testing setup, framework details, and best practices
+- 🧪 **API Testing**: [`_postman_/`](_postman_/) - Postman collection for manual validation
 
 ## ⚡ Quick Start
 
@@ -226,6 +240,33 @@ npm start
 - Add routes in `/routes` directory
 - Update frontend in `public/index.html`
 - Database schema updates in `database.ts`
+
+## 🧪 Testing
+
+MoneyMosaic includes a comprehensive automated testing suite with complete test coverage.
+
+### Quick Test Commands
+
+```bash
+# Run all tests
+npm test
+
+# Run tests with coverage
+npm run test:coverage
+
+# Run specific test file
+npm test -- bankService.test.ts
+```
+
+### Test Coverage
+
+- ✅ **Unit Tests**: Database, BankService, SchedulerService, PlaidClient
+- ✅ **Integration Tests**: Complete API endpoint coverage
+- ✅ **Comprehensive Coverage**: All core functionality tested
+- ✅ **Clean Execution**: No memory leaks, proper resource cleanup
+- ✅ **Fast Performance**: Quick test execution
+
+The testing infrastructure provides confidence in code changes and enables safe refactoring and feature development.
 
 ## ❓ Troubleshooting
 

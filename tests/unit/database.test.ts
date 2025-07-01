@@ -8,7 +8,7 @@ describe('Database', () => {
 
   beforeEach(async () => {
     // Create a unique test database for each test
-    testDbPath = global.getUniqueTestDbPath();
+    testDbPath = (global as any).getUniqueTestDbPath();
     
     // Remove test database if it exists
     if (fs.existsSync(testDbPath)) {
