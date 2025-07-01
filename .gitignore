@@ -4,4 +4,9 @@ coverage
 
 .env
 
+# Database files contain sensitive financial data
+data/*.db
+data/*.sqlite
+data/*.sqlite3
+
 *.png

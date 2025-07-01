@@ -34,16 +34,16 @@ describe('Database', () => {
       const institution = {
         institution_id: 'test_institution_id',
         name: 'Test Bank',
-        access_token: 'test_access_token',
+        access_token: 'access-sandbox-test-institution-token',
         item_id: 'test_item_id'
       };
 
       await database.saveInstitution(institution);
-      const retrieved = await database.getInstitutionByAccessToken('test_access_token');
+      const retrieved = await database.getInstitutionByAccessToken('access-sandbox-test-institution-token');
 
       expect(retrieved).toBeDefined();
       expect(retrieved?.name).toBe('Test Bank');
-      expect(retrieved?.access_token).toBe('test_access_token');
+      expect(retrieved?.access_token).toBe('access-sandbox-test-institution-token');
     });
 
     test('should get all institutions', async () => {
@@ -77,13 +77,13 @@ describe('Database', () => {
       const institution = {
         institution_id: 'test_institution_id',
         name: 'Test Bank',
-        access_token: 'test_access_token',
+        access_token: 'access-sandbox-test-institution-token',
         item_id: 'test_item_id'
       };
       await database.saveInstitution(institution);
 
       // Get the institution ID
-      const savedInstitution = await database.getInstitutionByAccessToken('test_access_token');
+      const savedInstitution = await database.getInstitutionByAccessToken('access-sandbox-test-institution-token');
       
       const account = {
         account_id: 'test_account_id',
@@ -109,11 +109,11 @@ describe('Database', () => {
       const institution = {
         institution_id: 'test_institution_id',
         name: 'Test Bank',
-        access_token: 'test_access_token',
+        access_token: 'access-sandbox-test-institution-token',
         item_id: 'test_item_id'
       };
       await database.saveInstitution(institution);
-      const savedInstitution = await database.getInstitutionByAccessToken('test_access_token');
+      const savedInstitution = await database.getInstitutionByAccessToken('access-sandbox-test-institution-token');
 
       const account = {
         account_id: 'test_account_id',
@@ -152,11 +152,11 @@ describe('Database', () => {
       const institution = {
         institution_id: 'test_institution_id',
         name: 'Test Bank',
-        access_token: 'test_access_token',
+        access_token: 'access-sandbox-test-institution-token',
         item_id: 'test_item_id'
       };
       await database.saveInstitution(institution);
-      const savedInstitution = await database.getInstitutionByAccessToken('test_access_token');
+      const savedInstitution = await database.getInstitutionByAccessToken('access-sandbox-test-institution-token');
 
       const account = {
         account_id: 'test_account_id',

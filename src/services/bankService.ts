@@ -77,14 +77,30 @@ export class BankService {
       // Fetch transactions from each institution
       for (const institution of institutions) {
         try {
+          // Validate access token format before making API call
+          if (!this.isValidAccessToken(institution.access_token)) {
+            console.error(`❌ Invalid access token format for ${institution.name} (ID: ${institution.id}). Skipping...`);
+            console.error(`   Expected format: access-<environment>-<identifier>`);
+            console.error(`   Actual token: ${institution.access_token}`);
+            continue;
+          }
+
           const bankTransactions = await this.fetchTransactionsForBank(
             institution.access_token,
             institution.id,
             days
           );
           allTransactions.push(...bankTransactions);
-        } catch (error) {
-          console.error(`Failed to fetch transactions for ${institution.name}:`, error);
+        } catch (error: any) {
+          console.error(`Error fetching transactions for institution ${institution.id}:`, error);
+          
+          // Provide more detailed error information
+          if (error.response?.data?.error_code === 'INVALID_ACCESS_TOKEN') {
+            console.error(`❌ Invalid access token for ${institution.name}. This institution may need to be reconnected.`);
+          } else if (error.response?.data?.error_code) {
+            console.error(`❌ Plaid API error for ${institution.name}: ${error.response.data.error_code} - ${error.response.data.error_message}`);
+          }
+          
           // Continue with other banks even if one fails
         }
       }
@@ -201,6 +217,13 @@ export class BankService {
     }
 
     return { healthy, unhealthy };
+  }
+
+  // Validate access token format
+  private isValidAccessToken(token: string): boolean {
+    return token.startsWith('access-sandbox-') || 
+           token.startsWith('access-development-') || 
+           token.startsWith('access-production-');
   }
 }
 

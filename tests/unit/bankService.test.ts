@@ -128,11 +128,11 @@ describe('BankService', () => {
       await testDatabase.saveInstitution({
         institution_id: 'test_institution_id',
         name: 'Test Bank',
-        access_token: 'test_access_token',
+        access_token: 'access-sandbox-test-institution-token',
         item_id: 'test_item_id',
       });
 
-      const savedInstitution = await testDatabase.getInstitutionByAccessToken('test_access_token');
+      const savedInstitution = await testDatabase.getInstitutionByAccessToken('access-sandbox-test-institution-token');
       
       await testDatabase.saveAccount({
         account_id: 'test_account_id',
