@@ -56,7 +56,7 @@ const FilterBar: React.FC<FilterBarProps> = ({
           <select
             value={selectedDateRange}
             onChange={(e) => onDateRangeChange(e.target.value)}
-            className="bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            className="bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-navy-500 focus:border-transparent"
           >
             {dateRanges.map(range => (
               <option key={range.value} value={range.value}>
@@ -74,7 +74,7 @@ const FilterBar: React.FC<FilterBarProps> = ({
             placeholder="Search transactions..."
             value={searchTerm}
             onChange={handleSearchChange}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 focus:ring-2 focus:ring-navy-500 focus:border-transparent"
           />
         </div>
 
@@ -87,7 +87,7 @@ const FilterBar: React.FC<FilterBarProps> = ({
             <Filter className="w-5 h-5" />
             <span>Categories</span>
             {selectedCategories.length > 0 && (
-              <span className="bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 px-2 py-1 rounded-full text-xs">
+              <span className="bg-navy-100 dark:bg-navy-900 text-navy-800 dark:text-navy-200 px-2 py-1 rounded-full text-xs">
                 {selectedCategories.length}
               </span>
             )}
@@ -113,7 +113,7 @@ const FilterBar: React.FC<FilterBarProps> = ({
                         type="checkbox"
                         checked={selectedCategories.includes(category)}
                         onChange={() => handleCategoryToggle(category)}
-                        className="w-4 h-4 text-purple-600 border-gray-300 dark:border-gray-600 rounded focus:ring-purple-500"
+                        className="w-4 h-4 text-navy-600 border-gray-300 dark:border-gray-600 rounded focus:ring-navy-500"
                       />
                       <span className="text-sm text-gray-700 dark:text-gray-300">{category}</span>
                     </label>
@@ -123,7 +123,7 @@ const FilterBar: React.FC<FilterBarProps> = ({
                 {selectedCategories.length > 0 && (
                   <button
                     onClick={clearFilters}
-                    className="w-full mt-3 px-3 py-2 text-sm text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg transition-colors"
+                    className="w-full mt-3 px-3 py-2 text-sm text-navy-600 dark:text-navy-400 hover:bg-navy-50 dark:hover:bg-navy-900/20 rounded-lg transition-colors"
                   >
                     Clear All Filters
                   </button>
@@ -140,12 +140,12 @@ const FilterBar: React.FC<FilterBarProps> = ({
           {selectedCategories.map(category => (
             <span
               key={category}
-              className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200"
+              className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-navy-100 dark:bg-navy-900 text-navy-800 dark:text-navy-200"
             >
               {category}
               <button
                 onClick={() => handleCategoryToggle(category)}
-                className="ml-2 text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-200"
+                className="ml-2 text-navy-600 dark:text-navy-400 hover:text-navy-800 dark:hover:text-navy-200"
               >
                 <X className="w-4 h-4" />
               </button>

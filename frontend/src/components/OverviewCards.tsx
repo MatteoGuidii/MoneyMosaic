@@ -32,29 +32,29 @@ const OverviewCards: React.FC<OverviewCardsProps> = ({ data }) => {
       title: 'Total Cash Balance',
       value: formatCurrency(data.totalCashBalance),
       icon: DollarSign,
-      color: 'text-green-600',
-      bgColor: 'bg-green-50 dark:bg-green-900/20'
+      color: 'text-success-600',
+      bgColor: 'bg-success-50 dark:bg-success-900/20'
     },
     {
       title: 'Total Portfolio Value',
       value: formatCurrency(data.totalPortfolioValue),
       icon: TrendingUp,
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-50 dark:bg-blue-900/20'
+      color: 'text-navy-600',
+      bgColor: 'bg-navy-50 dark:bg-navy-900/20'
     },
     {
       title: 'Net Worth',
       value: formatCurrency(data.netWorth),
       icon: Wallet,
-      color: 'text-purple-600',
-      bgColor: 'bg-purple-50 dark:bg-purple-900/20'
+      color: 'text-teal-600',
+      bgColor: 'bg-teal-50 dark:bg-teal-900/20'
     },
     {
       title: "Today's Net Flow",
       value: formatCurrency(data.todayNetFlow),
       icon: ArrowUpDown,
-      color: data.todayNetFlow >= 0 ? 'text-green-600' : 'text-red-600',
-      bgColor: data.todayNetFlow >= 0 ? 'bg-green-50 dark:bg-green-900/20' : 'bg-red-50 dark:bg-red-900/20'
+      color: data.todayNetFlow >= 0 ? 'text-success-600' : 'text-danger-600',
+      bgColor: data.todayNetFlow >= 0 ? 'bg-success-50 dark:bg-success-900/20' : 'bg-danger-50 dark:bg-danger-900/20'
     }
   ]
 

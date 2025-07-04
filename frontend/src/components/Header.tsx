@@ -6,7 +6,7 @@ const Header: React.FC = () => {
   const { isDarkMode, toggleDarkMode } = useTheme()
 
   return (
-    <header className="bg-gradient-to-r from-purple-600 to-purple-800 text-white shadow-lg">
+    <header className="bg-gradient-to-r from-navy-700 to-navy-900 text-white shadow-lg">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo and Title */}
@@ -14,14 +14,14 @@ const Header: React.FC = () => {
             <div className="text-2xl">💰</div>
             <div>
               <h1 className="text-xl font-bold">MoneyMosaic</h1>
-              <p className="text-sm text-purple-100">Personal Finance Dashboard</p>
+              <p className="text-sm text-navy-100">Personal Finance Dashboard</p>
             </div>
           </div>
 
           {/* Dark Mode Toggle */}
           <button
             onClick={toggleDarkMode}
-            className="p-2 rounded-lg hover:bg-purple-700 transition-colors"
+            className="p-2 rounded-lg hover:bg-navy-600 transition-colors"
             title={isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
           >
             {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
