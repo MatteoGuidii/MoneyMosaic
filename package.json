@@ -4,14 +4,17 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && npm run build:frontend",
+    "build:frontend": "cd frontend && npm run build",
     "start": "node dist/server.js",
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
+    "dev:frontend": "cd frontend && npm start",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "test:unit": "jest tests/unit",
-    "test:integration": "jest tests/integration"
+    "test:integration": "jest tests/integration",
+    "postinstall": "cd frontend && npm install"
   },
   "keywords": [],
   "author": "",

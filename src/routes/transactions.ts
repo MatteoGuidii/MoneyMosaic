@@ -6,7 +6,7 @@ import { database } from '../database';
 const router = Router();
 
 // Fetch transactions for all connected banks
-router.post('/fetch_transactions', async (req, res) => {
+router.post('/fetch', async (req, res) => {
   try {
     const { days = 30 } = req.body;
     const result = await bankService.fetchAllTransactions(days);

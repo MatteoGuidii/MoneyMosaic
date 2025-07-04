@@ -1,12 +1,170 @@
-node_modules
-dist
-coverage
+# Dependencies
+node_modules/
+*/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
 
+# Build outputs
+dist/
+build/
+*/dist/
+*/build/
+
+# Environment variables (contains sensitive API keys)
 .env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 
-# Database files contain sensitive financial data
+# Database files (contain sensitive financial data)
 data/*.db
 data/*.sqlite
 data/*.sqlite3
+data/*.db-journal
+*.db
+*.sqlite
+*.sqlite3
 
-*.png
+# Test coverage reports
+coverage/
+.nyc_output/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Optional stylelint cache
+.stylelintcache
+
+# Microbundle cache
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# parcel-bundler cache (https://parceljs.org/)
+.cache
+.parcel-cache
+
+# Next.js build output
+.next
+
+# Nuxt.js build / generate output
+.nuxt
+dist
+
+# Storybook build outputs
+.out
+.storybook-out
+
+# Temporary folders
+tmp/
+temp/
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# TypeScript cache
+*.tsbuildinfo
+
+# Optional cache directories
+.cache/
+.parcel-cache/
+
+# Backup files
+*.backup
+*.bak
+*.tmp
+
+# Security and sensitive files
+*.pem
+*.key
+*.cert
+*.crt
+*.p12
+*.pfx
+
+# Financial data exports (if any)
+exports/
+backups/
+*.csv
+*.xlsx
+*.json.bak
+
+# Test database files
+test.db
+test.sqlite
+*test*.db
+
+# MacOS specific
+.AppleDouble
+.LSOverride
+Icon
+
+# Windows specific
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux specific
+.fuse_hidden*
+.directory
+.Trash-*
+
+# Temporary files created by most editors
+*~
+.#*
+\#*#
+.*.swp
+.*.swo

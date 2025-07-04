@@ -72,7 +72,24 @@ export class BankService {
   }> {
     try {
       const institutions = await this.database.getInstitutions();
+      
+      // If no institutions are connected, return empty results
+      if (institutions.length === 0) {
+        console.log('📭 No banks connected. Returning empty transaction data.');
+        return {
+          transactions: [],
+          summary: {
+            totalExpenses: 0,
+            totalIncome: 0,
+            netCashFlow: 0,
+            transactionCount: 0
+          }
+        };
+      }
+
       const allTransactions: any[] = [];
+
+      console.log(`🏦 Fetching transactions from ${institutions.length} connected bank(s)...`);
 
       // Fetch transactions from each institution
       for (const institution of institutions) {
@@ -143,7 +160,7 @@ export class BankService {
 
       // Save transactions to database
       for (const tx of txns) {
-        const type = tx.amount > 0 ? 'spending' : 'income';
+        const type = tx.amount > 0 ? 'expense' : 'income';
         
         let category: string;
         const pfc = tx.personal_finance_category;
@@ -189,10 +206,46 @@ export class BankService {
 
   // Remove a bank connection
   async removeBankConnection(institution_id: number): Promise<void> {
-    await this.database.run(
-      'UPDATE institutions SET is_active = 0 WHERE id = ?',
-      [institution_id]
-    );
+    try {
+      // Start a transaction to ensure all deletions happen atomically
+      await this.database.run('BEGIN TRANSACTION');
+      
+      // First, get all accounts for this institution
+      const accounts = await this.database.all(
+        'SELECT account_id FROM accounts WHERE institution_id = ?',
+        [institution_id]
+      );
+      
+      // Delete all transactions for accounts belonging to this institution
+      for (const account of accounts) {
+        await this.database.run(
+          'DELETE FROM transactions WHERE account_id = ?',
+          [account.account_id]
+        );
+      }
+      
+      // Delete all accounts for this institution
+      await this.database.run(
+        'DELETE FROM accounts WHERE institution_id = ?',
+        [institution_id]
+      );
+      
+      // Finally, delete the institution itself
+      await this.database.run(
+        'DELETE FROM institutions WHERE id = ?',
+        [institution_id]
+      );
+      
+      // Commit the transaction
+      await this.database.run('COMMIT');
+      
+      console.log(`✅ Successfully removed bank connection and all associated data for institution ${institution_id}`);
+    } catch (error) {
+      // Rollback on error
+      await this.database.run('ROLLBACK');
+      console.error('Error removing bank connection:', error);
+      throw error;
+    }
   }
 
   // Health check for all connections

@@ -1,125 +1,62 @@
 # 💰 MoneyMosaic - Personal Finance Dashboard
 
-A comprehensive personal finance dashboard that lets you connect multiple banks and track all your finances in one place using the Plaid API.
+A comprehensive personal finance dashboard that connects multiple banks and tracks all your finances in one place using the Plaid API.
 
-## 📋 Table of Contents
-
-- [✨ Features](#-features)
-- [🚀 Getting Started](#-getting-started)
-- [🏗️ Architecture](#️-architecture)
-- [🔧 API Endpoints](#-api-endpoints)
-- [⚙️ Configuration](#️-configuration)
-- [📈 Advanced Usage](#-advanced-usage)
-- [🔒 Security Considerations](#-security-considerations)
-- [🛠️ Development](#️-development)
-- [🧪 Testing](#-testing)
-- [❓ Troubleshooting](#-troubleshooting)
-- [📋 Plaid API Answers](#-plaid-api-answers)
-- [🎯 Next Steps](#-next-steps)
-
-## 🧪 Test Coverage
-
-- ✅ **Unit Tests**: Database, BankService, SchedulerService, PlaidClient
-- ✅ **Integration Tests**: Complete API endpoint coverage
-- ✅ **Comprehensive Coverage**: All core functionality tested
-- ✅ **Clean Execution**: No memory leaks, proper resource cleanup
-- ✅ **Fast Performance**: Quick test execution
-
-### Testing Documentation
-
-- 📖 **Complete Testing Guide**: [`tests/README.md`](tests/README.md) - Comprehensive testing setup, framework details, and best practices
-- 🧪 **API Testing**: [`_postman_/`](_postman_/) - Postman collection for manual validation
-
-## ⚡ Quick Start
-
-```bash
-# 1. Make script executable (first time only)
-chmod +x quick-start.sh
-
-# 2. Get your project running in 30 seconds
-./quick-start.sh
-
-# 3. Start the server
-npm run dev
-
-# 4. Open http://localhost:3000 (or your configured PORT)
-```
-
-**First time setup:** Get your free Plaid API keys at [dashboard.plaid.com](https://dashboard.plaid.com/)
+![MoneyMosaic Dashboard](https://img.shields.io/badge/Status-Production%20Ready-brightgreen)
+![TypeScript](https://img.shields.io/badge/TypeScript-100%25-blue)
+![Test Coverage](https://img.shields.io/badge/Test%20Coverage-70%25+-brightgreen)
 
 ## ✨ Features
 
-### 🏦 Multi-Bank Support
+- **Multi-Bank Support**: Connect unlimited bank accounts from different institutions
+- **Real-time Sync**: Automatic transaction syncing every 6 hours with manual sync option
+- **Financial Insights**: Comprehensive spending analysis with interactive charts
+- **Modern Interface**: Responsive React frontend with dark/light mode
+- **Secure Storage**: Local SQLite database with transaction deduplication
+- **Connection Health**: Automatic monitoring and error handling
 
-- Connect unlimited bank accounts from different institutions
-- Persistent connections that don't expire
-- Real-time balance and transaction syncing
-- Connection health monitoring
-
-### 📊 Financial Insights
-
-- Comprehensive spending and income analysis
-- Category-wise transaction breakdown
-- Institution-wise financial summary
-- Historical transaction data with SQLite storage
-
-### 🔄 Automated Data Sync
-
-- Background jobs to sync transactions every 6-12 hours
-- Manual sync option for immediate updates
-- Automatic connection health checks
-- Graceful error handling for failed connections
-
-### 💾 Data Persistence
-
-- SQLite database for reliable local storage
-- Transaction deduplication
-- Account and institution management
-- Historical data retention
-
-## 🚀 Getting Started
-
-### Prerequisites
-
-- Node.js 16+
-- Plaid API account (sandbox for development)
-- TypeScript knowledge
-
-### Installation
-
-1. **Clone and setup:**
+## 🚀 Quick Start
 
 ```bash
-git clone <your-repo>
-cd MoneyMosaic
-npm install
-```
+# 1. Clone and setup
+git clone https://github.com/yourusername/moneymosaic.git
+cd moneymosaic
 
-2. **Environment Configuration:**
-
-```bash
-# Option A: Use the quick-start script (recommended)
-chmod +x quick-start.sh  # First time only
+# 2. Run the quick setup script
+chmod +x quick-start.sh
 ./quick-start.sh
 
-# Option B: Manual setup
-cp .env.example .env
-# Edit .env with your Plaid credentials
-```
+# 3. Add your Plaid credentials to .env file
+# Get free credentials at: https://dashboard.plaid.com/
 
-3. **Required Plaid API Keys:**
-
-   - Get your credentials from [Plaid Dashboard](https://dashboard.plaid.com/)
-   - Set `PLAID_CLIENT_ID` and `PLAID_SECRET` in `.env`
-   - Use `sandbox` environment for development
-
-4. **Start Development Server:**
-
-```bash
+# 4. Start the development server
 npm run dev
+
+# 5. Open http://localhost:3000
 ```
 
-Visit `http://localhost:3000` to access your dashboard (or check your `PORT` in `.env`).
+## 📋 Prerequisites
+
+- **Node.js** 18+ and npm
+- **Plaid Account** (free at [dashboard.plaid.com](https://dashboard.plaid.com/))
+
+## ⚙️ Environment Configuration
+
+Create a `.env` file with your Plaid credentials:
+
+```env
+# Plaid API Configuration
+PLAID_CLIENT_ID=your_plaid_client_id
+PLAID_SECRET=your_plaid_secret_key
+PLAID_ENV=sandbox
+PLAID_REDIRECT_URI=http://localhost:3000/oauth-return
+
+# Server Configuration
+PORT=3000
+
+# Background Job Configuration
+SYNC_INTERVAL_HOURS=6
+```
 
 ## 🏗️ Architecture
 
@@ -136,88 +73,61 @@ src/
 └── routes/
     ├── createLinkToken.ts   # Plaid Link token creation
     ├── exchangeToken.ts     # Token exchange & bank saving
-    ├── transactions.ts      # Transaction endpoints
-    └── sandbox.ts           # Sandbox utilities
+    ├── dashboard.ts         # Dashboard data endpoints
+    └── transactions.ts      # Transaction endpoints
 ```
 
-### Database Schema
+### Frontend Structure
 
-- **institutions**: Connected bank information
-- **accounts**: Bank account details and balances
-- **transactions**: All transaction data with categorization
+```
+frontend/src/
+├── components/          # React components
+│   ├── Dashboard.tsx    # Main dashboard view
+│   ├── BankManagement.tsx # Bank connection management
+│   ├── TransactionsTable.tsx # Transaction display
+│   └── ChartsSection.tsx # Financial charts
+├── services/
+│   └── apiService.ts    # API communication
+└── contexts/
+    └── ThemeContext.tsx # Theme management
+```
 
 ## 🔧 API Endpoints
 
 ### Bank Management
 
+- `POST /api/create_link_token` - Create Plaid Link token
 - `POST /api/exchange_public_token` - Connect new bank
-- `GET /api/connected_banks` - List all connected banks
-- `DELETE /api/banks/:id` - Remove bank connection
-- `GET /api/health_check` - Check connection health
+- `GET /api/management/connected_banks` - List all connected banks
+- `DELETE /api/management/banks/:id` - Remove bank connection
+- `GET /api/management/health_check` - Check connection health
 
-### Transactions
+### Transactions & Data
 
-- `POST /api/fetch_transactions` - Fetch all transactions
-- `POST /api/sync` - Manual sync trigger
-- `GET /api/scheduler_status` - Background job status
+- `GET /api/management/dashboard` - Get dashboard data
+- `POST /api/management/sync` - Manual sync trigger
+- `GET /api/management/transactions` - Get transactions with filters
 
-## ⚙️ Configuration
+## 🧪 Testing
 
-### Environment Variables
+MoneyMosaic includes comprehensive testing with 70%+ coverage:
 
 ```bash
-PLAID_CLIENT_ID=your_client_id
-PLAID_SECRET=your_secret
-PLAID_ENV=sandbox              # sandbox, development, or production
-SYNC_INTERVAL_HOURS=6          # Background sync frequency
-PORT=3000                      # Server port
+# Run all tests
+npm test
+
+# Run with coverage
+npm run test:coverage
+
+# Run specific test
+npm test -- bankService.test.ts
 ```
 
-### Background Jobs
+**Test Coverage:**
 
-- **Transaction Sync**: Runs every 6 hours (configurable)
-- **Health Check**: Daily connection verification
-- **Auto-start**: Jobs start automatically with server
-
-## 📈 Advanced Usage
-
-### Multiple Bank Connections
-
-1. Click "Connect New Bank" for each institution
-2. Complete Plaid Link flow for each bank
-3. All accounts automatically sync in background
-4. View consolidated dashboard with all data
-
-### Data Management
-
-- Transactions automatically deduplicated
-- Historical data preserved across syncs
-- Failed connections marked but not removed
-- Manual sync available for immediate updates
-
-### Monitoring
-
-- Real-time connection health status
-- Transaction sync logs in console
-- Error tracking and recovery
-- Institution-wise performance metrics
-
-## 🔒 Security Considerations
-
-### Production Deployment
-
-- Use `production` Plaid environment
-- Secure access tokens in database
-- Implement user authentication
-- Add HTTPS and secure headers
-- Regular security updates
-
-### Data Privacy
-
-- All data stored locally in SQLite
-- No third-party data sharing
-- User controls all connections
-- Easy data export/deletion
+- ✅ Unit Tests: Database, BankService, SchedulerService, PlaidClient
+- ✅ Integration Tests: Complete API endpoint coverage
+- ✅ Postman Collection: Manual API testing
 
 ## 🛠️ Development
 
@@ -234,43 +144,37 @@ npm start
 - Automatic creation and migration
 - Backup recommended for production
 
-### Adding Features
+## 🔒 Security & Production
 
-- Extend `BankService` for new banking features
-- Add routes in `/routes` directory
-- Update frontend in `public/index.html`
-- Database schema updates in `database.ts`
+### Production Deployment
 
-## 🧪 Testing
+- Use `production` Plaid environment
+- Implement user authentication
+- Add HTTPS and secure headers
+- Regular security updates
 
-MoneyMosaic includes a comprehensive automated testing suite with complete test coverage.
+### Data Privacy
 
-### Quick Test Commands
+- All data stored locally in SQLite
+- No third-party data sharing
+- User controls all connections
+- Easy data export/deletion
 
-```bash
-# Run all tests
-npm test
+## ❓ FAQ
 
-# Run tests with coverage
-npm run test:coverage
+**Can you connect multiple banks?**
+✅ Yes! Connect unlimited banks with persistent connections.
 
-# Run specific test file
-npm test -- bankService.test.ts
-```
+**Do connections expire?**
+✅ Generally no, but banks may revoke access if passwords change or accounts are closed.
 
-### Test Coverage
+**Is data persistent?**
+✅ Yes! All data stored in SQLite with transaction history preserved.
 
-- ✅ **Unit Tests**: Database, BankService, SchedulerService, PlaidClient
-- ✅ **Integration Tests**: Complete API endpoint coverage
-- ✅ **Comprehensive Coverage**: All core functionality tested
-- ✅ **Clean Execution**: No memory leaks, proper resource cleanup
-- ✅ **Fast Performance**: Quick test execution
+**Background sync available?**
+✅ Yes! Automatic sync every 6 hours with manual triggers available.
 
-The testing infrastructure provides confidence in code changes and enables safe refactoring and feature development.
-
-## ❓ Troubleshooting
-
-### Common Issues
+## 📋 Common Issues
 
 **Connection Failures:**
 
@@ -288,46 +192,6 @@ The testing infrastructure provides confidence in code changes and enables safe 
 
 - Ensure write permissions in `data/` directory
 - Check SQLite installation
-- Review database logs
-
-### Support
-
-- Check Plaid API documentation
-- Review console logs for errors
-- Test with sandbox institutions first
-
-## 📋 Plaid API Answers
-
-### Can you connect multiple banks?
-
-✅ **Yes!** You can connect unlimited banks. Each bank gets its own access token stored in the database.
-
-### Do connections expire?
-
-✅ **Generally No!** Plaid access tokens don't have expiration dates, but banks may revoke them if:
-
-- User changes banking passwords
-- Account is closed
-- Extended periods of inactivity
-- User manually revokes app access
-
-### Can you run background jobs?
-
-✅ **Yes!** The app includes:
-
-- Automatic transaction sync every 6-12 hours
-- Daily connection health checks
-- Manual sync triggers
-- Configurable intervals
-
-### Is the data persistent?
-
-✅ **Yes!** All data is stored in SQLite:
-
-- Transaction history preserved
-- Bank connections maintained
-- Account information cached
-- No data loss between restarts
 
 ## 🎯 Next Steps
 
@@ -336,10 +200,9 @@ Consider adding:
 - User authentication system
 - Budget tracking and alerts
 - Investment account support
-- Mobile-responsive design
 - Data export functionality
-- Advanced analytics and charts
+- Advanced analytics
 
 ---
 
-Built with ❤️ using Plaid API, TypeScript, SQLite, and modern web technologies.
+Built with ❤️ using Plaid API, TypeScript, SQLite, React, and modern web technologies.

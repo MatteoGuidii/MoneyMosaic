@@ -35,7 +35,7 @@ EOF
     echo "   - PLAID_CLIENT_ID=your_client_id_here"
     echo "   - PLAID_SECRET=your_secret_here"
     echo ""
-    echo "   Get your credentials from: https://dashboard.plaid.com/"
+    echo "   💡 Get your credentials from: https://dashboard.plaid.com/"
     echo ""
     echo "⏸️  Please edit .env file and run this script again."
     exit 1
@@ -43,9 +43,9 @@ fi
 
 # Check if required environment variables are set
 source .env
-if [ -z "$PLAID_CLIENT_ID" ] || [ -z "$PLAID_SECRET" ]; then
+if [ -z "$PLAID_CLIENT_ID" ] || [ -z "$PLAID_SECRET" ] || [ "$PLAID_CLIENT_ID" = "your_plaid_client_id" ] || [ "$PLAID_SECRET" = "your_plaid_secret_key" ]; then
     echo "❌ Please set PLAID_CLIENT_ID and PLAID_SECRET in your .env file"
-    echo "   Get your credentials from: https://dashboard.plaid.com/"
+    echo "   💡 Get your credentials from: https://dashboard.plaid.com/"
     exit 1
 fi
 
@@ -56,6 +56,10 @@ PORT=${PORT:-3000}
 if [ ! -d "node_modules" ]; then
     echo "📦 Installing dependencies..."
     npm install
+    if [ $? -ne 0 ]; then
+        echo "❌ Failed to install dependencies"
+        exit 1
+    fi
     echo ""
 fi
 
@@ -69,6 +73,10 @@ fi
 # Build the project
 echo "🔨 Building TypeScript..."
 npm run build
+if [ $? -ne 0 ]; then
+    echo "❌ Build failed"
+    exit 1
+fi
 echo ""
 
 echo "✅ Setup complete!"
@@ -82,5 +90,10 @@ echo "💡 Tips:"
 echo "   - Use sandbox environment for testing"
 echo "   - Connect multiple banks for a complete view"
 echo "   - Background sync runs automatically every 6 hours"
-echo "   - Check README.md for more details"
+echo "   - Run 'npm test' to verify everything is working"
+echo ""
+echo "📚 Documentation:"
+echo "   - Main README.md for project overview"
+echo "   - tests/README.md for testing guide"
+echo "   - data/README.md for database info"
 echo ""
