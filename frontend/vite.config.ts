@@ -25,5 +25,23 @@ export default defineConfig({
   build: {
     outDir: '../public/dist',
     emptyOutDir: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // React vendor chunk
+          react: ['react', 'react-dom'],
+          // Router chunk
+          router: ['react-router-dom'],
+          // Charts chunk (likely the largest)
+          charts: ['recharts'],
+          // Icons chunk
+          icons: ['lucide-react'],
+          // Utilities chunk
+          utils: ['date-fns']
+        }
+      }
+    },
+    // Increase chunk size warning limit to 750kb
+    chunkSizeWarningLimit: 750
   }
 })
