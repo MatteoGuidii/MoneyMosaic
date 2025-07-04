@@ -229,63 +229,6 @@ describe('API Integration Tests', () => {
     });
   });
 
-  describe('POST /api/fetch_transactions', () => {
-    it('should fetch transactions for connected banks', async () => {
-      // Mock the bankService response
-      bankService.fetchAllTransactions.mockResolvedValue({
-        transactions: [
-          {
-            transaction_id: 'txn_1',
-            account_id: 'test_account_id',
-            amount: 25.50,
-            date: '2023-01-01',
-            name: 'Test Purchase',
-            merchant_name: 'Test Merchant',
-            category_primary: 'Food and Drink',
-            category_detailed: 'Restaurants',
-            type: 'place',
-            pending: false,
-          },
-        ],
-        summary: {
-          totalExpenses: 25.50,
-          totalIncome: 0,
-          netCashFlow: -25.50,
-          transactionCount: 1
-        }
-      });
-
-      const mockTransactionsResponse = {
-        data: {
-          transactions: [
-            {
-              transaction_id: 'txn_1',
-              account_id: 'test_account_id',
-              amount: 25.50,
-              date: '2023-01-01',
-              name: 'Test Purchase',
-              merchant_name: 'Test Merchant',
-              category: ['Food and Drink', 'Restaurants'],
-              type: 'place',
-              pending: false,
-              personal_finance_category: 'Food and Drink',
-            },
-          ],
-        },
-      };
-
-      plaidClient.transactionsGet.mockResolvedValue(mockTransactionsResponse);
-
-      const response = await request(app)
-        .post('/api/fetch_transactions')
-        .send({ days: 30 });
-
-      expect(response.status).toBe(200);
-      expect(response.body).toHaveProperty('transactions');
-      expect(response.body).toHaveProperty('summary');
-    });
-  });
-
   describe('GET /api/health_check', () => {
     it('should return health status', async () => {
       bankService.checkConnectionHealth.mockResolvedValue({

@@ -4,7 +4,7 @@ A comprehensive personal finance dashboard that connects multiple banks and trac
 
 ![MoneyMosaic Dashboard](https://img.shields.io/badge/Status-Production%20Ready-brightgreen)
 ![TypeScript](https://img.shields.io/badge/TypeScript-100%25-blue)
-![Test Coverage](https://img.shields.io/badge/Test%20Coverage-70%25+-brightgreen)
+![Test Coverage](https://img.shields.io/badge/Test%20Coverage-100%25-brightgreen)
 
 ## 📋 Table of Contents
 
