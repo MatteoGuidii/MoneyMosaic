@@ -24,7 +24,7 @@ PLAID_ENV=sandbox
 PLAID_REDIRECT_URI=http://localhost:3000/oauth-return
 
 # Server Configuration
-PORT=3000
+PORT=8080
 
 # Background Job Configuration
 SYNC_INTERVAL_HOURS=6
@@ -82,9 +82,14 @@ echo ""
 echo "✅ Setup complete!"
 echo ""
 echo "🎯 Next steps:"
-echo "   1. Start development server: npm run dev"
-echo "   2. Open http://localhost:$PORT in your browser"
-echo "   3. Click 'Connect New Bank' to add your first bank"
+echo "   1. Start both servers: npm run dev:both"
+echo "   2. Open http://localhost:3000 in your browser (frontend)"
+echo "   3. Backend API runs on http://localhost:$PORT"
+echo "   4. Click 'Connect New Bank' to add your first bank"
+echo ""
+echo "💡 Alternative startup:"
+echo "   - Backend only: npm run dev"
+echo "   - Frontend only: npm run dev:frontend"
 echo ""
 echo "💡 Tips:"
 echo "   - Use sandbox environment for testing"

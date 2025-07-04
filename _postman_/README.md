@@ -38,8 +38,8 @@ The collection includes comprehensive testing for all backend API endpoints:
 
 1. Import `postman_collection.json` into Postman
 2. Set up environment variables:
-   - `baseUrl`: http://localhost:8080/api
-   - `managementUrl`: http://localhost:8080/api/management
+   - `baseUrl`: http://localhost:3000/api
+   - `managementUrl`: http://localhost:3000/api/management
 3. Run the collection in order, starting with Authentication & Setup
 4. The collection automatically stores tokens from API responses for subsequent requests
 

@@ -41,6 +41,7 @@ const BankManagement: React.FC<BankManagementProps> = ({
   const [checkingHealth, setCheckingHealth] = useState(false)
   const [connectingBank, setConnectingBank] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
   useEffect(() => {
     loadBanks()
@@ -64,7 +65,43 @@ const BankManagement: React.FC<BankManagementProps> = ({
     try {
       const response = await fetch('/api/management/health_check')
       const data = await response.json()
-      setHealthStatuses(Array.isArray(data) ? data : [])
+      
+      // Convert backend response format to frontend format
+      const healthStatuses: HealthStatus[] = []
+      
+      // Add healthy banks
+      if (data.healthy && Array.isArray(data.healthy)) {
+        data.healthy.forEach((bankName: string) => {
+          healthStatuses.push({
+            institution_id: bankName,
+            status: 'healthy',
+            last_check: new Date().toISOString()
+          })
+        })
+      }
+      
+      // Add unhealthy banks
+      if (data.unhealthy && Array.isArray(data.unhealthy)) {
+        data.unhealthy.forEach((bank: { name: string; error: string }) => {
+          healthStatuses.push({
+            institution_id: bank.name,
+            status: 'unhealthy',
+            last_check: new Date().toISOString(),
+            error: bank.error
+          })
+        })
+      }
+      
+      setHealthStatuses(healthStatuses)
+      
+      // Log health check results for debugging
+      console.log('=== Health Check Results ===', {
+        healthy: data.healthy,
+        unhealthy: data.unhealthy,
+        total: healthStatuses.length,
+        timestamp: new Date().toISOString()
+      })
+      console.log('Health check completed at:', new Date().toLocaleTimeString())
     } catch (error) {
       console.error('Error loading health status:', error)
     }
@@ -204,8 +241,30 @@ const BankManagement: React.FC<BankManagementProps> = ({
   const handleHealthCheck = async () => {
     setCheckingHealth(true)
     setError(null)
+    setSuccessMessage(null)
     try {
+      const response = await fetch('/api/management/health_check')
+      const data = await response.json()
+      
+      // Update health status first
       await loadHealthStatus()
+      
+      // Create detailed success message
+      const healthyCount = data.healthy?.length || 0
+      const unhealthyCount = data.unhealthy?.length || 0
+      const total = healthyCount + unhealthyCount
+      
+      let message = `Health check completed! `
+      if (total === 0) {
+        message += 'No banks connected.'
+      } else {
+        message += `${healthyCount} healthy, ${unhealthyCount} unhealthy connection(s).`
+      }
+      
+      setSuccessMessage(message)
+      
+      // Clear success message after 5 seconds
+      setTimeout(() => setSuccessMessage(null), 5000)
     } catch (error) {
       console.error('Error checking health:', error)
       setError('Failed to check connection health')
@@ -242,8 +301,8 @@ const BankManagement: React.FC<BankManagementProps> = ({
     }
   }
 
-  const getHealthStatus = (institutionId: string) => {
-    return healthStatuses.find(status => status.institution_id === institutionId)
+  const getHealthStatus = (bankName: string) => {
+    return healthStatuses.find(status => status.institution_id === bankName)
   }
 
   const formatDate = (dateString: string) => {
@@ -301,6 +360,12 @@ const BankManagement: React.FC<BankManagementProps> = ({
         </div>
       )}
 
+      {successMessage && (
+        <div className="mb-4 p-4 bg-green-100 dark:bg-green-900 border border-green-400 text-green-700 dark:text-green-200 rounded-md">
+          {successMessage}
+        </div>
+      )}
+
       {banks.length === 0 ? (
         <div className="text-center py-8">
           <Building2 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
@@ -316,7 +381,7 @@ const BankManagement: React.FC<BankManagementProps> = ({
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {banks.map((bank) => {
-            const healthStatus = getHealthStatus(bank.institution_id)
+            const healthStatus = getHealthStatus(bank.name)
             const isHealthy = healthStatus?.status === 'healthy'
             
             return (
@@ -362,8 +427,15 @@ const BankManagement: React.FC<BankManagementProps> = ({
                       {healthStatus?.status || 'Unknown'}
                     </span>
                   </div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400">
-                    Last updated: {formatDate(bank.updated_at)}
+                  <div className="text-right">
+                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                      Last updated: {formatDate(bank.updated_at)}
+                    </div>
+                    {healthStatus?.last_check && (
+                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                        Health check: {new Date(healthStatus.last_check).toLocaleTimeString()}
+                      </div>
+                    )}
                   </div>
                 </div>
 

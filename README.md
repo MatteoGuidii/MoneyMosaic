@@ -44,10 +44,23 @@ chmod +x quick-start.sh
 # 3. Add your Plaid credentials to .env file
 # Get free credentials at: https://dashboard.plaid.com/
 
-# 4. Start the development server
+# 4. Start both servers
+npm run dev:both
+
+# 5. Open http://localhost:3000 (frontend)
+# Backend API runs on http://localhost:8080
+```
+
+### Alternative: Manual Startup
+
+If you prefer to run servers separately:
+
+```bash
+# Terminal 1 - Backend (API server)
 npm run dev
 
-# 5. Open http://localhost:3000
+# Terminal 2 - Frontend (React app)
+npm run dev:frontend
 ```
 
 ## 📋 Prerequisites
@@ -67,7 +80,7 @@ PLAID_ENV=sandbox
 PLAID_REDIRECT_URI=http://localhost:3000/oauth-return
 
 # Server Configuration
-PORT=3000
+PORT=8080
 
 # Background Job Configuration
 SYNC_INTERVAL_HOURS=6
@@ -145,6 +158,36 @@ npm test -- bankService.test.ts
 - ✅ Postman Collection: Manual API testing
 
 ## 🛠️ Development
+
+### Development Commands
+
+#### Quick Start
+
+```bash
+npm run dev:both        # Start both backend + frontend
+```
+
+#### Individual Servers
+
+```bash
+npm run dev            # Backend only (port 8080)
+npm run dev:frontend   # Frontend only (port 3000)
+```
+
+#### Build & Production
+
+```bash
+npm run build          # Build both backend + frontend
+npm start              # Start production server
+```
+
+#### Testing
+
+```bash
+npm test               # Run all tests
+npm run test:coverage  # Run with coverage report
+npm run test:watch     # Run in watch mode
+```
 
 ### Building for Production
 
