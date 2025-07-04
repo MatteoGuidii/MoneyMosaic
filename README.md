@@ -6,6 +6,21 @@ A comprehensive personal finance dashboard that connects multiple banks and trac
 ![TypeScript](https://img.shields.io/badge/TypeScript-100%25-blue)
 ![Test Coverage](https://img.shields.io/badge/Test%20Coverage-70%25+-brightgreen)
 
+## 📋 Table of Contents
+
+- [✨ Features](#-features)
+- [🚀 Quick Start](#-quick-start)
+- [📋 Prerequisites](#-prerequisites)
+- [⚙️ Environment Configuration](#️-environment-configuration)
+- [🏗️ Architecture](#️-architecture)
+- [🔧 API Endpoints](#-api-endpoints)
+- [🧪 Testing](#-testing)
+- [🛠️ Development](#️-development)
+- [🔒 Security & Production](#-security--production)
+- [❓ FAQ](#-faq)
+- [📋 Common Issues](#-common-issues)
+- [🎯 Next Steps](#-next-steps)
+
 ## ✨ Features
 
 - **Multi-Bank Support**: Connect unlimited bank accounts from different institutions
