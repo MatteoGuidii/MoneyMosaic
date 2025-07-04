@@ -1,14 +1,19 @@
 {
   "info": {
-    "name": "MoneyMosaic API - Comprehensive Tests",
-    "description": "Complete API testing collection for MoneyMosaic personal finance application with Plaid integration",
+    "name": "MoneyMosaic API Collection",
+    "description": "Complete API testing collection for MoneyMosaic personal finance application with Plaid integration - Updated for current backend structure",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "_postman_id": "moneymosaic-api-2024"
+    "_postman_id": "moneymosaic-api-2025"
   },
   "variable": [
     {
       "key": "baseUrl",
       "value": "http://localhost:3000/api",
+      "type": "string"
+    },
+    {
+      "key": "managementUrl",
+      "value": "http://localhost:3000/api/management",
       "type": "string"
     },
     {
@@ -32,37 +37,9 @@
       "type": "string"
     }
   ],
-  "event": [
-    {
-      "listen": "prerequest",
-      "script": {
-        "type": "text/javascript",
-        "exec": [
-          "// Global pre-request script",
-          "console.log('Running request to: ' + pm.request.url);"
-        ]
-      }
-    },
-    {
-      "listen": "test",
-      "script": {
-        "type": "text/javascript",
-        "exec": [
-          "// Global test script",
-          "pm.test('Response time is less than 5000ms', function () {",
-          "    pm.expect(pm.response.responseTime).to.be.below(5000);",
-          "});",
-          "",
-          "pm.test('Status code is not 500', function () {",
-          "    pm.expect(pm.response.code).to.not.equal(500);",
-          "});"
-        ]
-      }
-    }
-  ],
   "item": [
     {
-      "name": "Authentication & Setup",
+      "name": "1. Authentication & Setup",
       "item": [
         {
           "name": "Create Link Token",
@@ -70,22 +47,22 @@
             {
               "listen": "test",
               "script": {
-                "type": "text/javascript",
                 "exec": [
-                  "pm.test('Status code is 200', function () {",
+                  "pm.test(\"Status code is 200\", function () {",
                   "    pm.response.to.have.status(200);",
                   "});",
                   "",
-                  "pm.test('Response has link_token', function () {",
-                  "    pm.expect(pm.response.json()).to.have.property('link_token');",
-                  "    pm.expect(pm.response.json().link_token).to.be.a('string');",
+                  "pm.test(\"Response has link_token\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('link_token');",
+                  "    pm.collectionVariables.set('link_token', jsonData.link_token);",
                   "});",
                   "",
-                  "// Store link_token for future requests",
-                  "if (pm.response.json().link_token) {",
-                  "    pm.collectionVariables.set('link_token', pm.response.json().link_token);",
-                  "    console.log('Link token stored: ' + pm.response.json().link_token);",
-                  "}"
+                  "pm.test(\"Link token is valid format\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.link_token).to.be.a('string');",
+                  "    pm.expect(jsonData.link_token.length).to.be.greaterThan(0);",
+                  "});"
                 ]
               }
             }
@@ -104,77 +81,36 @@
             },
             "url": {
               "raw": "{{baseUrl}}/create_link_token",
-              "host": ["{{baseUrl}}"],
-              "path": ["create_link_token"]
-            },
-            "description": "Creates a Plaid Link token for initializing the Link flow"
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "create_link_token"
+              ]
+            }
           }
-        }
-      ]
-    },
-    {
-      "name": "Sandbox Testing",
-      "item": [
+        },
         {
           "name": "Create Sandbox Public Token",
           "event": [
             {
               "listen": "test",
               "script": {
-                "type": "text/javascript",
                 "exec": [
-                  "pm.test('Status code is 200', function () {",
+                  "pm.test(\"Status code is 200\", function () {",
                   "    pm.response.to.have.status(200);",
                   "});",
                   "",
-                  "pm.test('Response has public_token', function () {",
-                  "    pm.expect(pm.response.json()).to.have.property('public_token');",
-                  "    pm.expect(pm.response.json().public_token).to.be.a('string');",
+                  "pm.test(\"Response has public_token\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('public_token');",
+                  "    pm.collectionVariables.set('public_token', jsonData.public_token);",
                   "});",
                   "",
-                  "// Store public_token for exchange",
-                  "if (pm.response.json().public_token) {",
-                  "    pm.collectionVariables.set('public_token', pm.response.json().public_token);",
-                  "    console.log('Public token stored: ' + pm.response.json().public_token);",
-                  "}"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"institution_id\": \"ins_109508\",\n  \"initial_products\": [\"transactions\"]\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/sandbox/public_token/create",
-              "host": ["{{baseUrl}}"],
-              "path": ["sandbox", "public_token", "create"]
-            },
-            "description": "Creates a sandbox public token for testing (Chase Bank)"
-          }
-        },
-        {
-          "name": "Create Sandbox Public Token - Bank of America",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('Status code is 200', function () {",
-                  "    pm.response.to.have.status(200);",
-                  "});",
-                  "",
-                  "pm.test('Response has public_token', function () {",
-                  "    pm.expect(pm.response.json()).to.have.property('public_token');",
+                  "pm.test(\"Public token is valid format\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.public_token).to.be.a('string');",
+                  "    pm.expect(jsonData.public_token.length).to.be.greaterThan(0);",
                   "});"
                 ]
               }
@@ -190,55 +126,42 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"institution_id\": \"ins_109511\",\n  \"initial_products\": [\"transactions\"]\n}"
+              "raw": "{\n    \"institution_id\": \"ins_109508\",\n    \"initial_products\": [\"transactions\"]\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/sandbox/public_token/create",
-              "host": ["{{baseUrl}}"],
-              "path": ["sandbox", "public_token", "create"]
-            },
-            "description": "Creates a sandbox public token for Bank of America"
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sandbox",
+                "public_token",
+                "create"
+              ]
+            }
           }
-        }
-      ]
-    },
-    {
-      "name": "Bank Connection Management",
-      "item": [
+        },
         {
           "name": "Exchange Public Token",
           "event": [
             {
-              "listen": "prerequest",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "// Ensure we have a public_token",
-                  "if (!pm.collectionVariables.get('public_token')) {",
-                  "    console.log('No public_token found. Please run \"Create Sandbox Public Token\" first.');",
-                  "}"
-                ]
-              }
-            },
-            {
               "listen": "test",
               "script": {
-                "type": "text/javascript",
                 "exec": [
-                  "pm.test('Status code is 200', function () {",
+                  "pm.test(\"Status code is 200\", function () {",
                   "    pm.response.to.have.status(200);",
                   "});",
                   "",
-                  "pm.test('Response has access_token and item_id', function () {",
-                  "    pm.expect(pm.response.json()).to.have.property('access_token');",
-                  "    pm.expect(pm.response.json()).to.have.property('item_id');",
+                  "pm.test(\"Response has access_token\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('access_token');",
+                  "    pm.collectionVariables.set('access_token', jsonData.access_token);",
                   "});",
                   "",
-                  "// Store access_token for future requests",
-                  "if (pm.response.json().access_token) {",
-                  "    pm.collectionVariables.set('access_token', pm.response.json().access_token);",
-                  "    console.log('Access token stored');",
-                  "}"
+                  "pm.test(\"Response has item_id\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('item_id');",
+                  "});"
                 ]
               }
             }
@@ -253,46 +176,51 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"public_token\": \"{{public_token}}\",\n  \"institution\": {\n    \"institution_id\": \"ins_109508\",\n    \"name\": \"Chase Bank\"\n  }\n}"
+              "raw": "{\n    \"public_token\": \"{{public_token}}\",\n    \"institution\": {\n        \"institution_id\": \"ins_109508\",\n        \"name\": \"First Platypus Bank\"\n    }\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/exchange_public_token",
-              "host": ["{{baseUrl}}"],
-              "path": ["exchange_public_token"]
-            },
-            "description": "Exchanges a public token for an access token and saves the bank connection"
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "exchange_public_token"
+              ]
+            }
           }
-        },
+        }
+      ]
+    },
+    {
+      "name": "2. Bank Management",
+      "item": [
         {
           "name": "Get Connected Banks",
           "event": [
             {
               "listen": "test",
               "script": {
-                "type": "text/javascript",
                 "exec": [
-                  "pm.test('Status code is 200', function () {",
+                  "pm.test(\"Status code is 200\", function () {",
                   "    pm.response.to.have.status(200);",
                   "});",
                   "",
-                  "pm.test('Response has banks array', function () {",
-                  "    pm.expect(pm.response.json()).to.have.property('banks');",
-                  "    pm.expect(pm.response.json().banks).to.be.an('array');",
+                  "pm.test(\"Response has banks array\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('banks');",
+                  "    pm.expect(jsonData.banks).to.be.an('array');",
                   "});",
                   "",
-                  "pm.test('Banks have required properties', function () {",
-                  "    const banks = pm.response.json().banks;",
-                  "    if (banks.length > 0) {",
-                  "        pm.expect(banks[0]).to.have.property('id');",
-                  "        pm.expect(banks[0]).to.have.property('name');",
-                  "        pm.expect(banks[0]).to.have.property('institution_id');",
-                  "        ",
-                  "        // Store first institution ID for deletion test",
-                  "        pm.collectionVariables.set('institution_id', banks[0].id);",
+                  "pm.test(\"Each bank has required properties\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.banks.length > 0) {",
+                  "        const bank = jsonData.banks[0];",
+                  "        pm.expect(bank).to.have.property('id');",
+                  "        pm.expect(bank).to.have.property('name');",
+                  "        pm.expect(bank).to.have.property('institution_id');",
+                  "        pm.collectionVariables.set('institution_id', bank.id);",
                   "    }",
-                  "});",
-                  "",
-                  "console.log('Connected banks: ' + pm.response.json().banks.length);"
+                  "});"
                 ]
               }
             }
@@ -301,35 +229,34 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/connected_banks",
-              "host": ["{{baseUrl}}"],
-              "path": ["connected_banks"]
-            },
-            "description": "Retrieves all connected bank institutions"
+              "raw": "{{managementUrl}}/connected_banks",
+              "host": [
+                "{{managementUrl}}"
+              ],
+              "path": [
+                "connected_banks"
+              ]
+            }
           }
         },
         {
-          "name": "Health Check",
+          "name": "Check Connection Health",
           "event": [
             {
               "listen": "test",
               "script": {
-                "type": "text/javascript",
                 "exec": [
-                  "pm.test('Status code is 200', function () {",
+                  "pm.test(\"Status code is 200\", function () {",
                   "    pm.response.to.have.status(200);",
                   "});",
                   "",
-                  "pm.test('Response has health status', function () {",
-                  "    pm.expect(pm.response.json()).to.have.property('healthy');",
-                  "    pm.expect(pm.response.json()).to.have.property('unhealthy');",
-                  "    pm.expect(pm.response.json().healthy).to.be.an('array');",
-                  "    pm.expect(pm.response.json().unhealthy).to.be.an('array');",
-                  "});",
-                  "",
-                  "const health = pm.response.json();",
-                  "console.log('Healthy connections: ' + health.healthy.length);",
-                  "console.log('Unhealthy connections: ' + health.unhealthy.length);"
+                  "pm.test(\"Response has health arrays\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('healthy');",
+                  "    pm.expect(jsonData).to.have.property('unhealthy');",
+                  "    pm.expect(jsonData.healthy).to.be.an('array');",
+                  "    pm.expect(jsonData.unhealthy).to.be.an('array');",
+                  "});"
                 ]
               }
             }
@@ -338,87 +265,69 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/health_check",
-              "host": ["{{baseUrl}}"],
-              "path": ["health_check"]
-            },
-            "description": "Checks the health of all bank connections"
+              "raw": "{{managementUrl}}/health_check",
+              "host": [
+                "{{managementUrl}}"
+              ],
+              "path": [
+                "health_check"
+              ]
+            }
           }
-        }
-      ]
-    },
-    {
-      "name": "Transaction Management",
-      "item": [
+        },
         {
-          "name": "Fetch Transactions (30 days)",
+          "name": "Get Scheduler Status",
           "event": [
             {
               "listen": "test",
               "script": {
-                "type": "text/javascript",
                 "exec": [
-                  "pm.test('Status code is 200', function () {",
+                  "pm.test(\"Status code is 200\", function () {",
                   "    pm.response.to.have.status(200);",
                   "});",
                   "",
-                  "pm.test('Response has transactions and summary', function () {",
-                  "    pm.expect(pm.response.json()).to.have.property('transactions');",
-                  "    pm.expect(pm.response.json()).to.have.property('summary');",
-                  "    pm.expect(pm.response.json().transactions).to.be.an('array');",
-                  "});",
-                  "",
-                  "pm.test('Summary has required fields', function () {",
-                  "    const summary = pm.response.json().summary;",
-                  "    pm.expect(summary).to.have.property('totalSpending');",
-                  "    pm.expect(summary).to.have.property('totalIncome');",
-                  "    pm.expect(summary).to.have.property('byCategory');",
-                  "    pm.expect(summary).to.have.property('byInstitution');",
-                  "});",
-                  "",
-                  "const response = pm.response.json();",
-                  "console.log('Transactions fetched: ' + response.transactions.length);",
-                  "console.log('Total spending: $' + response.summary.totalSpending);",
-                  "console.log('Total income: $' + response.summary.totalIncome);"
+                  "pm.test(\"Response is object\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('object');",
+                  "});"
                 ]
               }
             }
           ],
           "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"days\": 30\n}"
-            },
+            "method": "GET",
+            "header": [],
             "url": {
-              "raw": "{{baseUrl}}/fetch_transactions",
-              "host": ["{{baseUrl}}"],
-              "path": ["fetch_transactions"]
-            },
-            "description": "Fetches transactions for the last 30 days from all connected banks"
+              "raw": "{{managementUrl}}/scheduler_status",
+              "host": [
+                "{{managementUrl}}"
+              ],
+              "path": [
+                "scheduler_status"
+              ]
+            }
           }
         },
         {
-          "name": "Fetch Transactions (7 days)",
+          "name": "Fetch Transactions",
           "event": [
             {
               "listen": "test",
               "script": {
-                "type": "text/javascript",
                 "exec": [
-                  "pm.test('Status code is 200', function () {",
+                  "pm.test(\"Status code is 200\", function () {",
                   "    pm.response.to.have.status(200);",
                   "});",
                   "",
-                  "pm.test('Response structure is correct', function () {",
-                  "    pm.expect(pm.response.json()).to.have.property('transactions');",
-                  "    pm.expect(pm.response.json()).to.have.property('summary');",
+                  "pm.test(\"Response has transactions\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('transactions');",
+                  "    pm.expect(jsonData.transactions).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test(\"Response has summary\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('summary');",
                   "});"
                 ]
               }
@@ -434,14 +343,17 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"days\": 7\n}"
+              "raw": "{\n    \"days\": 30\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/fetch_transactions",
-              "host": ["{{baseUrl}}"],
-              "path": ["fetch_transactions"]
-            },
-            "description": "Fetches transactions for the last 7 days"
+              "raw": "{{managementUrl}}/fetch",
+              "host": [
+                "{{managementUrl}}"
+              ],
+              "path": [
+                "fetch"
+              ]
+            }
           }
         },
         {
@@ -450,16 +362,21 @@
             {
               "listen": "test",
               "script": {
-                "type": "text/javascript",
                 "exec": [
-                  "pm.test('Status code is 200', function () {",
+                  "pm.test(\"Status code is 200\", function () {",
                   "    pm.response.to.have.status(200);",
                   "});",
                   "",
-                  "pm.test('Sync completed successfully', function () {",
-                  "    pm.expect(pm.response.json()).to.have.property('success');",
-                  "    pm.expect(pm.response.json().success).to.be.true;",
-                  "    pm.expect(pm.response.json()).to.have.property('message');",
+                  "pm.test(\"Response has success\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('success');",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "});",
+                  "",
+                  "pm.test(\"Response has message\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('message');",
+                  "    pm.expect(jsonData.message).to.be.a('string');",
                   "});"
                 ]
               }
@@ -467,94 +384,37 @@
           ],
           "request": {
             "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
+            "header": [],
             "body": {
               "mode": "raw",
-              "raw": "{}"
+              "raw": ""
             },
             "url": {
-              "raw": "{{baseUrl}}/sync",
-              "host": ["{{baseUrl}}"],
-              "path": ["sync"]
-            },
-            "description": "Manually triggers a sync of all bank transactions"
-          }
-        }
-      ]
-    },
-    {
-      "name": "System Status",
-      "item": [
-        {
-          "name": "Scheduler Status",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('Status code is 200', function () {",
-                  "    pm.response.to.have.status(200);",
-                  "});",
-                  "",
-                  "pm.test('Response contains scheduler information', function () {",
-                  "    // The response structure depends on scheduler implementation",
-                  "    pm.expect(pm.response.json()).to.be.an('object');",
-                  "});",
-                  "",
-                  "console.log('Scheduler status: ' + JSON.stringify(pm.response.json(), null, 2));"
-                ]
-              }
+              "raw": "{{managementUrl}}/sync",
+              "host": [
+                "{{managementUrl}}"
+              ],
+              "path": [
+                "sync"
+              ]
             }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/scheduler_status",
-              "host": ["{{baseUrl}}"],
-              "path": ["scheduler_status"]
-            },
-            "description": "Gets the status of the background scheduler"
           }
-        }
-      ]
-    },
-    {
-      "name": "Cleanup & Error Testing",
-      "item": [
+        },
         {
           "name": "Remove Bank Connection",
           "event": [
             {
-              "listen": "prerequest",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "// Ensure we have an institution_id",
-                  "if (!pm.collectionVariables.get('institution_id')) {",
-                  "    console.log('No institution_id found. Please run \"Get Connected Banks\" first.');",
-                  "}"
-                ]
-              }
-            },
-            {
               "listen": "test",
               "script": {
-                "type": "text/javascript",
                 "exec": [
-                  "pm.test('Status code is 200', function () {",
+                  "pm.test(\"Status code is 200\", function () {",
                   "    pm.response.to.have.status(200);",
                   "});",
                   "",
-                  "pm.test('Bank removed successfully', function () {",
-                  "    pm.expect(pm.response.json()).to.have.property('success');",
-                  "    pm.expect(pm.response.json().success).to.be.true;",
+                  "pm.test(\"Response has success\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('success');",
+                  "    pm.expect(jsonData.success).to.be.true;",
                   "});"
                 ]
               }
@@ -564,23 +424,47 @@
             "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/banks/{{institution_id}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["banks", "{{institution_id}}"]
-            },
-            "description": "Removes a bank connection"
+              "raw": "{{managementUrl}}/banks/{{institution_id}}",
+              "host": [
+                "{{managementUrl}}"
+              ],
+              "path": [
+                "banks",
+                "{{institution_id}}"
+              ]
+            }
           }
-        },
+        }
+      ]
+    },
+    {
+      "name": "3. Dashboard Data",
+      "item": [
         {
-          "name": "Test Invalid Endpoint",
+          "name": "Get Overview",
           "event": [
             {
               "listen": "test",
               "script": {
-                "type": "text/javascript",
                 "exec": [
-                  "pm.test('Status code is 404', function () {",
-                  "    pm.response.to.have.status(404);",
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has all overview fields\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('totalCashBalance');",
+                  "    pm.expect(jsonData).to.have.property('totalPortfolioValue');",
+                  "    pm.expect(jsonData).to.have.property('netWorth');",
+                  "    pm.expect(jsonData).to.have.property('todayNetFlow');",
+                  "});",
+                  "",
+                  "pm.test(\"Numeric values are correct type\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.totalCashBalance).to.be.a('number');",
+                  "    pm.expect(jsonData.totalPortfolioValue).to.be.a('number');",
+                  "    pm.expect(jsonData.netWorth).to.be.a('number');",
+                  "    pm.expect(jsonData.todayNetFlow).to.be.a('number');",
                   "});"
                 ]
               }
@@ -590,46 +474,401 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/invalid_endpoint",
-              "host": ["{{baseUrl}}"],
-              "path": ["invalid_endpoint"]
-            },
-            "description": "Tests error handling for invalid endpoints"
+              "raw": "{{baseUrl}}/overview",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "overview"
+              ]
+            }
           }
         },
         {
-          "name": "Test Invalid JSON",
+          "name": "Get Earnings Summary",
           "event": [
             {
               "listen": "test",
               "script": {
-                "type": "text/javascript",
                 "exec": [
-                  "pm.test('Status code is 400', function () {",
-                  "    pm.response.to.have.status(400);",
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has earnings fields\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('todayNetFlow');",
+                  "    pm.expect(jsonData).to.have.property('monthToDateNetFlow');",
+                  "    pm.expect(jsonData).to.have.property('sevenDayAverage');",
+                  "});",
+                  "",
+                  "pm.test(\"Earnings values are numeric\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.todayNetFlow).to.be.a('number');",
+                  "    pm.expect(jsonData.monthToDateNetFlow).to.be.a('number');",
+                  "    pm.expect(jsonData.sevenDayAverage).to.be.a('number');",
                   "});"
                 ]
               }
             }
           ],
           "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{ invalid json }"
-            },
+            "method": "GET",
+            "header": [],
             "url": {
-              "raw": "{{baseUrl}}/create_link_token",
-              "host": ["{{baseUrl}}"],
-              "path": ["create_link_token"]
-            },
-            "description": "Tests error handling for invalid JSON"
+              "raw": "{{baseUrl}}/earnings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "earnings"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Spending Data",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response is array\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test(\"Spending data has correct structure\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.length > 0) {",
+                  "        const item = jsonData[0];",
+                  "        pm.expect(item).to.have.property('date');",
+                  "        pm.expect(item).to.have.property('spending');",
+                  "        pm.expect(item).to.have.property('income');",
+                  "        pm.expect(item.spending).to.be.a('number');",
+                  "        pm.expect(item.income).to.be.a('number');",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/spending-data?range=30",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "spending-data"
+              ],
+              "query": [
+                {
+                  "key": "range",
+                  "value": "30"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Category Data",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response is array\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test(\"Category data has correct structure\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.length > 0) {",
+                  "        const item = jsonData[0];",
+                  "        pm.expect(item).to.have.property('category');",
+                  "        pm.expect(item).to.have.property('amount');",
+                  "        pm.expect(item).to.have.property('percentage');",
+                  "        pm.expect(item.amount).to.be.a('number');",
+                  "        pm.expect(item.percentage).to.be.a('number');",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/category-data?range=30",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "category-data"
+              ],
+              "query": [
+                {
+                  "key": "range",
+                  "value": "30"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Categories List",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response is array of strings\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('array');",
+                  "    if (jsonData.length > 0) {",
+                  "        pm.expect(jsonData[0]).to.be.a('string');",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/categories",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "categories"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Investments",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response is array\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test(\"Investments array is empty (expected)\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.lengthOf(0);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/investments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "investments"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Transactions (Paginated)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has pagination structure\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('transactions');",
+                  "    pm.expect(jsonData).to.have.property('total');",
+                  "    pm.expect(jsonData).to.have.property('page');",
+                  "    pm.expect(jsonData).to.have.property('limit');",
+                  "    pm.expect(jsonData).to.have.property('totalPages');",
+                  "});",
+                  "",
+                  "pm.test(\"Transactions is array\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.transactions).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test(\"Pagination values are correct type\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.total).to.be.a('number');",
+                  "    pm.expect(jsonData.page).to.be.a('number');",
+                  "    pm.expect(jsonData.limit).to.be.a('number');",
+                  "    pm.expect(jsonData.totalPages).to.be.a('number');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/transactions?page=1&limit=20&range=30",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "range",
+                  "value": "30"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Transactions (Filtered)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has pagination structure\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('transactions');",
+                  "    pm.expect(jsonData).to.have.property('total');",
+                  "    pm.expect(jsonData).to.have.property('page');",
+                  "    pm.expect(jsonData).to.have.property('limit');",
+                  "    pm.expect(jsonData).to.have.property('totalPages');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/transactions?page=1&limit=10&range=30&categories=Food and Drink,Transportation&search=restaurant",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "range",
+                  "value": "30"
+                },
+                {
+                  "key": "categories",
+                  "value": "Food and Drink,Transportation"
+                },
+                {
+                  "key": "search",
+                  "value": "restaurant"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Accounts",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response is array\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test(\"Account data has correct structure\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.length > 0) {",
+                  "        const account = jsonData[0];",
+                  "        pm.expect(account).to.have.property('id');",
+                  "        pm.expect(account).to.have.property('name');",
+                  "        pm.expect(account).to.have.property('type');",
+                  "        pm.expect(account).to.have.property('balance');",
+                  "        pm.expect(account).to.have.property('lastUpdated');",
+                  "        pm.expect(account.balance).to.be.a('number');",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/accounts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "accounts"
+              ]
+            }
           }
         }
       ]

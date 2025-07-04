@@ -10,6 +10,7 @@ import createLinkTokenRoute from '../../src/routes/createLinkToken';
 import exchangeTokenRoute from '../../src/routes/exchangeToken';
 import sandboxRoutes from '../../src/routes/sandbox';
 import transactionsRoutes from '../../src/routes/transactions';
+import dashboardRoutes from '../../src/routes/dashboard';
 
 // Mock plaidClient
 jest.mock('../../src/plaidClient', () => ({
@@ -54,7 +55,8 @@ describe('API Integration Tests', () => {
     app.use('/api', createLinkTokenRoute);
     app.use('/api', exchangeTokenRoute);
     app.use('/api', sandboxRoutes);
-    app.use('/api', transactionsRoutes);
+    app.use('/api', dashboardRoutes);
+    app.use('/api/management', transactionsRoutes);
     
     // Reset all mocks
     jest.clearAllMocks();
@@ -192,12 +194,12 @@ describe('API Integration Tests', () => {
     });
   });
 
-  describe('GET /api/connected_banks', () => {
+  describe('GET /api/management/connected_banks', () => {
     it('should return empty array when no banks connected', async () => {
       bankService.getConnectedBanks.mockResolvedValue([]);
 
       const response = await request(app)
-        .get('/api/connected_banks');
+        .get('/api/management/connected_banks');
 
       expect(response.status).toBe(200);
       expect(response.body).toHaveProperty('banks');
@@ -220,7 +222,7 @@ describe('API Integration Tests', () => {
       ]);
 
       const response = await request(app)
-        .get('/api/connected_banks');
+        .get('/api/management/connected_banks');
 
       expect(response.status).toBe(200);
       expect(response.body).toHaveProperty('banks');
@@ -229,7 +231,7 @@ describe('API Integration Tests', () => {
     });
   });
 
-  describe('GET /api/health_check', () => {
+  describe('GET /api/management/health_check', () => {
     it('should return health status', async () => {
       bankService.checkConnectionHealth.mockResolvedValue({
         healthy: [{ name: 'Test Bank' }],
@@ -237,7 +239,7 @@ describe('API Integration Tests', () => {
       });
 
       const response = await request(app)
-        .get('/api/health_check');
+        .get('/api/management/health_check');
 
       expect(response.status).toBe(200);
       expect(response.body).toHaveProperty('healthy');
@@ -245,27 +247,160 @@ describe('API Integration Tests', () => {
     });
   });
 
-  describe('GET /api/scheduler_status', () => {
+  describe('GET /api/management/scheduler_status', () => {
     it('should return scheduler status', async () => {
       const response = await request(app)
-        .get('/api/scheduler_status');
+        .get('/api/management/scheduler_status');
 
       expect(response.status).toBe(200);
       // The actual response depends on scheduler implementation
     });
   });
 
-  describe('DELETE /api/banks/:institutionId', () => {
+  describe('DELETE /api/management/banks/:institutionId', () => {
     it('should remove bank connection', async () => {
       // Mock the service response
       const institutionId = 1;
       
       const response = await request(app)
-        .delete(`/api/banks/${institutionId}`);
+        .delete(`/api/management/banks/${institutionId}`);
 
       expect(response.status).toBe(200);
       expect(response.body).toHaveProperty('success');
       expect(response.body.success).toBe(true);
+    });
+  });
+
+  describe('POST /api/management/fetch', () => {
+    it('should fetch transactions for connected banks', async () => {
+      bankService.fetchAllTransactions.mockResolvedValue({
+        transactions: [],
+        summary: { totalSpending: 0, totalIncome: 0 }
+      });
+
+      const response = await request(app)
+        .post('/api/management/fetch')
+        .send({ days: 30 });
+
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveProperty('transactions');
+      expect(response.body).toHaveProperty('summary');
+    });
+  });
+
+  describe('POST /api/management/sync', () => {
+    it('should trigger manual sync', async () => {
+      const response = await request(app)
+        .post('/api/management/sync');
+
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveProperty('message');
+    });
+  });
+
+  describe('Dashboard API Routes', () => {
+    describe('GET /api/overview', () => {
+      it('should return dashboard overview data', async () => {
+        const response = await request(app)
+          .get('/api/overview');
+
+        expect(response.status).toBe(200);
+        expect(response.body).toHaveProperty('totalCashBalance');
+        expect(response.body).toHaveProperty('todayNetFlow');
+        expect(response.body).toHaveProperty('totalPortfolioValue');
+        expect(response.body).toHaveProperty('netWorth');
+      });
+    });
+
+    describe('GET /api/earnings', () => {
+      it('should return earnings summary data', async () => {
+        const response = await request(app)
+          .get('/api/earnings');
+
+        expect(response.status).toBe(200);
+        expect(response.body).toHaveProperty('todayNetFlow');
+        expect(response.body).toHaveProperty('monthToDateNetFlow');
+        expect(response.body).toHaveProperty('sevenDayAverage');
+      });
+    });
+
+    describe('GET /api/investments', () => {
+      it('should return empty investments array', async () => {
+        const response = await request(app)
+          .get('/api/investments');
+
+        expect(response.status).toBe(200);
+        expect(Array.isArray(response.body)).toBe(true);
+        expect(response.body).toHaveLength(0);
+      });
+    });
+
+    describe('GET /api/categories', () => {
+      it('should return categories list', async () => {
+        const response = await request(app)
+          .get('/api/categories');
+
+        expect(response.status).toBe(200);
+        expect(Array.isArray(response.body)).toBe(true);
+        // The response is an array of category strings
+      });
+    });
+
+    describe('GET /api/transactions', () => {
+      it('should return transactions with pagination', async () => {
+        const response = await request(app)
+          .get('/api/transactions?page=1&limit=20');
+
+        expect(response.status).toBe(200);
+        expect(response.body).toHaveProperty('transactions');
+        expect(response.body).toHaveProperty('total');
+        expect(response.body).toHaveProperty('page');
+        expect(response.body).toHaveProperty('limit');
+        expect(response.body).toHaveProperty('totalPages');
+      });
+    });
+
+    describe('GET /api/accounts', () => {
+      it('should return account balances', async () => {
+        const response = await request(app)
+          .get('/api/accounts');
+
+        expect(response.status).toBe(200);
+        expect(Array.isArray(response.body)).toBe(true);
+        // The response is an array of accounts, not an object with accounts property
+      });
+    });
+
+    describe('GET /api/spending-data', () => {
+      it('should return spending data', async () => {
+        const response = await request(app)
+          .get('/api/spending-data?range=30');
+
+        expect(response.status).toBe(200);
+        expect(Array.isArray(response.body)).toBe(true);
+        // The response is an array of daily spending data
+        if (response.body.length > 0) {
+          expect(response.body[0]).toHaveProperty('date');
+          expect(response.body[0]).toHaveProperty('spending');
+          expect(response.body[0]).toHaveProperty('income');
+        }
+      });
+    });
+
+    describe('GET /api/category-data', () => {
+      it('should return category breakdown', async () => {
+        const response = await request(app)
+          .get('/api/category-data?range=30');
+
+        expect(response.status).toBe(200);
+        expect(Array.isArray(response.body)).toBe(true);
+        // The response is an array of category data
+        if (response.body.length > 0) {
+          expect(response.body[0]).toHaveProperty('category');
+          expect(response.body[0]).toHaveProperty('amount');
+          expect(response.body[0]).toHaveProperty('percentage');
+        }
+      });
     });
   });
 });
