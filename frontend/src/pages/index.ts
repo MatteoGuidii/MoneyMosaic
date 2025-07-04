@@ -1,0 +1,7 @@
+export { default as Dashboard } from './Dashboard'
+export { default as Transactions } from './Transactions'
+export { default as BudgetsGoals } from './BudgetsGoals'
+export { default as Investments } from './Investments'
+export { default as Reports } from './Reports'
+export { default as Accounts } from './Accounts'
+export { default as Settings } from './Settings'

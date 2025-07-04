@@ -5,9 +5,16 @@ import FilterBar from './FilterBar'
 import ChartsSection from './ChartsSection'
 import TransactionsTable from './TransactionsTable'
 import InvestmentsPanel from './InvestmentsPanel'
-import EarningsSummary from './EarningsSummary'
 import LoadingSpinner from './LoadingSpinner'
 import BankManagement from './BankManagement'
+import CashFlowInsights from './CashFlowInsights'
+import NetWorthTrend from './NetWorthTrend'
+import BudgetTracker from './BudgetTracker'
+import TopMerchants from './TopMerchants'
+import CashFlowForecast from './CashFlowForecast'
+import SavingsGoals from './SavingsGoals'
+import AlertsNotifications from './AlertsNotifications'
+import ExportComponent from './ExportComponent'
 import { apiService, OverviewData, Transaction, Investment, SpendingData, CategoryData, EarningsData } from '../services/apiService'
 
 const Dashboard: React.FC = () => {
@@ -141,8 +148,26 @@ const Dashboard: React.FC = () => {
             onCategorySelect={handleCategorySelect}
           />
           
-          {/* Earnings Summary */}
-          <EarningsSummary data={earningsData} />
+          {/* Cash Flow Insights */}
+          <CashFlowInsights data={earningsData} />
+          
+          {/* Net Worth Trend */}
+          <NetWorthTrend />
+          
+          {/* Budget and Financial Planning */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <BudgetTracker />
+            <TopMerchants />
+          </div>
+          
+          {/* Cash Flow Forecast */}
+          <CashFlowForecast />
+          
+          {/* Savings Goals */}
+          <SavingsGoals />
+          
+          {/* Alerts and Notifications */}
+          <AlertsNotifications />
           
           {/* Transactions Table */}
           <TransactionsTable
@@ -154,6 +179,9 @@ const Dashboard: React.FC = () => {
           
           {/* Investments Panel */}
           <InvestmentsPanel investments={investments} />
+          
+          {/* Export Component */}
+          <ExportComponent />
         </div>
       </main>
     </div>
