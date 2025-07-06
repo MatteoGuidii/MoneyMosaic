@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import FilterBar from '../components/FilterBar'
 import TransactionsTable from '../components/TransactionsTable'
-import TopMerchants from '../components/TopMerchants'
-import ExportComponent from '../components/ExportComponent'
-import LoadingSpinner from '../components/LoadingSpinner'
+import LoadingSpinner from '../components/ui/LoadingSpinner'
 import { apiService, Transaction } from '../services/apiService'
-import { Receipt, Search, Filter, Download } from 'lucide-react'
+import { Receipt, Search, Filter } from 'lucide-react'
 
 const Transactions: React.FC = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([])
@@ -16,7 +14,6 @@ const Transactions: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
   const [totalTransactions, setTotalTransactions] = useState(0)
-  const [showExport, setShowExport] = useState(false)
 
   useEffect(() => {
     loadInitialData()
@@ -143,21 +140,11 @@ const Transactions: React.FC = () => {
 
       {/* Filter & Search */}
       <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center space-x-2">
-            <Filter className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Filter Transactions
-            </h3>
-          </div>
-          <button
-            onClick={() => setShowExport(!showExport)}
-            className="flex items-center space-x-1 px-3 py-1 text-sm bg-navy-600 hover:bg-navy-700 
-                     text-white rounded-md transition-colors"
-          >
-            <Download className="w-4 h-4" />
-            <span>Export</span>
-          </button>
+        <div className="flex items-center space-x-2 mb-4">
+          <Filter className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+            Filter Transactions
+          </h3>
         </div>
 
         <FilterBar
@@ -169,11 +156,6 @@ const Transactions: React.FC = () => {
           onSearch={handleSearch}
         />
       </div>
-
-      {/* Export Panel */}
-      {showExport && (
-        <ExportComponent />
-      )}
 
       {/* Transactions Table */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
@@ -192,9 +174,6 @@ const Transactions: React.FC = () => {
           onPageChange={setCurrentPage}
         />
       </div>
-
-      {/* Top Merchants */}
-      <TopMerchants />
     </div>
   )
 }

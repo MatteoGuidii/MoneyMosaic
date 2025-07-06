@@ -25,10 +25,12 @@ A comprehensive personal finance dashboard that connects multiple banks and trac
 
 - **Multi-Bank Support**: Connect unlimited bank accounts from different institutions
 - **Real-time Sync**: Automatic transaction syncing every 6 hours with manual sync option
-- **Financial Insights**: Comprehensive spending analysis with interactive charts
-- **Modern Interface**: Responsive React frontend with dark/light mode
+- **Financial Insights**: Comprehensive spending analysis with interactive charts and category filtering
+- **Dynamic Filters**: Time-based filtering and category-specific analysis for spending patterns
+- **Modern Interface**: Responsive React frontend with dark/light mode support
 - **Secure Storage**: Local SQLite database with transaction deduplication
-- **Connection Health**: Automatic monitoring and error handling
+- **Connection Health**: Automatic monitoring and error handling with visual status indicators
+- **Privacy-Focused**: Single-user design with no external data sharing
 
 ## 🚀 Quick Start
 
@@ -88,36 +90,240 @@ SYNC_INTERVAL_HOURS=6
 
 ## 🏗️ Architecture
 
+### System Overview
+
+```mermaid
+graph TB
+    subgraph "Frontend (React + TypeScript)"
+        A[Dashboard] --> B[Bank Management]
+        A --> C[Transactions]
+        A --> D[Accounts]
+        A --> E[Investments]
+
+        B --> F[Plaid Link Integration]
+        C --> G[Transaction Filtering]
+        D --> H[Account Overview]
+        E --> I[Investment Charts]
+    end
+
+    subgraph "Backend (Node.js + Express)"
+        J[Express Server] --> K[Route Handlers]
+        K --> L[Services Layer]
+        L --> M[Database Layer]
+        L --> N[Plaid Client]
+
+        K --> O[API Endpoints]
+        O --> P[/api/create_link_token]
+        O --> Q[/api/exchange_public_token]
+        O --> R[/api/management/*]
+        O --> S[/api/transactions]
+    end
+
+    subgraph "External Services"
+        T[Plaid API]
+        U[Bank APIs]
+    end
+
+    subgraph "Database"
+        V[SQLite Database]
+        V --> W[Banks Table]
+        V --> X[Transactions Table]
+        V --> Y[Accounts Table]
+    end
+
+    subgraph "Background Jobs"
+        Z[Scheduler Service]
+        Z --> AA[Transaction Sync]
+        Z --> BB[Health Check]
+    end
+
+    A -.->|HTTP Requests| J
+    F -.->|Link Token| P
+    N -.->|API Calls| T
+    T -.->|Bank Data| U
+    L -.->|Store Data| V
+    Z -.->|Auto Sync| AA
+
+    style A fill:#e1f5fe
+    style J fill:#f3e5f5
+    style V fill:#e8f5e8
+    style T fill:#fff3e0
+```
+
 ### Backend Structure
 
-```
-src/
-├── database.ts          # SQLite database layer
-├── plaidClient.ts       # Plaid API configuration
-├── server.ts            # Express server setup
-├── services/
-│   ├── bankService.ts   # Multi-bank connection management
-│   └── schedulerService.ts # Background job scheduling
-└── routes/
-    ├── createLinkToken.ts   # Plaid Link token creation
-    ├── exchangeToken.ts     # Token exchange & bank saving
-    ├── dashboard.ts         # Dashboard data endpoints
-    └── transactions.ts      # Transaction endpoints
+```mermaid
+graph TD
+    subgraph "src/"
+        A[server.ts<br/>Express Server Setup]
+        B[database.ts<br/>SQLite Database Layer]
+        C[plaidClient.ts<br/>Plaid API Configuration]
+        D[db.ts<br/>Database Utils]
+
+        subgraph "routes/"
+            E[createLinkToken.ts<br/>Plaid Link Token Creation]
+            F[exchangeToken.ts<br/>Token Exchange & Bank Saving]
+            G[dashboard.ts<br/>Dashboard Data Endpoints]
+            H[transactions.ts<br/>Transaction Endpoints]
+            I[sandbox.ts<br/>Sandbox Testing]
+        end
+
+        subgraph "services/"
+            J[bankService.ts<br/>Multi-bank Connection Management]
+            K[schedulerService.ts<br/>Background Job Scheduling]
+        end
+    end
+
+    A --> E
+    A --> F
+    A --> G
+    A --> H
+    A --> I
+
+    E --> C
+    F --> C
+    F --> J
+    G --> J
+    H --> J
+
+    J --> B
+    K --> J
+
+    style A fill:#ff9999
+    style B fill:#99ff99
+    style C fill:#9999ff
+    style J fill:#ffff99
+    style K fill:#ff99ff
 ```
 
 ### Frontend Structure
 
+```mermaid
+graph TD
+    subgraph "frontend/src/"
+        A[main.tsx<br/>App Entry Point]
+        B[App.tsx<br/>Main App Component]
+
+        subgraph "pages/"
+            C[Dashboard.tsx<br/>Main Dashboard View]
+            D[Transactions.tsx<br/>Transaction Management]
+            E[Accounts.tsx<br/>Account Management]
+            F[Investments.tsx<br/>Investment Overview]
+        end
+
+        subgraph "components/"
+            G[BankManagement.tsx<br/>Bank Connection Management]
+            H[TransactionsTable.tsx<br/>Transaction Display]
+            I[OverviewCards.tsx<br/>Financial Summary Cards]
+            J[FilterBar.tsx<br/>Transaction Filtering]
+            K[CashFlowInsights.tsx<br/>Cash Flow Analysis]
+            L[EarningsSummary.tsx<br/>Earnings Overview]
+            M[InvestmentsPanel.tsx<br/>Investment Details]
+
+            subgraph "charts/"
+                N[SimplifiedChartsSection.tsx<br/>Financial Charts]
+            end
+
+            subgraph "widgets/"
+                O[BudgetSummaryWidget.tsx<br/>Budget Overview]
+                P[InvestmentSummaryWidget.tsx<br/>Investment Summary]
+                Q[RecentTransactionsWidget.tsx<br/>Recent Transactions]
+            end
+
+            subgraph "ui/"
+                R[Header.tsx<br/>App Header]
+                S[Layout.tsx<br/>Main Layout]
+                T[LoadingSpinner.tsx<br/>Loading Indicator]
+            end
+        end
+
+        subgraph "services/"
+            U[apiService.ts<br/>API Communication]
+        end
+
+        subgraph "contexts/"
+            V[ThemeContext.tsx<br/>Theme Management]
+        end
+
+        subgraph "types/"
+            W[index.ts<br/>Type Definitions]
+        end
+    end
+
+    A --> B
+    B --> C
+    B --> D
+    B --> E
+    B --> F
+
+    C --> G
+    C --> H
+    C --> I
+    C --> N
+    C --> O
+    C --> P
+    C --> Q
+
+    D --> H
+    D --> J
+    E --> G
+    F --> M
+
+    B --> R
+    B --> S
+    B --> V
+
+    G --> U
+    H --> U
+    I --> U
+    N --> U
+
+    style C fill:#e1f5fe
+    style G fill:#f3e5f5
+    style N fill:#e8f5e8
+    style U fill:#fff3e0
 ```
-frontend/src/
-├── components/          # React components
-│   ├── Dashboard.tsx    # Main dashboard view
-│   ├── BankManagement.tsx # Bank connection management
-│   ├── TransactionsTable.tsx # Transaction display
-│   └── ChartsSection.tsx # Financial charts
-├── services/
-│   └── apiService.ts    # API communication
-└── contexts/
-    └── ThemeContext.tsx # Theme management
+
+### Data Flow Architecture
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Frontend
+    participant Backend
+    participant PlaidAPI
+    participant Database
+    participant Scheduler
+
+    Note over User,Scheduler: Bank Connection Flow
+    User->>Frontend: Click "Connect Bank"
+    Frontend->>Backend: POST /api/create_link_token
+    Backend->>PlaidAPI: Create Link Token
+    PlaidAPI-->>Backend: Link Token
+    Backend-->>Frontend: Link Token
+    Frontend->>User: Open Plaid Link
+    User->>Frontend: Complete Bank Auth
+    Frontend->>Backend: POST /api/exchange_public_token
+    Backend->>PlaidAPI: Exchange Token
+    PlaidAPI-->>Backend: Access Token
+    Backend->>Database: Store Bank Connection
+    Database-->>Backend: Success
+    Backend-->>Frontend: Connection Success
+
+    Note over User,Scheduler: Transaction Sync Flow
+    Scheduler->>Backend: Auto Sync Trigger
+    Backend->>PlaidAPI: Fetch Transactions
+    PlaidAPI-->>Backend: Transaction Data
+    Backend->>Database: Store/Update Transactions
+    Database-->>Backend: Success
+
+    Note over User,Scheduler: Dashboard Data Flow
+    User->>Frontend: Load Dashboard
+    Frontend->>Backend: GET /api/management/dashboard
+    Backend->>Database: Query Financial Data
+    Database-->>Backend: Financial Data
+    Backend-->>Frontend: Dashboard Data
+    Frontend->>User: Render Dashboard
 ```
 
 ## 🔧 API Endpoints

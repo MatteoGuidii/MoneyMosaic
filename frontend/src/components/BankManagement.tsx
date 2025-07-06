@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Building2, Plus, RefreshCw, Activity, Trash2, AlertCircle, CheckCircle } from 'lucide-react'
-import LoadingSpinner from './LoadingSpinner'
+import LoadingSpinner from './ui/LoadingSpinner'
 
 // Plaid Link types
 declare global {

@@ -6,13 +6,35 @@ const router = express.Router();
 // Get overview data for dashboard
 router.get('/overview', async (req, res) => {
   try {
-    // Get total cash balance from accounts belonging to active institutions only
+    // Get all accounts from active institutions
     const accountsResult = await database.all(`
       SELECT a.* FROM accounts a 
       JOIN institutions i ON a.institution_id = i.id 
       WHERE i.is_active = 1
     `);
-    const totalCashBalance = accountsResult.reduce((sum, account) => sum + (account.current_balance || 0), 0);
+    
+    // Separate accounts by type
+    const cashAccounts = accountsResult.filter(account => 
+      account.type === 'depository' || account.type === 'credit'
+    );
+    const investmentAccounts = accountsResult.filter(account => 
+      account.type === 'investment'
+    );
+    
+    // Calculate total cash balance (depository accounts plus credit balances)
+    const totalCashBalance = cashAccounts.reduce((sum, account) => {
+      if (account.type === 'credit') {
+        // For credit accounts, balance is negative (debt), so we add it as-is
+        // This effectively subtracts the debt from the total
+        return sum + (account.current_balance || 0);
+      }
+      return sum + (account.current_balance || 0);
+    }, 0);
+    
+    // Calculate total portfolio value from investment accounts
+    const totalPortfolioValue = investmentAccounts.reduce((sum, account) => 
+      sum + (account.current_balance || 0), 0
+    );
     
     // Get today's transactions for net flow (only from active institutions)
     const today = new Date().toISOString().split('T')[0];
@@ -23,9 +45,6 @@ router.get('/overview', async (req, res) => {
       WHERE t.date = ? AND i.is_active = 1
     `, [today]);
     const todayNetFlow = todaysTransactions.reduce((sum, tx) => sum + tx.amount, 0);
-    
-    // Portfolio value should be 0 since we don't have investment data from Plaid
-    const totalPortfolioValue = 0;
     
     res.json({
       totalCashBalance,
@@ -197,24 +216,138 @@ router.get('/categories', async (req, res) => {
   }
 });
 
+// Get budget data (generated from spending patterns)
+router.get('/budget', async (req, res) => {
+  try {
+    // Get current month's spending by category
+    const currentMonth = new Date();
+    const monthStart = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
+    const monthEnd = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0);
+    
+    const monthStartStr = monthStart.toISOString().split('T')[0];
+    const monthEndStr = monthEnd.toISOString().split('T')[0];
+    
+    // Get this month's spending (negative amounts only - expenses)
+    const monthlySpending = await database.all(`
+      SELECT 
+        t.category_primary as category,
+        SUM(ABS(t.amount)) as spent
+      FROM transactions t 
+      JOIN accounts a ON t.account_id = a.account_id 
+      JOIN institutions i ON a.institution_id = i.id 
+      WHERE t.date >= ? AND t.date <= ? 
+        AND t.amount < 0 
+        AND t.category_primary IS NOT NULL 
+        AND i.is_active = 1
+      GROUP BY t.category_primary
+      ORDER BY spent DESC
+    `, [monthStartStr, monthEndStr]);
+    
+    // Get previous month's spending for budget calculation
+    const prevMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1);
+    const prevMonthEnd = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 0);
+    const prevMonthStartStr = prevMonth.toISOString().split('T')[0];
+    const prevMonthEndStr = prevMonthEnd.toISOString().split('T')[0];
+    
+    const prevMonthSpending = await database.all(`
+      SELECT 
+        t.category_primary as category,
+        SUM(ABS(t.amount)) as spent
+      FROM transactions t 
+      JOIN accounts a ON t.account_id = a.account_id 
+      JOIN institutions i ON a.institution_id = i.id 
+      WHERE t.date >= ? AND t.date <= ? 
+        AND t.amount < 0 
+        AND t.category_primary IS NOT NULL 
+        AND i.is_active = 1
+      GROUP BY t.category_primary
+    `, [prevMonthStartStr, prevMonthEndStr]);
+    
+    // Create budget data (using previous month as budget baseline)
+    const budgetData = monthlySpending.map(current => {
+      const prevData = prevMonthSpending.find(prev => prev.category === current.category);
+      const budgeted = prevData ? prevData.spent * 1.1 : current.spent * 1.2; // 10% increase from last month or 20% if no prev data
+      const spent = current.spent;
+      const percentage = budgeted > 0 ? (spent / budgeted) * 100 : 0;
+      
+      return {
+        category: current.category,
+        budgeted: Math.round(budgeted * 100) / 100,
+        spent: Math.round(spent * 100) / 100,
+        percentage: Math.round(percentage * 100) / 100
+      };
+    });
+    
+    // Add categories that had previous spending but no current spending
+    prevMonthSpending.forEach(prev => {
+      if (!budgetData.find(b => b.category === prev.category)) {
+        budgetData.push({
+          category: prev.category,
+          budgeted: Math.round(prev.spent * 1.1 * 100) / 100,
+          spent: 0,
+          percentage: 0
+        });
+      }
+    });
+    
+    res.json(budgetData);
+  } catch (error) {
+    console.error('Error fetching budget data:', error);
+    res.status(500).json({ error: 'Failed to fetch budget data' });
+  }
+});
+
 // Get investments data
 router.get('/investments', async (req, res) => {
   try {
-    // Check if there are any active banks connected
+    // Get all investment accounts from active institutions
     const activeAccounts = await database.all(`
-      SELECT a.* FROM accounts a 
+      SELECT a.*, i.access_token, i.name as institution_name FROM accounts a 
       JOIN institutions i ON a.institution_id = i.id 
-      WHERE i.is_active = 1
+      WHERE i.is_active = 1 AND a.type = 'investment'
     `);
     
-    // If no banks are connected, return empty investments
     if (activeAccounts.length === 0) {
       return res.json([]);
     }
-    
-    // For now, return empty array since we don't have investment data from Plaid
-    // In a real implementation, you would integrate with a trading API
-    res.json([]);
+
+    // For now, we'll return mock data based on the investment accounts
+    // In a real implementation, you would use Plaid's investments API
+    const investments = activeAccounts.map((account, index) => {
+      const symbols = ['AAPL', 'GOOGL', 'MSFT', 'TSLA', 'AMZN', 'META', 'NFLX', 'NVDA'];
+      const names = [
+        'Apple Inc.',
+        'Alphabet Inc.',
+        'Microsoft Corporation',
+        'Tesla Inc.',
+        'Amazon.com Inc.',
+        'Meta Platforms Inc.',
+        'Netflix Inc.',
+        'NVIDIA Corporation'
+      ];
+      
+      const symbol = symbols[index % symbols.length];
+      const name = names[index % names.length];
+      const quantity = Math.floor(Math.random() * 100) + 1;
+      const marketPrice = Math.random() * 300 + 50;
+      const marketValue = quantity * marketPrice;
+      const dayChange = (Math.random() - 0.5) * 20;
+      const dayChangePercent = (dayChange / marketPrice) * 100;
+      
+      return {
+        symbol,
+        companyName: name,
+        quantity,
+        marketPrice: Math.round(marketPrice * 100) / 100,
+        marketValue: Math.round(marketValue * 100) / 100,
+        dayChange: Math.round(dayChange * 100) / 100,
+        dayChangePercent: Math.round(dayChangePercent * 100) / 100,
+        accountId: account.account_id,
+        accountName: account.name
+      };
+    });
+
+    res.json(investments);
   } catch (error) {
     console.error('Error fetching investments:', error);
     res.status(500).json({ error: 'Failed to fetch investments data' });

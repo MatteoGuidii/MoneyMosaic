@@ -1,19 +1,21 @@
-export { default as Header } from './Header'
-export { default as Layout } from './Layout'
+// UI Components
+export { default as Header } from './ui/Header'
+export { default as Layout } from './ui/Layout'
+export { default as LoadingSpinner } from './ui/LoadingSpinner'
+
+// Core Components
 export { default as OverviewCards } from './OverviewCards'
 export { default as FilterBar } from './FilterBar'
-export { default as ChartsSection } from './ChartsSection'
 export { default as TransactionsTable } from './TransactionsTable'
 export { default as InvestmentsPanel } from './InvestmentsPanel'
 export { default as EarningsSummary } from './EarningsSummary'
-export { default as LoadingSpinner } from './LoadingSpinner'
 export { default as BankManagement } from './BankManagement'
-export { default as Dashboard } from './Dashboard'
 export { default as CashFlowInsights } from './CashFlowInsights'
-export { default as NetWorthTrend } from './NetWorthTrend'
-export { default as BudgetTracker } from './BudgetTracker'
-export { default as TopMerchants } from './TopMerchants'
-export { default as CashFlowForecast } from './CashFlowForecast'
-export { default as SavingsGoals } from './SavingsGoals'
-export { default as AlertsNotifications } from './AlertsNotifications'
-export { default as ExportComponent } from './ExportComponent'
+
+// Charts
+export { default as SimplifiedChartsSection } from './charts/SimplifiedChartsSection'
+
+// Widgets
+export { default as BudgetSummaryWidget } from './widgets/BudgetSummaryWidget'
+export { default as InvestmentSummaryWidget } from './widgets/InvestmentSummaryWidget'
+export { default as RecentTransactionsWidget } from './widgets/RecentTransactionsWidget'

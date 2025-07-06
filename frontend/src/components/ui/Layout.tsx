@@ -3,17 +3,13 @@ import { Link, useLocation } from 'react-router-dom'
 import { 
   Home, 
   Receipt, 
-  Target, 
-  TrendingUp, 
-  BarChart3, 
   Building2,
-  Settings,
   Menu,
   X,
-  Bell,
-  User
+  User,
+  TrendingUp
 } from 'lucide-react'
-import { useTheme } from '../contexts/ThemeContext'
+import { useTheme } from '../../contexts/ThemeContext'
 import { useState } from 'react'
 
 interface LayoutProps {
@@ -28,11 +24,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const navigation = [
     { name: 'Dashboard', href: '/', icon: Home },
     { name: 'Transactions', href: '/transactions', icon: Receipt },
-    { name: 'Budgets & Goals', href: '/budgets-goals', icon: Target },
-    { name: 'Investments', href: '/investments', icon: TrendingUp },
-    { name: 'Reports', href: '/reports', icon: BarChart3 },
     { name: 'Accounts', href: '/accounts', icon: Building2 },
-    { name: 'Settings', href: '/settings', icon: Settings },
+    { name: 'Investments', href: '/investments', icon: TrendingUp },
   ]
 
   const isActive = (path: string) => {
@@ -95,8 +88,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               <User size={16} className="text-white" />
             </div>
             <div className="flex-1">
-              <p className="text-sm font-medium text-gray-900 dark:text-white">John Doe</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">john.doe@example.com</p>
+              <p className="text-sm font-medium text-gray-900 dark:text-white">Personal Dashboard</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Privacy-focused finance</p>
             </div>
           </div>
         </div>
@@ -130,24 +123,26 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             </div>
 
             <div className="flex items-center space-x-4">
-              {/* Notifications */}
-              <button className="relative p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-                <Bell size={20} className="text-gray-600 dark:text-gray-400" />
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                  3
-                </span>
-              </button>
-
               {/* Dark Mode Toggle */}
               <button
                 onClick={toggleDarkMode}
-                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                className="flex items-center space-x-2 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                 title={isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
               >
                 {isDarkMode ? (
-                  <div className="w-5 h-5 bg-yellow-400 rounded-full"></div>
+                  <>
+                    <div className="w-5 h-5 bg-yellow-400 rounded-full flex items-center justify-center">
+                      <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                    </div>
+                    <span className="text-sm font-medium text-gray-900 dark:text-white">Light</span>
+                  </>
                 ) : (
-                  <div className="w-5 h-5 bg-gray-700 rounded-full"></div>
+                  <>
+                    <div className="w-5 h-5 bg-gray-700 rounded-full flex items-center justify-center">
+                      <div className="w-2 h-2 bg-gray-900 rounded-full"></div>
+                    </div>
+                    <span className="text-sm font-medium text-gray-900 dark:text-white">Dark</span>
+                  </>
                 )}
               </button>
             </div>

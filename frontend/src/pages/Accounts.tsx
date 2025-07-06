@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import BankManagement from '../components/BankManagement'
-import LoadingSpinner from '../components/LoadingSpinner'
+import LoadingSpinner from '../components/ui/LoadingSpinner'
 import { apiService, Account } from '../services/apiService'
 import { Building2, CreditCard, Wallet, TrendingUp, Shield, CheckCircle, AlertCircle } from 'lucide-react'
 
@@ -83,10 +83,57 @@ const Accounts: React.FC = () => {
     }
   }
 
-  const totalBalance = accounts.reduce((sum, account) => sum + account.balance, 0)
-  const checkingBalance = accounts.filter(a => a.type.toLowerCase() === 'checking').reduce((sum, a) => sum + a.balance, 0)
-  const savingsBalance = accounts.filter(a => a.type.toLowerCase() === 'savings').reduce((sum, a) => sum + a.balance, 0)
-  const creditBalance = accounts.filter(a => a.type.toLowerCase() === 'credit').reduce((sum, a) => sum + a.balance, 0)
+  // Calculate balances properly by account type
+  const calculateBalances = () => {
+    let totalBalance = 0;
+    let checkingBalance = 0;
+    let savingsBalance = 0;
+    let creditBalance = 0;
+    let investmentBalance = 0;
+    
+    accounts.forEach(account => {
+      const balance = account.balance || 0;
+      
+      switch (account.type.toLowerCase()) {
+        case 'depository':
+          // Check subtype for more specific categorization
+          if (account.name.toLowerCase().includes('checking')) {
+            checkingBalance += balance;
+          } else if (account.name.toLowerCase().includes('saving')) {
+            savingsBalance += balance;
+          } else {
+            // Default depository accounts to checking
+            checkingBalance += balance;
+          }
+          totalBalance += balance;
+          break;
+        case 'credit':
+          creditBalance += Math.abs(balance); // Track credit as positive for display
+          totalBalance += balance; // Credit balances are already negative, add them as-is
+          break;
+        case 'investment':
+          investmentBalance += balance;
+          totalBalance += balance;
+          break;
+        case 'loan':
+          // Loans are debt, already negative in Plaid
+          totalBalance += balance;
+          break;
+        default:
+          totalBalance += balance;
+      }
+    });
+    
+    return {
+      totalBalance,
+      checkingBalance,
+      savingsBalance,
+      creditBalance,
+      investmentBalance
+    };
+  };
+  
+  const balances = calculateBalances();
 
   if (loading) {
     return (
@@ -119,7 +166,7 @@ const Accounts: React.FC = () => {
             <span className="text-sm text-gray-600 dark:text-gray-400">Total Balance</span>
           </div>
           <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
-            {formatCurrency(totalBalance)}
+            {formatCurrency(balances.totalBalance)}
           </p>
         </div>
 
@@ -129,7 +176,7 @@ const Accounts: React.FC = () => {
             <span className="text-sm text-gray-600 dark:text-gray-400">Checking</span>
           </div>
           <p className="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">
-            {formatCurrency(checkingBalance)}
+            {formatCurrency(balances.checkingBalance)}
           </p>
         </div>
 
@@ -139,7 +186,7 @@ const Accounts: React.FC = () => {
             <span className="text-sm text-gray-600 dark:text-gray-400">Savings</span>
           </div>
           <p className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">
-            {formatCurrency(savingsBalance)}
+            {formatCurrency(balances.savingsBalance)}
           </p>
         </div>
 
@@ -149,7 +196,7 @@ const Accounts: React.FC = () => {
             <span className="text-sm text-gray-600 dark:text-gray-400">Credit</span>
           </div>
           <p className="text-2xl font-bold text-red-600 dark:text-red-400 mt-1">
-            {formatCurrency(Math.abs(creditBalance))}
+            {formatCurrency(balances.creditBalance)}
           </p>
         </div>
       </div>

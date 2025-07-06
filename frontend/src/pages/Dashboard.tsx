@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react'
 import OverviewCards from '../components/OverviewCards'
 import CashFlowInsights from '../components/CashFlowInsights'
-import ChartsSection from '../components/ChartsSection'
-import AlertsNotifications from '../components/AlertsNotifications'
-import LoadingSpinner from '../components/LoadingSpinner'
+import SimplifiedChartsSection from '../components/charts/SimplifiedChartsSection'
+import BudgetSummaryWidget from '../components/widgets/BudgetSummaryWidget'
+import InvestmentSummaryWidget from '../components/widgets/InvestmentSummaryWidget'
+import RecentTransactionsWidget from '../components/widgets/RecentTransactionsWidget'
+import LoadingSpinner from '../components/ui/LoadingSpinner'
 import { apiService, OverviewData, SpendingData, CategoryData, EarningsData } from '../services/apiService'
-import { TrendingUp, Receipt, Target, Building2 } from 'lucide-react'
+import { Receipt, Building2 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 const Dashboard: React.FC = () => {
@@ -14,6 +16,7 @@ const Dashboard: React.FC = () => {
   const [spendingData, setSpendingData] = useState<SpendingData[]>([])
   const [categoryData, setCategoryData] = useState<CategoryData[]>([])
   const [earningsData, setEarningsData] = useState<EarningsData | null>(null)
+  const [categoryPeriod, setCategoryPeriod] = useState('30')
 
   useEffect(() => {
     loadDashboardData()
@@ -22,10 +25,10 @@ const Dashboard: React.FC = () => {
   const loadDashboardData = async () => {
     try {
       setLoading(true)
-      const [overview, spending, categories, earnings] = await Promise.all([
+      const [overview, spending,        categories, earnings] = await Promise.all([
         apiService.fetchOverviewData(),
         apiService.fetchSpendingData('30'),
-        apiService.fetchCategoryData('30'),
+        apiService.fetchCategoryData(categoryPeriod),
         apiService.fetchEarningsData()
       ])
       
@@ -46,6 +49,16 @@ const Dashboard: React.FC = () => {
     console.log('Selected category:', category)
   }
 
+  const handleCategoryPeriodChange = async (period: string) => {
+    setCategoryPeriod(period)
+    try {
+      const categories = await apiService.fetchCategoryData(period)
+      setCategoryData(categories)
+    } catch (error) {
+      console.error('Error loading category data:', error)
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-96">
@@ -58,7 +71,7 @@ const Dashboard: React.FC = () => {
     <div className="space-y-6">
       {/* Welcome Section */}
       <div className="bg-gradient-to-r from-navy-600 to-navy-800 dark:from-navy-700 dark:to-navy-900 rounded-lg p-6 text-white">
-        <h1 className="text-2xl font-bold mb-2">Welcome back, John!</h1>
+        <h1 className="text-2xl font-bold mb-2">Welcome to your Financial Dashboard</h1>
         <p className="text-navy-100 dark:text-navy-200">
           Here's your financial overview for today.
         </p>
@@ -68,7 +81,7 @@ const Dashboard: React.FC = () => {
       <OverviewCards data={overviewData} />
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Link 
           to="/transactions" 
           className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow border border-gray-200 dark:border-gray-700"
@@ -80,36 +93,6 @@ const Dashboard: React.FC = () => {
             <div>
               <p className="font-medium text-gray-900 dark:text-white">View Transactions</p>
               <p className="text-sm text-gray-500 dark:text-gray-400">Manage your spending</p>
-            </div>
-          </div>
-        </Link>
-
-        <Link 
-          to="/budgets-goals" 
-          className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow border border-gray-200 dark:border-gray-700"
-        >
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-green-100 dark:bg-green-900 rounded-lg flex items-center justify-center">
-              <Target className="w-5 h-5 text-green-600 dark:text-green-400" />
-            </div>
-            <div>
-              <p className="font-medium text-gray-900 dark:text-white">Set Goals</p>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Track your progress</p>
-            </div>
-          </div>
-        </Link>
-
-        <Link 
-          to="/investments" 
-          className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow border border-gray-200 dark:border-gray-700"
-        >
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900 rounded-lg flex items-center justify-center">
-              <TrendingUp className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-            </div>
-            <div>
-              <p className="font-medium text-gray-900 dark:text-white">Investments</p>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Portfolio overview</p>
             </div>
           </div>
         </Link>
@@ -130,18 +113,25 @@ const Dashboard: React.FC = () => {
         </Link>
       </div>
 
-      {/* Cash Flow Insights */}
-      <CashFlowInsights data={earningsData} />
+      {/* Financial Summary Widgets */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <BudgetSummaryWidget />
+        <InvestmentSummaryWidget />
+      </div>
 
-      {/* Charts Section */}
-      <ChartsSection
+      {/* Recent Transactions & Cash Flow */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <RecentTransactionsWidget />
+        <CashFlowInsights data={earningsData} />
+      </div>
+
+      {/* Charts Section - Simplified */}
+      <SimplifiedChartsSection
         spendingData={spendingData}
         categoryData={categoryData}
         onCategorySelect={handleCategorySelect}
+        onCategoryPeriodChange={handleCategoryPeriodChange}
       />
-
-      {/* Alerts & Notifications */}
-      <AlertsNotifications />
     </div>
   )
 }
