@@ -113,10 +113,10 @@ graph TB
         L --> N[Plaid Client]
 
         K --> O[API Endpoints]
-        O --> P[/api/create_link_token]
-        O --> Q[/api/exchange_public_token]
-        O --> R[/api/management/*]
-        O --> S[/api/transactions]
+        O --> P["create_link_token"]
+        O --> Q["exchange_public_token"]
+        O --> R["management endpoints"]
+        O --> S["transactions endpoint"]
     end
 
     subgraph "External Services"
@@ -155,22 +155,22 @@ graph TB
 ```mermaid
 graph TD
     subgraph "src/"
-        A[server.ts<br/>Express Server Setup]
-        B[database.ts<br/>SQLite Database Layer]
-        C[plaidClient.ts<br/>Plaid API Configuration]
-        D[db.ts<br/>Database Utils]
+        A["server.ts<br/>Express Server Setup"]
+        B["database.ts<br/>SQLite Database Layer"]
+        C["plaidClient.ts<br/>Plaid API Configuration"]
+        D["db.ts<br/>Database Utils"]
 
         subgraph "routes/"
-            E[createLinkToken.ts<br/>Plaid Link Token Creation]
-            F[exchangeToken.ts<br/>Token Exchange & Bank Saving]
-            G[dashboard.ts<br/>Dashboard Data Endpoints]
-            H[transactions.ts<br/>Transaction Endpoints]
-            I[sandbox.ts<br/>Sandbox Testing]
+            E["createLinkToken.ts<br/>Plaid Link Token Creation"]
+            F["exchangeToken.ts<br/>Token Exchange & Bank Saving"]
+            G["dashboard.ts<br/>Dashboard Data Endpoints"]
+            H["transactions.ts<br/>Transaction Endpoints"]
+            I["sandbox.ts<br/>Sandbox Testing"]
         end
 
         subgraph "services/"
-            J[bankService.ts<br/>Multi-bank Connection Management]
-            K[schedulerService.ts<br/>Background Job Scheduling]
+            J["bankService.ts<br/>Multi-bank Connection Management"]
+            K["schedulerService.ts<br/>Background Job Scheduling"]
         end
     end
 
@@ -201,52 +201,52 @@ graph TD
 ```mermaid
 graph TD
     subgraph "frontend/src/"
-        A[main.tsx<br/>App Entry Point]
-        B[App.tsx<br/>Main App Component]
+        A["main.tsx<br/>App Entry Point"]
+        B["App.tsx<br/>Main App Component"]
 
         subgraph "pages/"
-            C[Dashboard.tsx<br/>Main Dashboard View]
-            D[Transactions.tsx<br/>Transaction Management]
-            E[Accounts.tsx<br/>Account Management]
-            F[Investments.tsx<br/>Investment Overview]
+            C["Dashboard.tsx<br/>Main Dashboard View"]
+            D["Transactions.tsx<br/>Transaction Management"]
+            E["Accounts.tsx<br/>Account Management"]
+            F["Investments.tsx<br/>Investment Overview"]
         end
 
         subgraph "components/"
-            G[BankManagement.tsx<br/>Bank Connection Management]
-            H[TransactionsTable.tsx<br/>Transaction Display]
-            I[OverviewCards.tsx<br/>Financial Summary Cards]
-            J[FilterBar.tsx<br/>Transaction Filtering]
-            K[CashFlowInsights.tsx<br/>Cash Flow Analysis]
-            L[EarningsSummary.tsx<br/>Earnings Overview]
-            M[InvestmentsPanel.tsx<br/>Investment Details]
+            G["BankManagement.tsx<br/>Bank Connection Management"]
+            H["TransactionsTable.tsx<br/>Transaction Display"]
+            I["OverviewCards.tsx<br/>Financial Summary Cards"]
+            J["FilterBar.tsx<br/>Transaction Filtering"]
+            K["CashFlowInsights.tsx<br/>Cash Flow Analysis"]
+            L["EarningsSummary.tsx<br/>Earnings Overview"]
+            M["InvestmentsPanel.tsx<br/>Investment Details"]
 
             subgraph "charts/"
-                N[SimplifiedChartsSection.tsx<br/>Financial Charts]
+                N["SimplifiedChartsSection.tsx<br/>Financial Charts"]
             end
 
             subgraph "widgets/"
-                O[BudgetSummaryWidget.tsx<br/>Budget Overview]
-                P[InvestmentSummaryWidget.tsx<br/>Investment Summary]
-                Q[RecentTransactionsWidget.tsx<br/>Recent Transactions]
+                O["BudgetSummaryWidget.tsx<br/>Budget Overview"]
+                P["InvestmentSummaryWidget.tsx<br/>Investment Summary"]
+                Q["RecentTransactionsWidget.tsx<br/>Recent Transactions"]
             end
 
             subgraph "ui/"
-                R[Header.tsx<br/>App Header]
-                S[Layout.tsx<br/>Main Layout]
-                T[LoadingSpinner.tsx<br/>Loading Indicator]
+                R["Header.tsx<br/>App Header"]
+                S["Layout.tsx<br/>Main Layout"]
+                T["LoadingSpinner.tsx<br/>Loading Indicator"]
             end
         end
 
         subgraph "services/"
-            U[apiService.ts<br/>API Communication]
+            U["apiService.ts<br/>API Communication"]
         end
 
         subgraph "contexts/"
-            V[ThemeContext.tsx<br/>Theme Management]
+            V["ThemeContext.tsx<br/>Theme Management"]
         end
 
         subgraph "types/"
-            W[index.ts<br/>Type Definitions]
+            W["index.ts<br/>Type Definitions"]
         end
     end
 
