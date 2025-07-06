@@ -18,7 +18,7 @@ const SimplifiedChartsSection: React.FC<SimplifiedChartsSectionProps> = ({
   const [categoryPeriod, setCategoryPeriod] = useState('30')
   const [selectedCategory, setSelectedCategory] = useState('all')
   
-  const COLORS = ['#8b5cf6', '#06b6d4', '#10b981', '#f59e0b', '#ef4444', '#ec4899']
+  const COLORS = ['#6366f1', '#8b5cf6', '#ec4899', '#06b6d4', '#10b981', '#f59e0b']
 
   const handleCategoryPeriodChange = (period: string) => {
     setCategoryPeriod(period)
@@ -64,13 +64,23 @@ const SimplifiedChartsSection: React.FC<SimplifiedChartsSectionProps> = ({
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div className="space-y-8">
       {/* Spending vs Income Line Chart */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-          Spending vs Income
-        </h3>
-        <div className="h-64">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm p-6 border border-gray-100 dark:border-gray-800 hover:shadow-lg transition-shadow duration-300">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center">
+              <div className="w-5 h-5 border-2 border-white rounded-full"></div>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Spending vs Income
+              </h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Financial flow analysis</p>
+            </div>
+          </div>
+        </div>
+        <div className="h-80">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={spendingData}>
               <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
@@ -78,31 +88,43 @@ const SimplifiedChartsSection: React.FC<SimplifiedChartsSectionProps> = ({
                 dataKey="date" 
                 tickFormatter={formatDate}
                 className="text-sm"
+                axisLine={false}
+                tickLine={false}
               />
               <YAxis 
                 tickFormatter={formatCurrency}
                 className="text-sm"
+                axisLine={false}
+                tickLine={false}
               />
               <Tooltip 
                 formatter={(value: number) => [formatCurrency(value), '']}
                 labelFormatter={(label: string) => formatDate(label)}
+                contentStyle={{
+                  backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                  border: 'none',
+                  borderRadius: '12px',
+                  boxShadow: '0 10px 25px rgba(0, 0, 0, 0.1)'
+                }}
               />
               <Legend />
               <Line 
                 type="monotone" 
                 dataKey="spending" 
                 stroke="#ef4444" 
-                strokeWidth={2}
+                strokeWidth={3}
                 name="Spending"
-                dot={{ fill: '#ef4444', strokeWidth: 2 }}
+                dot={{ fill: '#ef4444', strokeWidth: 2, r: 5 }}
+                activeDot={{ r: 7, fill: '#ef4444' }}
               />
               <Line 
                 type="monotone" 
                 dataKey="income" 
                 stroke="#10b981" 
-                strokeWidth={2}
+                strokeWidth={3}
                 name="Income"
-                dot={{ fill: '#10b981', strokeWidth: 2 }}
+                dot={{ fill: '#10b981', strokeWidth: 2, r: 5 }}
+                activeDot={{ r: 7, fill: '#10b981' }}
               />
             </LineChart>
           </ResponsiveContainer>
@@ -110,16 +132,24 @@ const SimplifiedChartsSection: React.FC<SimplifiedChartsSectionProps> = ({
       </div>
 
       {/* Category Spending Pie Chart */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-            Spending by Category
-          </h3>
-          <div className="flex space-x-2">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm p-6 border border-gray-100 dark:border-gray-800 hover:shadow-lg transition-shadow duration-300">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl flex items-center justify-center">
+              <div className="w-5 h-5 border-2 border-white rounded-full border-dashed"></div>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Spending by Category
+              </h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Category breakdown</p>
+            </div>
+          </div>
+          <div className="flex space-x-3">
             <select
               value={selectedCategory}
               onChange={(e) => handleCategorySelectionChange(e.target.value)}
-              className="text-sm border border-gray-300 dark:border-gray-600 rounded-md px-3 py-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              className="text-sm border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
             >
               {getCategoryOptions().map(option => (
                 <option key={option.value} value={option.value}>
@@ -130,7 +160,7 @@ const SimplifiedChartsSection: React.FC<SimplifiedChartsSectionProps> = ({
             <select
               value={categoryPeriod}
               onChange={(e) => handleCategoryPeriodChange(e.target.value)}
-              className="text-sm border border-gray-300 dark:border-gray-600 rounded-md px-3 py-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              className="text-sm border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
             >
               <option value="7">Last 7 days</option>
               <option value="30">Last 30 days</option>
@@ -139,55 +169,72 @@ const SimplifiedChartsSection: React.FC<SimplifiedChartsSectionProps> = ({
             </select>
           </div>
         </div>
-        <div className="h-64">
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie
-                data={getFilteredCategoryData()}
-                cx="50%"
-                cy="50%"
-                innerRadius={60}
-                outerRadius={100}
-                paddingAngle={2}
-                dataKey="amount"
-                onClick={(data) => onCategorySelect(data.category)}
-                className="cursor-pointer"
-              >
-                {getFilteredCategoryData().map((_, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip formatter={(value: number) => formatCurrency(value)} />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
-        <div className="mt-4">
-          {selectedCategory !== 'all' && (
-            <div className="mb-2 p-2 bg-blue-50 dark:bg-blue-900 rounded-lg">
-              <p className="text-sm text-blue-700 dark:text-blue-300">
-                Showing: <strong>{selectedCategory}</strong> category
-              </p>
-            </div>
-          )}
-          <div className="grid grid-cols-2 gap-2">
-            {getFilteredCategoryData().slice(0, 6).map((item, index) => (
-              <div 
-                key={item.category}
-                className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 p-2 rounded"
-                onClick={() => onCategorySelect(item.category)}
-              >
-                <div 
-                  className="w-3 h-3 rounded-full"
-                  style={{ backgroundColor: COLORS[index % COLORS.length] }}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="h-80">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={getFilteredCategoryData()}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={80}
+                  outerRadius={140}
+                  paddingAngle={2}
+                  dataKey="amount"
+                  onClick={(data) => onCategorySelect(data.category)}
+                  className="cursor-pointer"
+                >
+                  {getFilteredCategoryData().map((_, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip 
+                  formatter={(value: number) => formatCurrency(value)} 
+                  contentStyle={{
+                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                    border: 'none',
+                    borderRadius: '12px',
+                    boxShadow: '0 10px 25px rgba(0, 0, 0, 0.1)'
+                  }}
                 />
-                <span className="text-sm text-gray-600 dark:text-gray-400 truncate">
-                  {item.category}
-                </span>
-                <span className="text-sm font-medium text-gray-900 dark:text-white ml-auto">
-                  {item.percentage}%
-                </span>
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="space-y-3">
+            {selectedCategory !== 'all' && (
+              <div className="mb-4 p-4 bg-indigo-50 dark:bg-indigo-900/30 rounded-xl">
+                <p className="text-sm text-indigo-700 dark:text-indigo-300">
+                  Showing: <strong>{selectedCategory}</strong> category
+                </p>
               </div>
-            ))}
+            )}
+            <div className="space-y-3 max-h-64 overflow-y-auto">
+              {getFilteredCategoryData().slice(0, 8).map((item, index) => (
+                <div 
+                  key={item.category}
+                  className="group flex items-center justify-between p-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl transition-colors"
+                  onClick={() => onCategorySelect(item.category)}
+                >
+                  <div className="flex items-center space-x-3">
+                    <div 
+                      className="w-4 h-4 rounded-full flex-shrink-0"
+                      style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                    />
+                    <span className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                      {item.category}
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                      {item.percentage}%
+                    </span>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {formatCurrency(item.amount)}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
