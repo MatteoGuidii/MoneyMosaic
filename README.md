@@ -4,7 +4,7 @@ A comprehensive personal finance dashboard that connects multiple banks and trac
 
 ![MoneyMosaic Dashboard](https://img.shields.io/badge/Status-Production%20Ready-brightgreen)
 ![TypeScript](https://img.shields.io/badge/TypeScript-100%25-blue)
-![Test Coverage](https://img.shields.io/badge/Test%20Coverage-100%25-brightgreen)
+![Test Coverage](https://img.shields.io/badge/Test%20Coverage-85%25-green)
 
 ## 📋 Table of Contents
 
@@ -12,23 +12,41 @@ A comprehensive personal finance dashboard that connects multiple banks and trac
 - [🚀 Quick Start](#-quick-start)
 - [📋 Prerequisites](#-prerequisites)
 - [⚙️ Environment Configuration](#️-environment-configuration)
-- [🏗️ Architecture](#️-architecture)
 - [🔧 API Endpoints](#-api-endpoints)
 - [🧪 Testing](#-testing)
-- [🛠️ Development](#️-development)
+- [�️ Database](#️-database)
+- [�🛠️ Development](#️-development)
 - [🔒 Security & Production](#-security--production)
-- [❓ FAQ](#-faq)
-- [📋 Common Issues](#-common-issues)
-- [🎯 Next Steps](#-next-steps)
+- [📋 Common Issues & FAQ](#-common-issues--faq)
+
+### Project Structure
+
+For detailed information, see our comprehensive documentation:
+
+📁 **[docs/](./docs/)** - Complete technical documentation
+
+- **[ARCHITECTURE.md](./docs/ARCHITECTURE.md)** - Project structure
+- **[API.md](./docs/API.md)** - API documentation
+- **[TESTING.md](./docs/TESTING.md)** - Testing guide & best practices
+- **[openapi.json](./docs/openapi.json)** - OpenAPI specification
+
+**Key directories:**
+
+- `src/` - Backend source code
+- `frontend/` - React frontend
+- `tests/` - Test suites
+- `docs/` - Documentation
 
 ## ✨ Features
 
 - **Multi-Bank Support**: Connect unlimited bank accounts from different institutions
 - **Real-time Sync**: Automatic transaction syncing every 6 hours with manual sync option
-- **Financial Insights**: Comprehensive spending analysis with interactive charts
-- **Modern Interface**: Responsive React frontend with dark/light mode
+- **Financial Insights**: Comprehensive spending analysis with interactive charts and category filtering
+- **Dynamic Filters**: Time-based filtering and category-specific analysis for spending patterns
+- **Modern Interface**: Responsive React frontend with dark/light mode support
 - **Secure Storage**: Local SQLite database with transaction deduplication
-- **Connection Health**: Automatic monitoring and error handling
+- **Connection Health**: Automatic monitoring and error handling with visual status indicators
+- **Privacy-Focused**: Single-user design with no external data sharing
 
 ## 🚀 Quick Start
 
@@ -86,59 +104,25 @@ PORT=8080
 SYNC_INTERVAL_HOURS=6
 ```
 
-## 🏗️ Architecture
-
-### Backend Structure
-
-```
-src/
-├── database.ts          # SQLite database layer
-├── plaidClient.ts       # Plaid API configuration
-├── server.ts            # Express server setup
-├── services/
-│   ├── bankService.ts   # Multi-bank connection management
-│   └── schedulerService.ts # Background job scheduling
-└── routes/
-    ├── createLinkToken.ts   # Plaid Link token creation
-    ├── exchangeToken.ts     # Token exchange & bank saving
-    ├── dashboard.ts         # Dashboard data endpoints
-    └── transactions.ts      # Transaction endpoints
-```
-
-### Frontend Structure
-
-```
-frontend/src/
-├── components/          # React components
-│   ├── Dashboard.tsx    # Main dashboard view
-│   ├── BankManagement.tsx # Bank connection management
-│   ├── TransactionsTable.tsx # Transaction display
-│   └── ChartsSection.tsx # Financial charts
-├── services/
-│   └── apiService.ts    # API communication
-└── contexts/
-    └── ThemeContext.tsx # Theme management
-```
-
 ## 🔧 API Endpoints
 
-### Bank Management
+### Interactive API Documentation
 
-- `POST /api/create_link_token` - Create Plaid Link token
-- `POST /api/exchange_public_token` - Connect new bank
-- `GET /api/management/connected_banks` - List all connected banks
-- `DELETE /api/management/banks/:id` - Remove bank connection
-- `GET /api/management/health_check` - Check connection health
+MoneyMosaic provides comprehensive OpenAPI/Swagger documentation:
 
-### Transactions & Data
+- **Swagger UI**: `http://localhost:8080/api-docs` (when server is running)
+- **OpenAPI Spec**: [docs/openapi.json](./docs/openapi.json)
 
-- `GET /api/management/dashboard` - Get dashboard data
-- `POST /api/management/sync` - Manual sync trigger
-- `GET /api/management/transactions` - Get transactions with filters
+```bash
+# Generate/update OpenAPI specification
+npm run docs:generate
+```
+
+For a quick endpoint reference, see [docs/API.md](./docs/API.md).
 
 ## 🧪 Testing
 
-MoneyMosaic includes comprehensive testing with 70%+ coverage:
+MoneyMosaic includes comprehensive testing with 85%+ coverage. For detailed testing information, see [docs/TESTING.md](./docs/TESTING.md).
 
 ```bash
 # Run all tests
@@ -147,60 +131,35 @@ npm test
 # Run with coverage
 npm run test:coverage
 
-# Run specific test
-npm test -- bankService.test.ts
+# Run in watch mode
+npm run test:watch
 ```
 
-**Test Coverage:**
+## 🗄️ Database
 
-- ✅ Unit Tests: Database, BankService, SchedulerService, PlaidClient
-- ✅ Integration Tests: Complete API endpoint coverage
-- ✅ Postman Collection: Manual API testing
+MoneyMosaic uses SQLite for local data storage. Database location: `./data/moneymosaic.db`
+
+For detailed database architecture, see [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md).
+
+**Security Notes:**
+
+- Database files are gitignored and contain sensitive financial data
+- No external data sharing
+- Automatic backups recommended for production use
 
 ## 🛠️ Development
 
-### Development Commands
-
-#### Quick Start
+### Quick Start Commands
 
 ```bash
 npm run dev:both        # Start both backend + frontend
-```
-
-#### Individual Servers
-
-```bash
 npm run dev            # Backend only (port 8080)
 npm run dev:frontend   # Frontend only (port 3000)
-```
-
-#### Build & Production
-
-```bash
 npm run build          # Build both backend + frontend
 npm start              # Start production server
 ```
 
-#### Testing
-
-```bash
-npm test               # Run all tests
-npm run test:coverage  # Run with coverage report
-npm run test:watch     # Run in watch mode
-```
-
-### Building for Production
-
-```bash
-npm run build
-npm start
-```
-
-### Database Location
-
-- Development: `./data/moneymosaic.db`
-- Automatic creation and migration
-- Backup recommended for production
+For detailed development information, see [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md).
 
 ## 🔒 Security & Production
 
@@ -218,21 +177,7 @@ npm start
 - User controls all connections
 - Easy data export/deletion
 
-## ❓ FAQ
-
-**Can you connect multiple banks?**
-✅ Yes! Connect unlimited banks with persistent connections.
-
-**Do connections expire?**
-✅ Generally no, but banks may revoke access if passwords change or accounts are closed.
-
-**Is data persistent?**
-✅ Yes! All data stored in SQLite with transaction history preserved.
-
-**Background sync available?**
-✅ Yes! Automatic sync every 6 hours with manual triggers available.
-
-## 📋 Common Issues
+## 📋 Common Issues & FAQ
 
 **Connection Failures:**
 
@@ -251,15 +196,14 @@ npm start
 - Ensure write permissions in `data/` directory
 - Check SQLite installation
 
-## 🎯 Next Steps
+**Can you connect multiple banks?**
+✅ Yes! Connect unlimited banks with persistent connections.
 
-Consider adding:
+**Is data persistent?**
+✅ Yes! All data stored in SQLite with transaction history preserved.
 
-- User authentication system
-- Budget tracking and alerts
-- Investment account support
-- Data export functionality
-- Advanced analytics
+**Background sync available?**
+✅ Yes! Automatic sync every 6 hours with manual triggers available.
 
 ---
 

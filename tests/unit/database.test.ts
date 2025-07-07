@@ -1,5 +1,4 @@
 import { Database } from '../../src/database';
-import path from 'path';
 import fs from 'fs';
 
 describe('Database', () => {

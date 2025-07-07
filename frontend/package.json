@@ -24,7 +24,11 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "type-check": "tsc --noEmit",
+    "lint": "echo 'Linting would go here'",
+    "clean": "rm -rf dist",
+    "build:prod": "npm run clean && npm run type-check && vite build"
   },
   "browserslist": {
     "production": [

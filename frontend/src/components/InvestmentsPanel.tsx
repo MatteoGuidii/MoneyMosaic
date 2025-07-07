@@ -1,5 +1,6 @@
 import React from 'react'
-import { TrendingUp, TrendingDown, PieChart as PieChartIcon } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { TrendingUp, TrendingDown, PieChart as PieChartIcon, ArrowRight } from 'lucide-react'
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts'
 import { Investment } from '../services/apiService'
 
@@ -43,9 +44,18 @@ const InvestmentsPanel: React.FC<InvestmentsPanelProps> = ({ investments }) => {
       {/* Holdings Grid */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
         <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-            Investment Holdings
-          </h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+              Investment Holdings
+            </h3>
+            <Link 
+              to="/investments"
+              className="flex items-center space-x-2 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors"
+            >
+              <span className="text-sm font-medium">View Details</span>
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
         </div>
         
         <div className="p-6">

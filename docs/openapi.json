@@ -1,0 +1,1140 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "MoneyMosaic API",
+    "version": "1.0.0",
+    "description": "A comprehensive personal finance dashboard API that connects multiple banks and tracks finances using the Plaid API.",
+    "contact": {
+      "name": "MoneyMosaic API Support",
+      "url": "https://github.com/matteoguidii/moneymosaic"
+    },
+    "license": {
+      "name": "ISC",
+      "url": "https://opensource.org/licenses/ISC"
+    }
+  },
+  "components": {
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "Error message"
+          },
+          "details": {
+            "type": "string",
+            "description": "Additional error details"
+          }
+        },
+        "required": [
+          "error"
+        ]
+      },
+      "HealthCheck": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "healthy"
+            ],
+            "description": "Service health status"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Current timestamp"
+          },
+          "environment": {
+            "type": "string",
+            "description": "Current environment"
+          }
+        },
+        "required": [
+          "status",
+          "timestamp"
+        ]
+      },
+      "LinkToken": {
+        "type": "object",
+        "properties": {
+          "link_token": {
+            "type": "string",
+            "description": "Plaid Link token for frontend integration"
+          },
+          "expiration": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Token expiration time"
+          }
+        },
+        "required": [
+          "link_token",
+          "expiration"
+        ]
+      },
+      "Institution": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Institution ID"
+          },
+          "name": {
+            "type": "string",
+            "description": "Institution name"
+          },
+          "plaid_institution_id": {
+            "type": "string",
+            "description": "Plaid institution identifier"
+          },
+          "access_token": {
+            "type": "string",
+            "description": "Plaid access token"
+          },
+          "is_active": {
+            "type": "boolean",
+            "description": "Whether the institution connection is active"
+          },
+          "last_sync": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Last synchronization timestamp"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Creation timestamp"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "plaid_institution_id",
+          "is_active"
+        ]
+      },
+      "Account": {
+        "type": "object",
+        "properties": {
+          "account_id": {
+            "type": "string",
+            "description": "Plaid account identifier"
+          },
+          "institution_id": {
+            "type": "integer",
+            "description": "Associated institution ID"
+          },
+          "name": {
+            "type": "string",
+            "description": "Account name"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "depository",
+              "credit",
+              "investment",
+              "loan"
+            ],
+            "description": "Account type"
+          },
+          "subtype": {
+            "type": "string",
+            "description": "Account subtype"
+          },
+          "current_balance": {
+            "type": "number",
+            "format": "float",
+            "description": "Current account balance"
+          },
+          "available_balance": {
+            "type": "number",
+            "format": "float",
+            "description": "Available balance"
+          },
+          "currency_code": {
+            "type": "string",
+            "description": "Currency code (e.g., USD)"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Creation timestamp"
+          }
+        },
+        "required": [
+          "account_id",
+          "institution_id",
+          "name",
+          "type"
+        ]
+      },
+      "Transaction": {
+        "type": "object",
+        "properties": {
+          "transaction_id": {
+            "type": "string",
+            "description": "Plaid transaction identifier"
+          },
+          "account_id": {
+            "type": "string",
+            "description": "Associated account ID"
+          },
+          "amount": {
+            "type": "number",
+            "format": "float",
+            "description": "Transaction amount (positive for debits, negative for credits)"
+          },
+          "date": {
+            "type": "string",
+            "format": "date",
+            "description": "Transaction date"
+          },
+          "name": {
+            "type": "string",
+            "description": "Transaction name/description"
+          },
+          "category": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Transaction categories"
+          },
+          "merchant_name": {
+            "type": "string",
+            "description": "Merchant name"
+          },
+          "currency_code": {
+            "type": "string",
+            "description": "Currency code"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Creation timestamp"
+          }
+        },
+        "required": [
+          "transaction_id",
+          "account_id",
+          "amount",
+          "date",
+          "name"
+        ]
+      },
+      "DashboardOverview": {
+        "type": "object",
+        "properties": {
+          "totalCashBalance": {
+            "type": "number",
+            "format": "float",
+            "description": "Total cash balance across all accounts"
+          },
+          "totalPortfolioValue": {
+            "type": "number",
+            "format": "float",
+            "description": "Total investment portfolio value"
+          },
+          "todayNetFlow": {
+            "type": "number",
+            "format": "float",
+            "description": "Net cash flow for today"
+          },
+          "accountsCount": {
+            "type": "integer",
+            "description": "Number of connected accounts"
+          },
+          "institutionsCount": {
+            "type": "integer",
+            "description": "Number of connected institutions"
+          },
+          "lastSyncTime": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Last data synchronization time"
+          }
+        },
+        "required": [
+          "totalCashBalance",
+          "totalPortfolioValue",
+          "todayNetFlow"
+        ]
+      },
+      "TokenExchangeRequest": {
+        "type": "object",
+        "properties": {
+          "public_token": {
+            "type": "string",
+            "description": "Public token from Plaid Link"
+          }
+        },
+        "required": [
+          "public_token"
+        ]
+      },
+      "TokenExchangeResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "Whether the token exchange was successful"
+          },
+          "message": {
+            "type": "string",
+            "description": "Success message"
+          },
+          "institutionId": {
+            "type": "integer",
+            "description": "Created institution ID"
+          }
+        },
+        "required": [
+          "success",
+          "message"
+        ]
+      },
+      "SyncResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "Whether the sync was successful"
+          },
+          "message": {
+            "type": "string",
+            "description": "Sync result message"
+          },
+          "syncedInstitutions": {
+            "type": "integer",
+            "description": "Number of institutions synced"
+          },
+          "newTransactions": {
+            "type": "integer",
+            "description": "Number of new transactions found"
+          }
+        },
+        "required": [
+          "success",
+          "message"
+        ]
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Health",
+      "description": "System health endpoints"
+    },
+    {
+      "name": "Authentication",
+      "description": "Plaid Link token management"
+    },
+    {
+      "name": "Bank Management",
+      "description": "Bank connection and management endpoints"
+    },
+    {
+      "name": "Dashboard",
+      "description": "Dashboard data and insights"
+    },
+    {
+      "name": "Transactions",
+      "description": "Transaction data and management"
+    },
+    {
+      "name": "Accounts",
+      "description": "Account information"
+    },
+    {
+      "name": "Investments",
+      "description": "Investment data"
+    },
+    {
+      "name": "Sandbox",
+      "description": "Sandbox testing endpoints"
+    }
+  ],
+  "paths": {
+    "/api/overview": {
+      "get": {
+        "summary": "Get dashboard overview",
+        "description": "Returns comprehensive dashboard overview including balances, portfolio value, and account statistics",
+        "tags": [
+          "Dashboard"
+        ],
+        "responses": {
+          "200": {
+            "description": "Dashboard overview data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardOverview"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/earnings": {
+      "get": {
+        "summary": "Get earnings data",
+        "description": "Returns earnings data including today's net flow, month-to-date flow, and 7-day average",
+        "tags": [
+          "Dashboard"
+        ],
+        "responses": {
+          "200": {
+            "description": "Earnings data retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "todayNetFlow": {
+                      "type": "number",
+                      "format": "float"
+                    },
+                    "monthToDateNetFlow": {
+                      "type": "number",
+                      "format": "float"
+                    },
+                    "sevenDayAverage": {
+                      "type": "number",
+                      "format": "float"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/spending-data": {
+      "get": {
+        "summary": "Get spending data",
+        "description": "Returns spending data for charts over a specified time range",
+        "tags": [
+          "Dashboard"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "range",
+            "schema": {
+              "type": "string",
+              "default": "30"
+            },
+            "description": "Number of days to retrieve spending data for"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Spending data retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "dailySpending": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "date": {
+                            "type": "string",
+                            "format": "date"
+                          },
+                          "amount": {
+                            "type": "number",
+                            "format": "float"
+                          }
+                        }
+                      }
+                    },
+                    "totalSpending": {
+                      "type": "number",
+                      "format": "float"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/investments": {
+      "get": {
+        "summary": "Get investment data",
+        "description": "Returns investment account data and portfolio information",
+        "tags": [
+          "Investments"
+        ],
+        "responses": {
+          "200": {
+            "description": "Investment data retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "totalValue": {
+                      "type": "number",
+                      "format": "float"
+                    },
+                    "accounts": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Account"
+                      }
+                    },
+                    "holdings": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "account_id": {
+                            "type": "string"
+                          },
+                          "security_id": {
+                            "type": "string"
+                          },
+                          "quantity": {
+                            "type": "number",
+                            "format": "float"
+                          },
+                          "value": {
+                            "type": "number",
+                            "format": "float"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/transactions": {
+      "get": {
+        "summary": "Get transactions with filters",
+        "description": "Returns transactions with filtering, search, and pagination support",
+        "tags": [
+          "Transactions"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "range",
+            "schema": {
+              "type": "string",
+              "default": "30"
+            },
+            "description": "Number of days to retrieve transactions for"
+          },
+          {
+            "in": "query",
+            "name": "categories",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Comma-separated list of categories to filter by"
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Search term for transaction names or merchant names"
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "string",
+              "default": "1"
+            },
+            "description": "Page number for pagination"
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "string",
+              "default": "10"
+            },
+            "description": "Number of transactions per page"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Transactions retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "transactions": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Transaction"
+                      }
+                    },
+                    "pagination": {
+                      "type": "object",
+                      "properties": {
+                        "total": {
+                          "type": "integer"
+                        },
+                        "page": {
+                          "type": "integer"
+                        },
+                        "limit": {
+                          "type": "integer"
+                        },
+                        "totalPages": {
+                          "type": "integer"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/accounts": {
+      "get": {
+        "summary": "Get account data",
+        "description": "Returns all connected account information with balances and institution details",
+        "tags": [
+          "Accounts"
+        ],
+        "responses": {
+          "200": {
+            "description": "Account data retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "accounts": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Account"
+                      }
+                    },
+                    "totalBalance": {
+                      "type": "number",
+                      "format": "float"
+                    },
+                    "summary": {
+                      "type": "object",
+                      "properties": {
+                        "depository": {
+                          "type": "number",
+                          "format": "float"
+                        },
+                        "credit": {
+                          "type": "number",
+                          "format": "float"
+                        },
+                        "investment": {
+                          "type": "number",
+                          "format": "float"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/link/token/create": {
+      "post": {
+        "summary": "Create Plaid Link token",
+        "description": "Creates a link token for initializing Plaid Link to connect bank accounts",
+        "tags": [
+          "Authentication"
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "user_id": {
+                    "type": "string",
+                    "description": "Optional user ID for the link token"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Link token created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LinkToken"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/sandbox/public_token/create": {
+      "post": {
+        "summary": "Create sandbox public token",
+        "description": "Creates a test public token for sandbox environment testing",
+        "tags": [
+          "Sandbox"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "institution_id": {
+                    "type": "string",
+                    "description": "Plaid institution ID for testing"
+                  },
+                  "initial_products": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Array of products to initialize"
+                  }
+                },
+                "required": [
+                  "institution_id",
+                  "initial_products"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Sandbox public token created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "public_token": {
+                      "type": "string",
+                      "description": "Test public token"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/token/exchange": {
+      "post": {
+        "summary": "Exchange public token for access token",
+        "description": "Exchange a Plaid public_token for an access_token and save bank connection to database",
+        "tags": [
+          "Bank Management"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TokenExchangeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Token exchange successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenExchangeResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/transactions/fetch": {
+      "post": {
+        "summary": "Fetch transactions for all connected banks",
+        "description": "Fetches transactions from all connected banks for the specified number of days",
+        "tags": [
+          "Transactions"
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "days": {
+                    "type": "integer",
+                    "default": 30,
+                    "description": "Number of days to fetch transactions for"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Transactions fetched successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "transactionCount": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/transactions/connected_banks": {
+      "get": {
+        "summary": "Get all connected banks",
+        "description": "Returns a list of all connected bank institutions",
+        "tags": [
+          "Bank Management"
+        ],
+        "responses": {
+          "200": {
+            "description": "Connected banks retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "banks": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Institution"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/transactions/banks/{institutionId}": {
+      "delete": {
+        "summary": "Remove bank connection",
+        "description": "Removes a bank connection and all associated data",
+        "tags": [
+          "Bank Management"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "institutionId",
+            "required": true,
+            "description": "Institution ID to remove",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Bank connection removed successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/transactions/health_check": {
+      "get": {
+        "summary": "Check connection health",
+        "description": "Checks the health status of all connected bank institutions",
+        "tags": [
+          "Bank Management"
+        ],
+        "responses": {
+          "200": {
+            "description": "Connection health status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "overallHealth": {
+                      "type": "string",
+                      "enum": [
+                        "healthy",
+                        "warning",
+                        "error"
+                      ]
+                    },
+                    "institutions": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string"
+                          },
+                          "lastSync": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/transactions/sync": {
+      "post": {
+        "summary": "Manual sync trigger",
+        "description": "Triggers a manual synchronization of all connected bank transactions",
+        "tags": [
+          "Transactions"
+        ],
+        "responses": {
+          "200": {
+            "description": "Sync completed successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SyncResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "summary": "Health check endpoint",
+        "description": "Returns the current health status of the API server",
+        "tags": [
+          "Health"
+        ],
+        "responses": {
+          "200": {
+            "description": "Service is healthy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthCheck"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

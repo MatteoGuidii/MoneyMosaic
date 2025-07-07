@@ -1,8 +1,8 @@
-import { schedulerService } from '../../src/services/schedulerService';
-import { bankService } from '../../src/services/bankService';
+import { schedulerService } from '../../src/services/scheduler.service';
+import { bankService } from '../../src/services/bank.service';
 
 // Mock bankService
-jest.mock('../../src/services/bankService', () => ({
+jest.mock('../../src/services/bank.service', () => ({
   bankService: {
     fetchAllTransactions: jest.fn(),
     checkConnectionHealth: jest.fn(),
