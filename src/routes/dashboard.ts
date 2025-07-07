@@ -3,8 +3,29 @@ import { database } from '../database';
 
 const router = express.Router();
 
+/**
+ * @swagger
+ * /api/overview:
+ *   get:
+ *     summary: Get dashboard overview
+ *     description: Returns comprehensive dashboard overview including balances, portfolio value, and account statistics
+ *     tags: [Dashboard]
+ *     responses:
+ *       200:
+ *         description: Dashboard overview data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/DashboardOverview'
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 // Get overview data for dashboard
-router.get('/overview', async (req, res) => {
+router.get('/overview', async (_req, res) => {
   try {
     // Get all accounts from active institutions
     const accountsResult = await database.all(`
@@ -58,8 +79,39 @@ router.get('/overview', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/earnings:
+ *   get:
+ *     summary: Get earnings data
+ *     description: Returns earnings data including today's net flow, month-to-date flow, and 7-day average
+ *     tags: [Dashboard]
+ *     responses:
+ *       200:
+ *         description: Earnings data retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 todayNetFlow:
+ *                   type: number
+ *                   format: float
+ *                 monthToDateNetFlow:
+ *                   type: number
+ *                   format: float
+ *                 sevenDayAverage:
+ *                   type: number
+ *                   format: float
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 // Get earnings summary
-router.get('/earnings', async (req, res) => {
+router.get('/earnings', async (_req, res) => {
   try {
     // Get today's net flow (only from active institutions)
     const today = new Date().toISOString().split('T')[0];
@@ -109,6 +161,49 @@ router.get('/earnings', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/spending-data:
+ *   get:
+ *     summary: Get spending data
+ *     description: Returns spending data for charts over a specified time range
+ *     tags: [Dashboard]
+ *     parameters:
+ *       - in: query
+ *         name: range
+ *         schema:
+ *           type: string
+ *           default: '30'
+ *         description: Number of days to retrieve spending data for
+ *     responses:
+ *       200:
+ *         description: Spending data retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 dailySpending:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       date:
+ *                         type: string
+ *                         format: date
+ *                       amount:
+ *                         type: number
+ *                         format: float
+ *                 totalSpending:
+ *                   type: number
+ *                   format: float
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 // Get spending data for charts
 router.get('/spending-data', async (req, res) => {
   try {
@@ -200,7 +295,7 @@ router.get('/category-data', async (req, res) => {
 });
 
 // Get categories list
-router.get('/categories', async (req, res) => {
+router.get('/categories', async (_req, res) => {
   try {
     const categories = await database.all(`
       SELECT DISTINCT t.category_primary FROM transactions t 
@@ -217,7 +312,7 @@ router.get('/categories', async (req, res) => {
 });
 
 // Get budget data (generated from spending patterns)
-router.get('/budget', async (req, res) => {
+router.get('/budget', async (_req, res) => {
   try {
     // Get current month's spending by category
     const currentMonth = new Date();
@@ -297,8 +392,52 @@ router.get('/budget', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/investments:
+ *   get:
+ *     summary: Get investment data
+ *     description: Returns investment account data and portfolio information
+ *     tags: [Investments]
+ *     responses:
+ *       200:
+ *         description: Investment data retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 totalValue:
+ *                   type: number
+ *                   format: float
+ *                 accounts:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Account'
+ *                 holdings:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       account_id:
+ *                         type: string
+ *                       security_id:
+ *                         type: string
+ *                       quantity:
+ *                         type: number
+ *                         format: float
+ *                       value:
+ *                         type: number
+ *                         format: float
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 // Get investments data
-router.get('/investments', async (req, res) => {
+router.get('/investments', async (_req, res) => {
   try {
     // Get all investment accounts from active institutions
     const activeAccounts = await database.all(`
@@ -347,13 +486,79 @@ router.get('/investments', async (req, res) => {
       };
     });
 
-    res.json(investments);
+    return res.json(investments);
   } catch (error) {
     console.error('Error fetching investments:', error);
-    res.status(500).json({ error: 'Failed to fetch investments data' });
+    return res.status(500).json({ error: 'Failed to fetch investments data' });
   }
 });
 
+/**
+ * @swagger
+ * /api/transactions:
+ *   get:
+ *     summary: Get transactions with filters
+ *     description: Returns transactions with filtering, search, and pagination support
+ *     tags: [Transactions]
+ *     parameters:
+ *       - in: query
+ *         name: range
+ *         schema:
+ *           type: string
+ *           default: '30'
+ *         description: Number of days to retrieve transactions for
+ *       - in: query
+ *         name: categories
+ *         schema:
+ *           type: string
+ *         description: Comma-separated list of categories to filter by
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search term for transaction names or merchant names
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: string
+ *           default: '1'
+ *         description: Page number for pagination
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: string
+ *           default: '10'
+ *         description: Number of transactions per page
+ *     responses:
+ *       200:
+ *         description: Transactions retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 transactions:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Transaction'
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     total:
+ *                       type: integer
+ *                     page:
+ *                       type: integer
+ *                     limit:
+ *                       type: integer
+ *                     totalPages:
+ *                       type: integer
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 // Get transactions with filtering and pagination
 router.get('/transactions', async (req, res) => {
   try {
@@ -435,8 +640,49 @@ router.get('/transactions', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/accounts:
+ *   get:
+ *     summary: Get account data
+ *     description: Returns all connected account information with balances and institution details
+ *     tags: [Accounts]
+ *     responses:
+ *       200:
+ *         description: Account data retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 accounts:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Account'
+ *                 totalBalance:
+ *                   type: number
+ *                   format: float
+ *                 summary:
+ *                   type: object
+ *                   properties:
+ *                     depository:
+ *                       type: number
+ *                       format: float
+ *                     credit:
+ *                       type: number
+ *                       format: float
+ *                     investment:
+ *                       type: number
+ *                       format: float
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 // Get accounts data
-router.get('/accounts', async (req, res) => {
+router.get('/accounts', async (_req, res) => {
   try {
     const accounts = await database.all(`
       SELECT a.*, i.name as institution_name FROM accounts a 
@@ -457,6 +703,41 @@ router.get('/accounts', async (req, res) => {
   } catch (error) {
     console.error('Error fetching accounts:', error);
     res.status(500).json({ error: 'Failed to fetch accounts' });
+  }
+});
+
+// Get connected banks/institutions
+router.get('/banks', async (_req, res) => {
+  try {
+    const institutions = await database.all(`
+      SELECT 
+        i.id,
+        i.institution_id,
+        i.name,
+        i.created_at,
+        i.updated_at,
+        i.is_active,
+        i.last_sync
+      FROM institutions i 
+      WHERE i.is_active = 1
+      ORDER BY i.created_at DESC
+    `);
+    
+    const bankConnections = institutions.map(institution => ({
+      id: institution.id,
+      institution_id: institution.institution_id,
+      name: institution.name,
+      created_at: institution.created_at,
+      updated_at: institution.updated_at,
+      is_active: institution.is_active,
+      last_sync: institution.last_sync || institution.updated_at,
+      status: 'healthy' // Default status, could be enhanced with actual health check
+    }));
+    
+    res.json(bankConnections);
+  } catch (error) {
+    console.error('Error fetching bank connections:', error);
+    res.status(500).json({ error: 'Failed to fetch bank connections' });
   }
 });
 

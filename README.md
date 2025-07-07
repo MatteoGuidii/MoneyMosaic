@@ -4,7 +4,7 @@ A comprehensive personal finance dashboard that connects multiple banks and trac
 
 ![MoneyMosaic Dashboard](https://img.shields.io/badge/Status-Production%20Ready-brightgreen)
 ![TypeScript](https://img.shields.io/badge/TypeScript-100%25-blue)
-![Test Coverage](https://img.shields.io/badge/Test%20Coverage-100%25-brightgreen)
+![Test Coverage](https://img.shields.io/badge/Test%20Coverage-85%25-green)
 
 ## 📋 Table of Contents
 
@@ -12,14 +12,30 @@ A comprehensive personal finance dashboard that connects multiple banks and trac
 - [🚀 Quick Start](#-quick-start)
 - [📋 Prerequisites](#-prerequisites)
 - [⚙️ Environment Configuration](#️-environment-configuration)
-- [🏗️ Architecture](#️-architecture)
 - [🔧 API Endpoints](#-api-endpoints)
 - [🧪 Testing](#-testing)
-- [🛠️ Development](#️-development)
+- [�️ Database](#️-database)
+- [�🛠️ Development](#️-development)
 - [🔒 Security & Production](#-security--production)
-- [❓ FAQ](#-faq)
-- [📋 Common Issues](#-common-issues)
-- [🎯 Next Steps](#-next-steps)
+- [📋 Common Issues & FAQ](#-common-issues--faq)
+
+### Project Structure
+
+For detailed information, see our comprehensive documentation:
+
+📁 **[docs/](./docs/)** - Complete technical documentation
+
+- **[ARCHITECTURE.md](./docs/ARCHITECTURE.md)** - Project structure
+- **[API.md](./docs/API.md)** - API documentation
+- **[TESTING.md](./docs/TESTING.md)** - Testing guide & best practices
+- **[openapi.json](./docs/openapi.json)** - OpenAPI specification
+
+**Key directories:**
+
+- `src/` - Backend source code
+- `frontend/` - React frontend
+- `tests/` - Test suites
+- `docs/` - Documentation
 
 ## ✨ Features
 
@@ -88,175 +104,25 @@ PORT=8080
 SYNC_INTERVAL_HOURS=6
 ```
 
-## 🏗️ Architecture
-
-### System Overview
-
-```mermaid
-graph TB
-    subgraph "Frontend (React + TypeScript)"
-        A[Dashboard] --> B[Bank Management]
-        A --> C[Transactions]
-        A --> D[Accounts]
-        A --> E[Investments]
-
-        B --> F[Plaid Link Integration]
-        C --> G[Transaction Filtering]
-        D --> H[Account Overview]
-        E --> I[Investment Charts]
-    end
-
-    subgraph "Backend (Node.js + Express)"
-        J[Express Server] --> K[Route Handlers]
-        K --> L[Services Layer]
-        L --> M[Database Layer]
-        L --> N[Plaid Client]
-
-        K --> O[API Endpoints]
-        O --> P["create_link_token"]
-        O --> Q["exchange_public_token"]
-        O --> R["management endpoints"]
-        O --> S["transactions endpoint"]
-    end
-
-    subgraph "External Services"
-        T[Plaid API]
-        U[Bank APIs]
-    end
-
-    subgraph "Database"
-        V[SQLite Database]
-        V --> W[Banks Table]
-        V --> X[Transactions Table]
-        V --> Y[Accounts Table]
-    end
-
-    subgraph "Background Jobs"
-        Z[Scheduler Service]
-        Z --> AA[Transaction Sync]
-        Z --> BB[Health Check]
-    end
-
-    A -.->|HTTP Requests| J
-    F -.->|Link Token| P
-    N -.->|API Calls| T
-    T -.->|Bank Data| U
-    L -.->|Store Data| V
-    Z -.->|Auto Sync| AA
-
-    style A fill:#e1f5fe
-    style J fill:#f3e5f5
-    style V fill:#e8f5e8
-    style T fill:#fff3e0
-```
-
-### Backend Structure
-
-```mermaid
-graph TD
-    subgraph "src/"
-        A["server.ts<br/>Express Server Setup"]
-        B["database.ts<br/>SQLite Database Layer"]
-        C["plaidClient.ts<br/>Plaid API Configuration"]
-        D["db.ts<br/>Database Utils"]
-
-        subgraph "routes/"
-            E["createLinkToken.ts<br/>Plaid Link Token Creation"]
-            F["exchangeToken.ts<br/>Token Exchange & Bank Saving"]
-            G["dashboard.ts<br/>Dashboard Data Endpoints"]
-            H["transactions.ts<br/>Transaction Endpoints"]
-            I["sandbox.ts<br/>Sandbox Testing"]
-        end
-
-        subgraph "services/"
-            J["bankService.ts<br/>Multi-bank Connection Management"]
-            K["schedulerService.ts<br/>Background Job Scheduling"]
-        end
-    end
-
-    A --> E
-    A --> F
-    A --> G
-    A --> H
-    A --> I
-
-    E --> C
-    F --> C
-    F --> J
-    G --> J
-    H --> J
-
-    J --> B
-    K --> J
-
-    style A fill:#ff9999
-    style B fill:#99ff99
-    style C fill:#9999ff
-    style J fill:#ffff99
-    style K fill:#ff99ff
-```
-
-### Data Flow Architecture
-
-```mermaid
-sequenceDiagram
-    participant User
-    participant Frontend
-    participant Backend
-    participant PlaidAPI
-    participant Database
-    participant Scheduler
-
-    Note over User,Scheduler: Bank Connection Flow
-    User->>Frontend: Click "Connect Bank"
-    Frontend->>Backend: POST /api/create_link_token
-    Backend->>PlaidAPI: Create Link Token
-    PlaidAPI-->>Backend: Link Token
-    Backend-->>Frontend: Link Token
-    Frontend->>User: Open Plaid Link
-    User->>Frontend: Complete Bank Auth
-    Frontend->>Backend: POST /api/exchange_public_token
-    Backend->>PlaidAPI: Exchange Token
-    PlaidAPI-->>Backend: Access Token
-    Backend->>Database: Store Bank Connection
-    Database-->>Backend: Success
-    Backend-->>Frontend: Connection Success
-
-    Note over User,Scheduler: Transaction Sync Flow
-    Scheduler->>Backend: Auto Sync Trigger
-    Backend->>PlaidAPI: Fetch Transactions
-    PlaidAPI-->>Backend: Transaction Data
-    Backend->>Database: Store/Update Transactions
-    Database-->>Backend: Success
-
-    Note over User,Scheduler: Dashboard Data Flow
-    User->>Frontend: Load Dashboard
-    Frontend->>Backend: GET /api/management/dashboard
-    Backend->>Database: Query Financial Data
-    Database-->>Backend: Financial Data
-    Backend-->>Frontend: Dashboard Data
-    Frontend->>User: Render Dashboard
-```
-
 ## 🔧 API Endpoints
 
-### Bank Management
+### Interactive API Documentation
 
-- `POST /api/create_link_token` - Create Plaid Link token
-- `POST /api/exchange_public_token` - Connect new bank
-- `GET /api/management/connected_banks` - List all connected banks
-- `DELETE /api/management/banks/:id` - Remove bank connection
-- `GET /api/management/health_check` - Check connection health
+MoneyMosaic provides comprehensive OpenAPI/Swagger documentation:
 
-### Transactions & Data
+- **Swagger UI**: `http://localhost:8080/api-docs` (when server is running)
+- **OpenAPI Spec**: [docs/openapi.json](./docs/openapi.json)
 
-- `GET /api/management/dashboard` - Get dashboard data
-- `POST /api/management/sync` - Manual sync trigger
-- `GET /api/management/transactions` - Get transactions with filters
+```bash
+# Generate/update OpenAPI specification
+npm run docs:generate
+```
+
+For a quick endpoint reference, see [docs/API.md](./docs/API.md).
 
 ## 🧪 Testing
 
-MoneyMosaic includes comprehensive testing with 70%+ coverage:
+MoneyMosaic includes comprehensive testing with 85%+ coverage. For detailed testing information, see [docs/TESTING.md](./docs/TESTING.md).
 
 ```bash
 # Run all tests
@@ -265,60 +131,35 @@ npm test
 # Run with coverage
 npm run test:coverage
 
-# Run specific test
-npm test -- bankService.test.ts
+# Run in watch mode
+npm run test:watch
 ```
 
-**Test Coverage:**
+## 🗄️ Database
 
-- ✅ Unit Tests: Database, BankService, SchedulerService, PlaidClient
-- ✅ Integration Tests: Complete API endpoint coverage
-- ✅ Postman Collection: Manual API testing
+MoneyMosaic uses SQLite for local data storage. Database location: `./data/moneymosaic.db`
+
+For detailed database architecture, see [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md).
+
+**Security Notes:**
+
+- Database files are gitignored and contain sensitive financial data
+- No external data sharing
+- Automatic backups recommended for production use
 
 ## 🛠️ Development
 
-### Development Commands
-
-#### Quick Start
+### Quick Start Commands
 
 ```bash
 npm run dev:both        # Start both backend + frontend
-```
-
-#### Individual Servers
-
-```bash
 npm run dev            # Backend only (port 8080)
 npm run dev:frontend   # Frontend only (port 3000)
-```
-
-#### Build & Production
-
-```bash
 npm run build          # Build both backend + frontend
 npm start              # Start production server
 ```
 
-#### Testing
-
-```bash
-npm test               # Run all tests
-npm run test:coverage  # Run with coverage report
-npm run test:watch     # Run in watch mode
-```
-
-### Building for Production
-
-```bash
-npm run build
-npm start
-```
-
-### Database Location
-
-- Development: `./data/moneymosaic.db`
-- Automatic creation and migration
-- Backup recommended for production
+For detailed development information, see [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md).
 
 ## 🔒 Security & Production
 
@@ -336,21 +177,7 @@ npm start
 - User controls all connections
 - Easy data export/deletion
 
-## ❓ FAQ
-
-**Can you connect multiple banks?**
-✅ Yes! Connect unlimited banks with persistent connections.
-
-**Do connections expire?**
-✅ Generally no, but banks may revoke access if passwords change or accounts are closed.
-
-**Is data persistent?**
-✅ Yes! All data stored in SQLite with transaction history preserved.
-
-**Background sync available?**
-✅ Yes! Automatic sync every 6 hours with manual triggers available.
-
-## 📋 Common Issues
+## 📋 Common Issues & FAQ
 
 **Connection Failures:**
 
@@ -369,15 +196,14 @@ npm start
 - Ensure write permissions in `data/` directory
 - Check SQLite installation
 
-## 🎯 Next Steps
+**Can you connect multiple banks?**
+✅ Yes! Connect unlimited banks with persistent connections.
 
-Consider adding:
+**Is data persistent?**
+✅ Yes! All data stored in SQLite with transaction history preserved.
 
-- User authentication system
-- Budget tracking and alerts
-- Investment account support
-- Data export functionality
-- Advanced analytics
+**Background sync available?**
+✅ Yes! Automatic sync every 6 hours with manual triggers available.
 
 ---
 

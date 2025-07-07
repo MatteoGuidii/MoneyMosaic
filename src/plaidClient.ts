@@ -1,12 +1,14 @@
 import { Configuration, PlaidApi, PlaidEnvironments } from 'plaid';
-import dotenv from 'dotenv';
+import { config } from './config';
 
-dotenv.config();
-
-const env = (process.env.PLAID_ENV as keyof typeof PlaidEnvironments) || 'sandbox';
-const config = new Configuration({
-  basePath: PlaidEnvironments[env],
-  baseOptions: { headers: { 'PLAID-CLIENT-ID': process.env.PLAID_CLIENT_ID!, 'PLAID-SECRET': process.env.PLAID_SECRET! } }
+const plaidConfig = new Configuration({
+  basePath: PlaidEnvironments[config.plaid.environment as keyof typeof PlaidEnvironments],
+  baseOptions: { 
+    headers: { 
+      'PLAID-CLIENT-ID': config.plaid.clientId,
+      'PLAID-SECRET': config.plaid.secret
+    } 
+  }
 });
 
-export const plaidClient = new PlaidApi(config);
+export const plaidClient = new PlaidApi(plaidConfig);

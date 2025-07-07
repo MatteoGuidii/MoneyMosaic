@@ -8,7 +8,14 @@ export class BankService {
   constructor(db?: Database) {
     this.database = db || database;
   }
-  // Store a new bank connection
+  /**
+   * Add a new bank connection using Plaid
+   * 
+   * ⚠️  CRITICAL PLAID API CALLS - DO NOT REMOVE:
+   * - plaidClient.itemPublicTokenExchange() - Required by Plaid API
+   * - plaidClient.accountsGet() - Required for account data
+   * These calls implement official Plaid API endpoints and are essential.
+   */
   async addBankConnection(data: {
     public_token: string;
     institution: any;
@@ -270,6 +277,31 @@ export class BankService {
     }
 
     return { healthy, unhealthy };
+  }
+
+  /**
+   * Sync bank data for all connected institutions
+   * 
+   * ⚠️  CRITICAL PLAID API CALLS - DO NOT REMOVE:
+   * - plaidClient.accountsGet() - Required for account sync
+   * - plaidClient.transactionsGet() - Required for transaction sync
+   * These implement official Plaid API endpoints for data synchronization.
+   */
+  async syncBankData(): Promise<void> {
+    const institutions = await this.database.getInstitutions();
+
+    for (const institution of institutions) {
+      try {
+        // Fetch and save accounts
+        await this.fetchAndSaveAccounts(institution.access_token);
+
+        // Fetch and save transactions (last 30 days)
+        await this.fetchTransactionsForBank(institution.access_token, institution.id, 30);
+      } catch (error) {
+        console.error(`Error syncing data for institution ${institution.id}:`, error);
+        // Handle or log error as needed, but don't stop the sync process
+      }
+    }
   }
 
   // Validate access token format

@@ -1,5 +1,5 @@
 import * as cron from 'node-cron';
-import { bankService } from './bankService';
+import { bankService } from './bank.service';
 
 export class SchedulerService {
   private jobs: Map<string, cron.ScheduledTask> = new Map();
@@ -44,7 +44,7 @@ export class SchedulerService {
         
         if (health.unhealthy.length > 0) {
           console.log(`❌ Unhealthy connections:`);
-          health.unhealthy.forEach(conn => {
+          health.unhealthy.forEach((conn: any) => {
             console.log(`  - ${conn.name}: ${conn.error}`);
           });
         }
@@ -89,7 +89,7 @@ export class SchedulerService {
   // Get job status
   getJobStatus(): { [key: string]: boolean } {
     const status: { [key: string]: boolean } = {};
-    this.jobs.forEach((job, name) => {
+    this.jobs.forEach((_job, name) => {
       status[name] = this.jobs.has(name); // Job exists means it's active
     });
     return status;

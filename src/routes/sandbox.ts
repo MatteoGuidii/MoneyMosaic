@@ -2,6 +2,55 @@ import { Router } from 'express';
 import { plaidClient } from '../plaidClient';
 const router = Router();
 
+/**
+ * @swagger
+ * /api/sandbox/public_token/create:
+ *   post:
+ *     summary: Create sandbox public token
+ *     description: Creates a test public token for sandbox environment testing
+ *     tags: [Sandbox]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               institution_id:
+ *                 type: string
+ *                 description: Plaid institution ID for testing
+ *               initial_products:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: Array of products to initialize
+ *             required:
+ *               - institution_id
+ *               - initial_products
+ *     responses:
+ *       200:
+ *         description: Sandbox public token created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 public_token:
+ *                   type: string
+ *                   description: Test public token
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+/**
+ * ⚠️  CRITICAL PLAID SANDBOX ENDPOINT - DO NOT REMOVE
+ * Implements Plaid's /sandbox/public_token/create API for testing.
+ * This endpoint is required for development and testing environments.
+ * Removing this will break sandbox testing functionality.
+ */
 // Sandbox-only: create a test public_token
 router.post('/sandbox/public_token/create', async (req, res) => {
   try {

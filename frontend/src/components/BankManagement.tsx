@@ -50,7 +50,7 @@ const BankManagement: React.FC<BankManagementProps> = ({
 
   const loadBanks = async () => {
     try {
-      const response = await fetch('/api/management/connected_banks')
+      const response = await fetch('/api/transactions/connected_banks')
       const data = await response.json()
       setBanks(data.banks || [])
     } catch (error) {
@@ -63,7 +63,7 @@ const BankManagement: React.FC<BankManagementProps> = ({
 
   const loadHealthStatus = async () => {
     try {
-      const response = await fetch('/api/management/health_check')
+      const response = await fetch('/api/transactions/health_check')
       const data = await response.json()
       
       // Convert backend response format to frontend format
@@ -109,7 +109,7 @@ const BankManagement: React.FC<BankManagementProps> = ({
 
   const createLinkToken = async () => {
     try {
-      const response = await fetch('/api/create_link_token', {
+      const response = await fetch('/api/link/token/create', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -133,7 +133,7 @@ const BankManagement: React.FC<BankManagementProps> = ({
       setConnectingBank(true)
       setError(null)
       
-      const response = await fetch('/api/exchange_public_token', {
+      const response = await fetch('/api/token/exchange', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -211,7 +211,7 @@ const BankManagement: React.FC<BankManagementProps> = ({
     setSyncing(true)
     setError(null)
     try {
-      const response = await fetch('/api/management/sync', {
+      const response = await fetch('/api/transactions/sync', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -243,7 +243,7 @@ const BankManagement: React.FC<BankManagementProps> = ({
     setError(null)
     setSuccessMessage(null)
     try {
-      const response = await fetch('/api/management/health_check')
+      const response = await fetch('/api/transactions/health_check')
       const data = await response.json()
       
       // Update health status first
@@ -279,7 +279,7 @@ const BankManagement: React.FC<BankManagementProps> = ({
     }
 
     try {
-      const response = await fetch(`/api/management/banks/${institutionId}`, {
+      const response = await fetch(`/api/transactions/banks/${institutionId}`, {
         method: 'DELETE',
       })
       const data = await response.json()

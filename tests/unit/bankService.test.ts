@@ -1,7 +1,6 @@
-import { BankService } from '../../src/services/bankService';
+import { BankService } from '../../src/services/bank.service';
 import { Database } from '../../src/database';
 import { plaidClient } from '../../src/plaidClient';
-import path from 'path';
 import fs from 'fs';
 
 // Mock plaidClient

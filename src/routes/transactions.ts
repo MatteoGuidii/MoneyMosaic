@@ -1,10 +1,48 @@
 import { Router } from 'express';
-import { bankService } from '../services/bankService';
-import { schedulerService } from '../services/schedulerService';
-import { database } from '../database';
+import { bankService } from '../services/bank.service';
+import { schedulerService } from '../services/scheduler.service';
 
 const router = Router();
 
+/**
+ * @swagger
+ * /api/transactions/fetch:
+ *   post:
+ *     summary: Fetch transactions for all connected banks
+ *     description: Fetches transactions from all connected banks for the specified number of days
+ *     tags: [Transactions]
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               days:
+ *                 type: integer
+ *                 default: 30
+ *                 description: Number of days to fetch transactions for
+ *     responses:
+ *       200:
+ *         description: Transactions fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 transactionCount:
+ *                   type: integer
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 // Fetch transactions for all connected banks
 router.post('/fetch', async (req, res) => {
   try {
@@ -17,8 +55,34 @@ router.post('/fetch', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/transactions/connected_banks:
+ *   get:
+ *     summary: Get all connected banks
+ *     description: Returns a list of all connected bank institutions
+ *     tags: [Bank Management]
+ *     responses:
+ *       200:
+ *         description: Connected banks retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 banks:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Institution'
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 // Get all connected banks
-router.get('/connected_banks', async (req, res) => {
+router.get('/connected_banks', async (_req, res) => {
   try {
     const banks = await bankService.getConnectedBanks();
     res.json({ banks });
@@ -28,6 +92,38 @@ router.get('/connected_banks', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/transactions/banks/{institutionId}:
+ *   delete:
+ *     summary: Remove bank connection
+ *     description: Removes a bank connection and all associated data
+ *     tags: [Bank Management]
+ *     parameters:
+ *       - in: path
+ *         name: institutionId
+ *         required: true
+ *         description: Institution ID to remove
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Bank connection removed successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 // Remove a bank connection
 router.delete('/banks/:institutionId', async (req, res) => {
   try {
@@ -40,8 +136,47 @@ router.delete('/banks/:institutionId', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/transactions/health_check:
+ *   get:
+ *     summary: Check connection health
+ *     description: Checks the health status of all connected bank institutions
+ *     tags: [Bank Management]
+ *     responses:
+ *       200:
+ *         description: Connection health status
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 overallHealth:
+ *                   type: string
+ *                   enum: [healthy, warning, error]
+ *                 institutions:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: integer
+ *                       name:
+ *                         type: string
+ *                       status:
+ *                         type: string
+ *                       lastSync:
+ *                         type: string
+ *                         format: date-time
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 // Check connection health
-router.get('/health_check', async (req, res) => {
+router.get('/health_check', async (_req, res) => {
   try {
     const health = await bankService.checkConnectionHealth();
     res.json(health);
@@ -51,8 +186,29 @@ router.get('/health_check', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/transactions/sync:
+ *   post:
+ *     summary: Manual sync trigger
+ *     description: Triggers a manual synchronization of all connected bank transactions
+ *     tags: [Transactions]
+ *     responses:
+ *       200:
+ *         description: Sync completed successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SyncResponse'
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 // Manual sync trigger
-router.post('/sync', async (req, res) => {
+router.post('/sync', async (_req, res) => {
   try {
     await schedulerService.triggerTransactionSync();
     res.json({ success: true, message: 'Sync completed' });
@@ -63,7 +219,7 @@ router.post('/sync', async (req, res) => {
 });
 
 // Get scheduler status
-router.get('/scheduler_status', (req, res) => {
+router.get('/scheduler_status', (_req, res) => {
   try {
     const status = schedulerService.getJobStatus();
     res.json(status);
