@@ -9,6 +9,7 @@ import exchangeToken from './routes/token-exchange';
 import sandboxRoutes from './routes/sandbox';
 import transactionsRoutes from './routes/transactions';
 import dashboardRoutes from './routes/dashboard';
+import syncRoutes from './routes/sync';
 import { database } from './database';
 import { schedulerService } from './services/scheduler.service';
 import { swaggerSpec, swaggerUi, swaggerUiOptions } from './swagger';
@@ -67,6 +68,7 @@ app.use('/api', exchangeToken);
 app.use('/api', sandboxRoutes);
 app.use('/api', dashboardRoutes);
 app.use('/api/transactions', transactionsRoutes);
+app.use('/api/sync', syncRoutes);
 
 // Error handling middleware
 app.use(errorHandler);

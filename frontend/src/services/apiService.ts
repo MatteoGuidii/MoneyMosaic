@@ -273,6 +273,36 @@ class ApiService {
     if (!response.ok) throw new Error('Failed to export transactions')
     return await response.blob()
   }
+
+  // Sync methods for data refresh
+  async syncAllData(): Promise<{ success: boolean; message: string; transactionCount?: number }> {
+    const response = await fetch(`${this.baseURL}/transactions/fetch`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ days: 30 })
+    })
+    if (!response.ok) throw new Error('Failed to sync data')
+    return await response.json()
+  }
+
+  async syncAccounts(): Promise<{ success: boolean; message: string }> {
+    const response = await fetch(`${this.baseURL}/sync/accounts`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    })
+    if (!response.ok) throw new Error('Failed to sync accounts')
+    return await response.json()
+  }
+
+  async getSyncStatus(): Promise<{ lastSync: string; isHealthy: boolean; nextAutoSync: string }> {
+    const response = await fetch(`${this.baseURL}/sync/status`)
+    if (!response.ok) throw new Error('Failed to get sync status')
+    return await response.json()
+  }
 }
 
 export const apiService = new ApiService()

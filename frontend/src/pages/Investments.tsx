@@ -25,6 +25,7 @@ import {
 } from 'recharts'
 import { apiService, Investment as ApiInvestment } from '../services/apiService'
 import LoadingSpinner from '../components/ui/LoadingSpinner'
+import SyncButton from '../components/SyncButton'
 
 interface Transaction {
   id: string
@@ -173,9 +174,9 @@ const Investments: React.FC = () => {
   const COLORS = ['#8b5cf6', '#06b6d4', '#10b981', '#f59e0b', '#ef4444', '#ec4899', '#6366f1']
 
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('en-CA', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'CAD',
       minimumFractionDigits: 2
     }).format(value)
   }
@@ -185,7 +186,7 @@ const Investments: React.FC = () => {
   }
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    return new Date(dateString).toLocaleDateString('en-CA', { month: 'short', day: 'numeric' })
   }
 
   const filteredInvestments = investments.filter(investment => {
@@ -231,8 +232,14 @@ const Investments: React.FC = () => {
           </p>
         </div>
         
-        {/* Date Range Selector */}
-        <div className="mt-4 sm:mt-0">
+        <div className="flex items-center gap-3 mt-4 sm:mt-0">
+          {/* Sync Button */}
+          <SyncButton 
+            variant="button" 
+            onSyncComplete={loadInvestments}
+          />
+          
+          {/* Date Range Selector */}
           <select
             value={selectedDateRange.label}
             onChange={(e) => {
@@ -708,7 +715,7 @@ const Investments: React.FC = () => {
               {portfolioTransactions.map((transaction) => (
                 <tr key={transaction.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                    {new Date(transaction.date).toLocaleDateString()}
+                    {new Date(transaction.date).toLocaleDateString('en-CA')}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`px-2 py-1 text-xs rounded-full ${
