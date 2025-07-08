@@ -25,6 +25,7 @@ import {
 } from 'recharts'
 import { apiService, Investment as ApiInvestment } from '../services/apiService'
 import LoadingSpinner from '../components/ui/LoadingSpinner'
+import SyncButton from '../components/SyncButton'
 
 interface Transaction {
   id: string
@@ -231,8 +232,14 @@ const Investments: React.FC = () => {
           </p>
         </div>
         
-        {/* Date Range Selector */}
-        <div className="mt-4 sm:mt-0">
+        <div className="flex items-center gap-3 mt-4 sm:mt-0">
+          {/* Sync Button */}
+          <SyncButton 
+            variant="button" 
+            onSyncComplete={loadInvestments}
+          />
+          
+          {/* Date Range Selector */}
           <select
             value={selectedDateRange.label}
             onChange={(e) => {

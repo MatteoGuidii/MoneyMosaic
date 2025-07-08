@@ -100,12 +100,12 @@ const Dashboard: React.FC = () => {
                 <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
                 <span className="text-sm font-medium text-emerald-700 dark:text-emerald-400">All systems operational</span>
               </div>
+              <SyncButton 
+                variant="icon" 
+                onSyncComplete={loadDashboardData}
+                className="hover:bg-emerald-100 dark:hover:bg-emerald-900/30"
+              />
             </div>
-            <SyncButton 
-              variant="button" 
-              onSyncComplete={loadDashboardData}
-              className="ml-4"
-            />
           </div>
         </div>
         <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-indigo-400/20 to-purple-600/20 rounded-full blur-3xl"></div>

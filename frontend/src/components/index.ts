@@ -4,6 +4,7 @@ export { default as Layout } from './ui/Layout'
 export { default as LoadingSpinner } from './ui/LoadingSpinner'
 export { default as Toast } from './ui/Toast'
 export { default as ToastContainer } from './ui/ToastContainer'
+export { default as SyncButton } from './SyncButton'
 
 // Core Components
 export { default as OverviewCards } from './OverviewCards'
@@ -33,4 +34,3 @@ export { default as StatsCard } from './widgets/StatsCard'
 export { default as RecentTransactionsWidget } from './widgets/RecentTransactionsWidget'
 export { default as AccountInsightsWidget } from './widgets/AccountInsightsWidget'
 export { default as AccountStatsCards } from './widgets/AccountStatsCards'
-export { default as SyncButton } from './SyncButton'
