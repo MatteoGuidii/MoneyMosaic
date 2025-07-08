@@ -8,6 +8,7 @@ import {
   X,
   User,
   TrendingUp,
+  Target,
   Sun,
   Moon
 } from 'lucide-react'
@@ -26,6 +27,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const navigation = [
     { name: 'Dashboard', href: '/', icon: Home },
     { name: 'Transactions', href: '/transactions', icon: Receipt },
+    { name: 'Budget', href: '/budget', icon: Target },
     { name: 'Accounts', href: '/accounts', icon: Building2 },
     { name: 'Investments', href: '/investments', icon: TrendingUp },
   ]

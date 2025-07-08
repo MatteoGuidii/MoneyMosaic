@@ -78,7 +78,6 @@ export interface BudgetData {
   category: string
   budgeted: number
   spent: number
-  remaining: number
   percentage: number
 }
 
@@ -208,10 +207,42 @@ class ApiService {
     return await response.json()
   }
 
-  async fetchBudgetData(): Promise<BudgetData[]> {
-    const response = await fetch(`${this.baseURL}/budget`)
+  async fetchBudgetData(month?: string, year?: number): Promise<BudgetData[]> {
+    const params = new URLSearchParams()
+    if (month) params.append('month', month)
+    if (year) params.append('year', year.toString())
+    
+    const queryString = params.toString()
+    const url = `${this.baseURL}/budget${queryString ? `?${queryString}` : ''}`
+    
+    const response = await fetch(url)
     if (!response.ok) throw new Error('Failed to fetch budget data')
     return await response.json()
+  }
+
+  async createOrUpdateBudget(category: string, amount: number, month?: string, year?: number): Promise<void> {
+    const response = await fetch(`${this.baseURL}/budget`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ category, amount, month, year })
+    })
+    if (!response.ok) throw new Error('Failed to save budget')
+  }
+
+  async deleteBudget(category: string, month?: string, year?: number): Promise<void> {
+    const params = new URLSearchParams()
+    if (month) params.append('month', month)
+    if (year) params.append('year', year.toString())
+    
+    const queryString = params.toString()
+    const url = `${this.baseURL}/budget/${encodeURIComponent(category)}${queryString ? `?${queryString}` : ''}`
+    
+    const response = await fetch(url, {
+      method: 'DELETE'
+    })
+    if (!response.ok) throw new Error('Failed to delete budget')
   }
 
   async fetchTopMerchants(dateRange: string): Promise<MerchantData[]> {
@@ -255,17 +286,6 @@ class ApiService {
     })
     if (!response.ok) throw new Error('Failed to create savings goal')
     return await response.json()
-  }
-
-  async updateBudget(budgets: BudgetData[]): Promise<void> {
-    const response = await fetch(`${this.baseURL}/budget`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(budgets)
-    })
-    if (!response.ok) throw new Error('Failed to update budget')
   }
 
   async exportTransactions(format: 'csv' | 'pdf', dateRange: string): Promise<Blob> {

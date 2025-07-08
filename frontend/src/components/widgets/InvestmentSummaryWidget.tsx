@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import { TrendingUp, TrendingDown, ArrowRight, BarChart3 } from 'lucide-react'
 import { apiService, Investment } from '../../services/apiService'
 import LoadingSpinner from '../ui/LoadingSpinner'
@@ -59,10 +60,13 @@ const InvestmentSummaryWidget: React.FC = () => {
             <p className="text-sm text-gray-500 dark:text-gray-400">Portfolio overview</p>
           </div>
         </div>
-        <div className="flex items-center space-x-1 text-sm font-medium text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors">
+        <Link 
+          to="/investments"
+          className="flex items-center space-x-1 text-sm font-medium text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors"
+        >
           <span>View all</span>
           <ArrowRight size={16} />
-        </div>
+        </Link>
       </div>
 
       {/* Portfolio Value */}

@@ -10,6 +10,7 @@ const Dashboard = lazy(() => import('./pages/Dashboard'))
 const Transactions = lazy(() => import('./pages/Transactions'))
 const Accounts = lazy(() => import('./pages/Accounts'))
 const Investments = lazy(() => import('./pages/Investments'))
+const Budget = lazy(() => import('./pages/Budget'))
 
 function App() {
   return (
@@ -27,6 +28,7 @@ function App() {
                 <Route path="/transactions" element={<Transactions />} />
                 <Route path="/accounts" element={<Accounts />} />
                 <Route path="/investments" element={<Investments />} />
+                <Route path="/budget" element={<Budget />} />
               </Routes>
             </Suspense>
           </Layout>
