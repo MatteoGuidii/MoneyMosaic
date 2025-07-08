@@ -46,8 +46,8 @@ __tests__/
 *.test.*
 *.spec.*
 
-# Ignore Docker files themselves
-Dockerfile*
+# Ignore specific Docker files if necessary
+# Dockerfile.dev
 docker-compose*.yml
 .dockerignore
 
