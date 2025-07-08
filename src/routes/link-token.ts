@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { plaidClient } from '../plaidClient';
 import { Products, CountryCode } from 'plaid';
 import { config } from '../config';
+import { logger } from '../utils/logger';
 
 const router = Router();
 
@@ -71,7 +72,7 @@ router.post('/link/token/create', async (req, res) => {
       (linkTokenRequest as any).redirect_uri = config.plaid.redirectUri;
     }
 
-    console.log('Creating link token with config:', {
+    logger.debug('Creating link token with config:', {
       client_name: linkTokenRequest.client_name,
       user_id: clientUserId,
       environment: config.plaid.environment,
