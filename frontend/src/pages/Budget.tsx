@@ -16,15 +16,40 @@ const Budget: React.FC = () => {
   const [showAddForm, setShowAddForm] = useState(false)
   const [editingCategory, setEditingCategory] = useState<string | null>(null)
   const [formData, setFormData] = useState<BudgetFormData>({ category: '', amount: 0 })
+  const [sliderMax, setSliderMax] = useState(5000)
   const [availableCategories, setAvailableCategories] = useState<string[]>([])
   
   // Toast functionality
   const { toasts, dismissToast, success, error: showError } = useToast()
 
+  // Get suggested max based on category
+  const getCategoryMax = (category: string) => {
+    const categoryMaxes: { [key: string]: number } = {
+      'Housing': 3000,
+      'Transportation': 1500,
+      'Food': 1000,
+      'Utilities': 500,
+      'Entertainment': 500,
+      'Healthcare': 800,
+      'Shopping': 800,
+      'Travel': 2000,
+      'Education': 1000,
+      'Other': 1000
+    }
+    return categoryMaxes[category] || 1000
+  }
+
   useEffect(() => {
     loadBudgets()
     loadCategories()
   }, [])
+
+  // Update slider max when form data changes
+  useEffect(() => {
+    if (formData.category) {
+      setSliderMax(getCategoryMax(formData.category))
+    }
+  }, [formData.category])
 
   const loadBudgets = async () => {
     try {
@@ -197,7 +222,11 @@ const Budget: React.FC = () => {
               ) : (
                 <select
                   value={formData.category}
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                  onChange={(e) => {
+                    const newCategory = e.target.value
+                    setFormData({ ...formData, category: newCategory })
+                    setSliderMax(getCategoryMax(newCategory))
+                  }}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 >
                   <option value="">Select a category</option>
@@ -217,13 +246,70 @@ const Budget: React.FC = () => {
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Budget Amount
               </label>
-              <input
-                type="number"
-                value={formData.amount}
-                onChange={(e) => setFormData({ ...formData, amount: parseFloat(e.target.value) || 0 })}
-                placeholder="Enter budget amount"
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-              />
+              
+              {/* Range Slider */}
+              <div className="mb-4">
+                <input
+                  type="range"
+                  min="0"
+                  max={sliderMax}
+                  step="25"
+                  value={Math.min(formData.amount, sliderMax)}
+                  onChange={(e) => setFormData({ ...formData, amount: parseFloat(e.target.value) })}
+                  className="w-full h-2 bg-gray-200 dark:bg-gray-600 rounded-lg appearance-none cursor-pointer slider"
+                  style={{
+                    background: `linear-gradient(to right, #6366f1 0%, #6366f1 ${(Math.min(formData.amount, sliderMax) / sliderMax) * 100}%, #e5e7eb ${(Math.min(formData.amount, sliderMax) / sliderMax) * 100}%, #e5e7eb 100%)`
+                  }}
+                />
+                <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  <span>$0</span>
+                  <span className="font-medium text-indigo-600 dark:text-indigo-400">
+                    {formatCurrency(formData.amount)}
+                  </span>
+                  <span>{formatCurrency(sliderMax)}</span>
+                </div>
+                <div className="text-center mt-1">
+                  <span className="text-xs text-gray-400 dark:text-gray-500">
+                    Suggested range for {formData.category || 'this category'}
+                  </span>
+                </div>
+                
+                {/* Quick Preset Buttons */}
+                {formData.category && (
+                  <div className="flex justify-center gap-2 mt-3">
+                    {[0.25, 0.5, 0.75, 1].map((multiplier) => {
+                      const amount = Math.round(sliderMax * multiplier)
+                      return (
+                        <button
+                          key={multiplier}
+                          onClick={() => setFormData({ ...formData, amount })}
+                          className={`px-3 py-1 text-xs rounded-lg transition-colors ${
+                            formData.amount === amount
+                              ? 'bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300'
+                              : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
+                          }`}
+                        >
+                          {formatCurrency(amount)}
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Number Input */}
+              <div className="relative">
+                <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400">
+                  $
+                </div>
+                <input
+                  type="number"
+                  value={formData.amount}
+                  onChange={(e) => setFormData({ ...formData, amount: parseFloat(e.target.value) || 0 })}
+                  placeholder="Enter budget amount"
+                  className="w-full pl-8 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                />
+              </div>
             </div>
           </div>
 
