@@ -10,12 +10,13 @@ const Dashboard = lazy(() => import('./pages/Dashboard'))
 const Transactions = lazy(() => import('./pages/Transactions'))
 const Accounts = lazy(() => import('./pages/Accounts'))
 const Investments = lazy(() => import('./pages/Investments'))
+const Budget = lazy(() => import('./pages/Budget'))
 
 function App() {
   return (
     <ThemeProvider>
       <Router>
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+        <div className="min-h-screen bg-gradient-to-br from-zinc-50 via-neutral-50 to-stone-50 dark:from-zinc-950 dark:via-neutral-950 dark:to-stone-950">
           <Layout>
             <Suspense fallback={
               <div className="flex items-center justify-center min-h-screen">
@@ -27,6 +28,7 @@ function App() {
                 <Route path="/transactions" element={<Transactions />} />
                 <Route path="/accounts" element={<Accounts />} />
                 <Route path="/investments" element={<Investments />} />
+                <Route path="/budget" element={<Budget />} />
               </Routes>
             </Suspense>
           </Layout>

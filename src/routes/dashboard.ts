@@ -311,84 +311,130 @@ router.get('/categories', async (_req, res) => {
   }
 });
 
-// Get budget data (generated from spending patterns)
-router.get('/budget', async (_req, res) => {
+// Get budget data (user-defined budgets vs actual spending)
+router.get('/budget', async (req, res) => {
   try {
-    // Get current month's spending by category
-    const currentMonth = new Date();
-    const monthStart = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
-    const monthEnd = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0);
+    const { month, year } = req.query;
     
-    const monthStartStr = monthStart.toISOString().split('T')[0];
-    const monthEndStr = monthEnd.toISOString().split('T')[0];
+    // Use current month/year if not specified
+    const currentDate = new Date();
+    const targetMonth = month ? month.toString() : (currentDate.getMonth() + 1).toString().padStart(2, '0');
+    const targetYear = year ? parseInt(year.toString()) : currentDate.getFullYear();
     
-    // Get this month's spending (negative amounts only - expenses)
-    const monthlySpending = await database.all(`
-      SELECT 
-        t.category_primary as category,
-        SUM(ABS(t.amount)) as spent
-      FROM transactions t 
-      JOIN accounts a ON t.account_id = a.account_id 
-      JOIN institutions i ON a.institution_id = i.id 
-      WHERE t.date >= ? AND t.date <= ? 
-        AND t.amount < 0 
-        AND t.category_primary IS NOT NULL 
-        AND i.is_active = 1
-      GROUP BY t.category_primary
-      ORDER BY spent DESC
-    `, [monthStartStr, monthEndStr]);
-    
-    // Get previous month's spending for budget calculation
-    const prevMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1);
-    const prevMonthEnd = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 0);
-    const prevMonthStartStr = prevMonth.toISOString().split('T')[0];
-    const prevMonthEndStr = prevMonthEnd.toISOString().split('T')[0];
-    
-    const prevMonthSpending = await database.all(`
-      SELECT 
-        t.category_primary as category,
-        SUM(ABS(t.amount)) as spent
-      FROM transactions t 
-      JOIN accounts a ON t.account_id = a.account_id 
-      JOIN institutions i ON a.institution_id = i.id 
-      WHERE t.date >= ? AND t.date <= ? 
-        AND t.amount < 0 
-        AND t.category_primary IS NOT NULL 
-        AND i.is_active = 1
-      GROUP BY t.category_primary
-    `, [prevMonthStartStr, prevMonthEndStr]);
-    
-    // Create budget data (using previous month as budget baseline)
-    const budgetData = monthlySpending.map(current => {
-      const prevData = prevMonthSpending.find(prev => prev.category === current.category);
-      const budgeted = prevData ? prevData.spent * 1.1 : current.spent * 1.2; // 10% increase from last month or 20% if no prev data
-      const spent = current.spent;
-      const percentage = budgeted > 0 ? (spent / budgeted) * 100 : 0;
-      
-      return {
-        category: current.category,
-        budgeted: Math.round(budgeted * 100) / 100,
-        spent: Math.round(spent * 100) / 100,
-        percentage: Math.round(percentage * 100) / 100
-      };
-    });
-    
-    // Add categories that had previous spending but no current spending
-    prevMonthSpending.forEach(prev => {
-      if (!budgetData.find(b => b.category === prev.category)) {
-        budgetData.push({
-          category: prev.category,
-          budgeted: Math.round(prev.spent * 1.1 * 100) / 100,
-          spent: 0,
-          percentage: 0
-        });
-      }
-    });
+    const budgetData = await database.getBudgetWithSpending(targetMonth, targetYear);
     
     res.json(budgetData);
   } catch (error) {
     console.error('Error fetching budget data:', error);
     res.status(500).json({ error: 'Failed to fetch budget data' });
+  }
+});
+
+/**
+ * @swagger
+ * /api/budget:
+ *   post:
+ *     summary: Create or update a budget
+ *     description: Creates or updates a budget for a specific category and month
+ *     tags: [Budget]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               category:
+ *                 type: string
+ *                 description: Budget category name
+ *               amount:
+ *                 type: number
+ *                 description: Budget amount
+ *               month:
+ *                 type: string
+ *                 description: Month (01-12)
+ *               year:
+ *                 type: number
+ *                 description: Year
+ *             required:
+ *               - category
+ *               - amount
+ *     responses:
+ *       200:
+ *         description: Budget created/updated successfully
+ *       400:
+ *         description: Invalid input data
+ *       500:
+ *         description: Server error
+ */
+router.post('/budget', async (req, res) => {
+  try {
+    const { category, amount, month, year } = req.body;
+    
+    if (!category || amount === undefined) {
+      return res.status(400).json({ error: 'Category and amount are required' });
+    }
+    
+    // Use current month/year if not specified
+    const currentDate = new Date();
+    const targetMonth = month || (currentDate.getMonth() + 1).toString().padStart(2, '0');
+    const targetYear = year || currentDate.getFullYear();
+    
+    await database.createOrUpdateBudget(category, amount, targetMonth, targetYear);
+    
+    return res.json({ success: true, message: 'Budget saved successfully' });
+  } catch (error) {
+    console.error('Error saving budget:', error);
+    return res.status(500).json({ error: 'Failed to save budget' });
+  }
+});
+
+/**
+ * @swagger
+ * /api/budget/{category}:
+ *   delete:
+ *     summary: Delete a budget
+ *     description: Deletes a budget for a specific category and month
+ *     tags: [Budget]
+ *     parameters:
+ *       - in: path
+ *         name: category
+ *         required: true
+ *         description: Budget category to delete
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: month
+ *         schema:
+ *           type: string
+ *         description: Month (01-12), defaults to current month
+ *       - in: query
+ *         name: year
+ *         schema:
+ *           type: number
+ *         description: Year, defaults to current year
+ *     responses:
+ *       200:
+ *         description: Budget deleted successfully
+ *       500:
+ *         description: Server error
+ */
+router.delete('/budget/:category', async (req, res) => {
+  try {
+    const { category } = req.params;
+    const { month, year } = req.query;
+    
+    // Use current month/year if not specified
+    const currentDate = new Date();
+    const targetMonth = month ? month.toString() : (currentDate.getMonth() + 1).toString().padStart(2, '0');
+    const targetYear = year ? parseInt(year.toString()) : currentDate.getFullYear();
+    
+    await database.deleteBudget(category, targetMonth, targetYear);
+    
+    return res.json({ success: true, message: 'Budget deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting budget:', error);
+    return res.status(500).json({ error: 'Failed to delete budget' });
   }
 });
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -6,7 +6,8 @@ import {
   Eye,
   BarChart3,
   Target,
-  Wallet
+  Wallet,
+  X
 } from 'lucide-react'
 import { 
   LineChart, 
@@ -56,11 +57,18 @@ const Investments: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1)
   const [loading, setLoading] = useState(true)
   const [investments, setInvestments] = useState<ApiInvestment[]>([])
+  const [selectedInvestment, setSelectedInvestment] = useState<ApiInvestment | null>(null)
+  const [showInvestmentModal, setShowInvestmentModal] = useState(false)
   const itemsPerPage = 10
 
   useEffect(() => {
     loadInvestments()
   }, [])
+
+  // Reset current page when filters change
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchTerm, filterSector])
 
   const loadInvestments = async () => {
     try {
@@ -189,19 +197,7 @@ const Investments: React.FC = () => {
     return new Date(dateString).toLocaleDateString('en-CA', { month: 'short', day: 'numeric' })
   }
 
-  const filteredInvestments = investments.filter(investment => {
-    const matchesSearch = investment.symbol.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         investment.companyName.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesSector = filterSector === 'All' || getSector(investment.companyName) === filterSector
-    return matchesSearch && matchesSector
-  })
-
-  const paginatedInvestments = filteredInvestments.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  )
-
-  const getSector = (companyName: string) => {
+  const getSector = useCallback((companyName: string) => {
     if (companyName.includes('Apple') || companyName.includes('Google') || 
         companyName.includes('Microsoft') || companyName.includes('Meta') || 
         companyName.includes('NVIDIA')) return 'Technology'
@@ -209,9 +205,27 @@ const Investments: React.FC = () => {
     if (companyName.includes('Amazon')) return 'E-commerce'
     if (companyName.includes('Netflix')) return 'Entertainment'
     return 'Other'
-  }
+  }, [])
 
-  const sectors = ['All', ...Array.from(new Set(investments.map(inv => getSector(inv.companyName))))]
+  const sectors = useMemo(() => {
+    return ['All', ...Array.from(new Set(investments.map(inv => getSector(inv.companyName))))]
+  }, [investments, getSector])
+
+  const filteredInvestments = useMemo(() => {
+    return investments.filter(investment => {
+      const matchesSearch = investment.symbol.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           investment.companyName.toLowerCase().includes(searchTerm.toLowerCase())
+      const matchesSector = filterSector === 'All' || getSector(investment.companyName) === filterSector
+      return matchesSearch && matchesSector
+    })
+  }, [investments, searchTerm, filterSector, getSector])
+
+  const paginatedInvestments = useMemo(() => {
+    return filteredInvestments.slice(
+      (currentPage - 1) * itemsPerPage,
+      currentPage * itemsPerPage
+    )
+  }, [filteredInvestments, currentPage, itemsPerPage])
 
   if (loading) {
     return (
@@ -537,10 +551,12 @@ const Investments: React.FC = () => {
               </div>
               <select
                 value={filterSector}
-                onChange={(e) => setFilterSector(e.target.value)}
+                onChange={(e) => {
+                  setFilterSector(e.target.value)
+                }}
                 className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm"
               >
-                {sectors.map(sector => (
+                {sectors.length > 0 && sectors.map(sector => (
                   <option key={sector} value={sector}>
                     {sector}
                   </option>
@@ -587,7 +603,22 @@ const Investments: React.FC = () => {
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-              {paginatedInvestments.map((investment, index) => {
+              {paginatedInvestments.length === 0 ? (
+                <tr>
+                  <td colSpan={9} className="px-6 py-12 text-center">
+                    <div className="text-gray-500 dark:text-gray-400">
+                      <p className="text-lg font-medium">No investments found</p>
+                      <p className="text-sm mt-1">
+                        {filteredInvestments.length === 0 
+                          ? "Try adjusting your search or filter criteria"
+                          : "No results on this page"
+                        }
+                      </p>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                paginatedInvestments.map((investment, index) => {
                 const avgCost = investment.marketPrice * 0.9 // Estimate
                 const costBasis = investment.quantity * avgCost
                 const unrealizedPL = investment.marketValue - costBasis
@@ -638,13 +669,21 @@ const Investments: React.FC = () => {
                       {sector}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center">
-                      <button className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300">
+                      <button 
+                        onClick={() => {
+                          setSelectedInvestment(investment)
+                          setShowInvestmentModal(true)
+                        }}
+                        className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors"
+                        title={`View details for ${investment.symbol}`}
+                      >
                         <Eye className="h-4 w-4" />
                       </button>
                     </td>
                   </tr>
                 )
-              })}
+                })
+              )}
             </tbody>
           </table>
         </div>
@@ -766,6 +805,132 @@ const Investments: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Investment Details Modal */}
+      {showInvestmentModal && selectedInvestment && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div 
+            className="bg-white dark:bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+            role="dialog" 
+            aria-modal="true" 
+            aria-labelledby="investment-modal-title"
+          >
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+              <div>
+                <h3 
+                  id="investment-modal-title" 
+                  className="text-xl font-semibold text-gray-900 dark:text-white"
+                >
+                  {selectedInvestment.symbol} - {selectedInvestment.companyName}
+                </h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Investment Details
+                </p>
+              </div>
+              <button
+                onClick={() => setShowInvestmentModal(false)}
+                className="p-2 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-6">
+              {/* Basic Information */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <h4 className="text-lg font-medium text-gray-900 dark:text-white">Basic Information</h4>
+                  <div className="space-y-3">
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-500 dark:text-gray-400">Symbol:</span>
+                      <span className="text-sm font-medium text-gray-900 dark:text-white">{selectedInvestment.symbol}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-500 dark:text-gray-400">Company:</span>
+                      <span className="text-sm font-medium text-gray-900 dark:text-white">{selectedInvestment.companyName}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-500 dark:text-gray-400">Sector:</span>
+                      <span className="text-sm font-medium text-gray-900 dark:text-white">{getSector(selectedInvestment.companyName)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-500 dark:text-gray-400">Quantity:</span>
+                      <span className="text-sm font-medium text-gray-900 dark:text-white">{selectedInvestment.quantity} shares</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <h4 className="text-lg font-medium text-gray-900 dark:text-white">Market Data</h4>
+                  <div className="space-y-3">
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-500 dark:text-gray-400">Current Price:</span>
+                      <span className="text-sm font-medium text-gray-900 dark:text-white">{formatCurrency(selectedInvestment.marketPrice)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-500 dark:text-gray-400">Market Value:</span>
+                      <span className="text-sm font-medium text-gray-900 dark:text-white">{formatCurrency(selectedInvestment.marketValue)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-500 dark:text-gray-400">Day Change:</span>
+                      <span className={`text-sm font-medium ${selectedInvestment.dayChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {formatCurrency(selectedInvestment.dayChange)} ({formatPercent(selectedInvestment.dayChangePercent)})
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Performance Metrics */}
+              <div className="space-y-4">
+                <h4 className="text-lg font-medium text-gray-900 dark:text-white">Performance</h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {(() => {
+                    const avgCost = selectedInvestment.marketPrice * 0.9 // Estimate
+                    const costBasis = selectedInvestment.quantity * avgCost
+                    const unrealizedPL = selectedInvestment.marketValue - costBasis
+                    const unrealizedPLPercent = costBasis > 0 ? (unrealizedPL / costBasis) * 100 : 0
+                    
+                    return (
+                      <>
+                        <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                          <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Avg Cost</p>
+                          <p className="text-lg font-semibold text-gray-900 dark:text-white">{formatCurrency(avgCost)}</p>
+                        </div>
+                        <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                          <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Cost Basis</p>
+                          <p className="text-lg font-semibold text-gray-900 dark:text-white">{formatCurrency(costBasis)}</p>
+                        </div>
+                        <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                          <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Unrealized P/L</p>
+                          <p className={`text-lg font-semibold ${unrealizedPL >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {formatCurrency(unrealizedPL)}
+                          </p>
+                          <p className={`text-sm ${unrealizedPL >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {formatPercent(unrealizedPLPercent)}
+                          </p>
+                        </div>
+                      </>
+                    )
+                  })()}
+                </div>
+              </div>
+
+              {/* Additional Information */}
+              <div className="space-y-4">
+                <h4 className="text-lg font-medium text-gray-900 dark:text-white">Additional Information</h4>
+                <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
+                  <p className="text-sm text-blue-800 dark:text-blue-200">
+                    <strong>Note:</strong> This is a detailed view of your {selectedInvestment.symbol} holdings. 
+                    Cost basis is estimated at 90% of current market price for demonstration purposes. 
+                    In a real application, this would show historical purchase data and actual cost basis.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

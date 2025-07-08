@@ -100,11 +100,36 @@ export class Database {
     `);
 
     await this.runDirect(`
+      CREATE INDEX IF NOT EXISTS idx_transactions_date_category ON transactions(date, category_primary);
+    `);
+
+    await this.runDirect(`
       CREATE INDEX IF NOT EXISTS idx_transactions_account ON transactions(account_id);
     `);
 
     await this.runDirect(`
       CREATE INDEX IF NOT EXISTS idx_transactions_institution ON transactions(institution_id);
+    `);
+
+    await this.runDirect(`
+      CREATE TABLE IF NOT EXISTS budgets (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        category TEXT NOT NULL,
+        amount REAL NOT NULL,
+        month TEXT NOT NULL,
+        year INTEGER NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(category, month, year)
+      )
+    `);
+
+    await this.runDirect(`
+      CREATE INDEX IF NOT EXISTS idx_budgets_period ON budgets(year, month);
+    `);
+
+    await this.runDirect(`
+      CREATE INDEX IF NOT EXISTS idx_budgets_category ON budgets(category);
     `);
   }
 
@@ -392,6 +417,67 @@ export class Database {
     });
 
     return summary;
+  }
+
+  // Budget management methods
+  async createOrUpdateBudget(category: string, amount: number, month: string, year: number): Promise<void> {
+    await this.ensureInitialized();
+    await this.run(`
+      INSERT INTO budgets (category, amount, month, year, updated_at)
+      VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+      ON CONFLICT(category, month, year) DO UPDATE SET
+        amount = excluded.amount,
+        updated_at = CURRENT_TIMESTAMP
+    `, [category, amount, month, year]);
+  }
+
+  async getBudgets(month: string, year: number): Promise<any[]> {
+    await this.ensureInitialized();
+    return await this.all(`
+      SELECT * FROM budgets 
+      WHERE month = ? AND year = ?
+      ORDER BY category ASC
+    `, [month, year]);
+  }
+
+  async deleteBudget(category: string, month: string, year: number): Promise<void> {
+    await this.ensureInitialized();
+    await this.run(`
+      DELETE FROM budgets 
+      WHERE category = ? AND month = ? AND year = ?
+    `, [category, month, year]);
+  }
+
+  async getBudgetWithSpending(month: string, year: number): Promise<any[]> {
+    await this.ensureInitialized();
+    
+    // Get the start and end dates for the month
+    const monthStart = new Date(year, parseInt(month) - 1, 1);
+    const monthEnd = new Date(year, parseInt(month), 0);
+    const monthStartStr = monthStart.toISOString().split('T')[0];
+    const monthEndStr = monthEnd.toISOString().split('T')[0];
+
+    // Get budgets and actual spending
+    const budgets = await this.all(`
+      SELECT 
+        b.category,
+        b.amount as budgeted,
+        COALESCE(SUM(ABS(t.amount)), 0) as spent
+      FROM budgets b
+      LEFT JOIN transactions t ON b.category = t.category_primary 
+        AND t.date >= ? AND t.date <= ?
+        AND t.amount < 0
+      WHERE b.month = ? AND b.year = ?
+      GROUP BY b.category, b.amount
+      ORDER BY b.category ASC
+    `, [monthStartStr, monthEndStr, month, year]);
+
+    return budgets.map(budget => ({
+      category: budget.category,
+      budgeted: budget.budgeted,
+      spent: budget.spent,
+      percentage: budget.budgeted > 0 ? Math.round((budget.spent / budget.budgeted) * 100 * 100) / 100 : 0
+    }));
   }
 }
 
