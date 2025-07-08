@@ -171,7 +171,7 @@ npm start              # Start production server
 
 **Need help choosing Local vs Docker?** See [DOCKER.md](./DOCKER.md)
 
-For detailed development setup, see [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md).
+For a detailed view of the architecture, see [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md).
 
 ## 🔒 Security & Production
 
