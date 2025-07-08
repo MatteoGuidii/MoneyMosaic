@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import LoadingSpinner from '../components/ui/LoadingSpinner'
+import ToastContainer from '../components/ui/ToastContainer'
 import { apiService, Transaction } from '../services/apiService'
 import { TrendingUp, PieChart as PieChartIcon, Download } from 'lucide-react'
+import { useToast } from '../hooks/useToast'
 
 // Import new components
 import TrendsChart from '../components/charts/TrendsChart'
@@ -12,20 +14,34 @@ import TransactionsFilter from '../components/TransactionsFilter'
 import TransactionsDataTable from '../components/TransactionsDataTable'
 
 const Transactions: React.FC = () => {
+  // Toast functionality
+  const { toasts, dismissToast, success, error: showError } = useToast()
+
+  // Basic data states
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [loading, setLoading] = useState(true)
   const [categories, setCategories] = useState<string[]>([])
   const [accounts, setAccounts] = useState<string[]>([])
-  const [selectedDateRange, setSelectedDateRange] = useState('30')
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([])
-  const [selectedAccounts, setSelectedAccounts] = useState<string[]>([])
-  const [searchTerm, setSearchTerm] = useState('')
-  const [currentPage, setCurrentPage] = useState(1)
   const [totalTransactions, setTotalTransactions] = useState(0)
-  const [amountRange, setAmountRange] = useState({ min: 0, max: 10000 })
-  const [sortField, setSortField] = useState('date')
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc')
   const [previousPeriodTransactions, setPreviousPeriodTransactions] = useState<Transaction[]>([])
+
+  // Filter and pagination states - grouped for better organization
+  const [filters, setFilters] = useState({
+    dateRange: '30',
+    categories: [] as string[],
+    accounts: [] as string[],
+    searchTerm: '',
+    amountRange: { min: 0, max: 10000 }
+  })
+
+  const [pagination, setPagination] = useState({
+    currentPage: 1
+  })
+
+  const [sorting, setSorting] = useState({
+    field: 'date',
+    direction: 'desc' as 'asc' | 'desc'
+  })
 
   useEffect(() => {
     loadInitialData()
@@ -33,7 +49,7 @@ const Transactions: React.FC = () => {
 
   useEffect(() => {
     loadTransactions()
-  }, [selectedDateRange, selectedCategories, selectedAccounts, searchTerm, currentPage, amountRange, sortField, sortDirection])
+  }, [filters, pagination.currentPage, sorting])
 
   const loadInitialData = async () => {
     try {
@@ -58,27 +74,27 @@ const Transactions: React.FC = () => {
   const loadTransactions = async () => {
     try {
       const transactionsResponse = await apiService.fetchTransactions(
-        selectedDateRange,
-        selectedCategories.length > 0 ? selectedCategories : undefined,
-        searchTerm || undefined,
-        currentPage,
+        filters.dateRange,
+        filters.categories.length > 0 ? filters.categories : undefined,
+        filters.searchTerm || undefined,
+        pagination.currentPage,
         undefined, // startDate
-        selectedAccounts.length > 0 ? selectedAccounts : undefined,
-        amountRange.min > 0 ? amountRange.min : undefined,
-        amountRange.max < 10000 ? amountRange.max : undefined,
-        sortField,
-        sortDirection
+        filters.accounts.length > 0 ? filters.accounts : undefined,
+        filters.amountRange.min > 0 ? filters.amountRange.min : undefined,
+        filters.amountRange.max < 10000 ? filters.amountRange.max : undefined,
+        sorting.field,
+        sorting.direction
       )
       setTransactions(transactionsResponse.transactions)
       setTotalTransactions(transactionsResponse.total)
 
       // Load previous period for comparison
       try {
-        const prevStartDate = new Date(Date.now() - parseInt(selectedDateRange) * 24 * 60 * 60 * 1000 * 2).toISOString()
+        const prevStartDate = new Date(Date.now() - parseInt(filters.dateRange) * 24 * 60 * 60 * 1000 * 2).toISOString()
         const prevPeriodResponse = await apiService.fetchTransactions(
-          selectedDateRange,
-          selectedCategories.length > 0 ? selectedCategories : undefined,
-          searchTerm || undefined,
+          filters.dateRange,
+          filters.categories.length > 0 ? filters.categories : undefined,
+          filters.searchTerm || undefined,
           1,
           prevStartDate
         )
@@ -92,47 +108,53 @@ const Transactions: React.FC = () => {
   }
 
   const handleDateRangeChange = (range: string) => {
-    setSelectedDateRange(range)
-    setCurrentPage(1)
+    setFilters(prev => ({ ...prev, dateRange: range }))
+    setPagination(prev => ({ ...prev, currentPage: 1 }))
   }
 
   const handleCategoryFilter = (categories: string[]) => {
-    setSelectedCategories(categories)
-    setCurrentPage(1)
+    setFilters(prev => ({ ...prev, categories }))
+    setPagination(prev => ({ ...prev, currentPage: 1 }))
   }
 
   const handleAccountFilter = (accounts: string[]) => {
-    setSelectedAccounts(accounts)
-    setCurrentPage(1)
+    setFilters(prev => ({ ...prev, accounts }))
+    setPagination(prev => ({ ...prev, currentPage: 1 }))
   }
 
   const handleAmountRangeChange = (range: { min: number; max: number }) => {
-    setAmountRange(range)
-    setCurrentPage(1)
+    setFilters(prev => ({ ...prev, amountRange: range }))
+    setPagination(prev => ({ ...prev, currentPage: 1 }))
   }
 
   const handleSearch = (term: string) => {
-    setSearchTerm(term)
-    setCurrentPage(1)
+    setFilters(prev => ({ ...prev, searchTerm: term }))
+    setPagination(prev => ({ ...prev, currentPage: 1 }))
   }
 
   const handleSort = (field: string, direction: 'asc' | 'desc') => {
-    setSortField(field)
-    setSortDirection(direction)
+    setSorting({ field, direction })
   }
 
   const handleClearFilters = () => {
-    setSelectedCategories([])
-    setSelectedAccounts([])
-    setAmountRange({ min: 0, max: 10000 })
-    setSearchTerm('')
-    setCurrentPage(1)
+    setFilters({
+      dateRange: '30',
+      categories: [],
+      accounts: [],
+      searchTerm: '',
+      amountRange: { min: 0, max: 10000 }
+    })
+    setPagination({ currentPage: 1 })
+  }
+
+  const handlePageChange = (page: number) => {
+    setPagination(prev => ({ ...prev, currentPage: page }))
   }
 
   const handleExport = async () => {
     try {
       if (transactions.length === 0) {
-        alert('No transactions to export')
+        showError('No transactions to export')
         return
       }
 
@@ -154,11 +176,14 @@ const Transactions: React.FC = () => {
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `transactions_${selectedDateRange}_days.csv`
+      a.download = `transactions_${filters.dateRange}_days.csv`
       a.click()
       window.URL.revokeObjectURL(url)
+      
+      success('Transactions exported successfully!')
     } catch (error) {
       console.error('Error exporting transactions:', error)
+      showError('Failed to export transactions')
     }
   }
 
@@ -237,7 +262,7 @@ const Transactions: React.FC = () => {
       </div>
 
       {/* Quick Stats */}
-      <StatsCard transactions={transactions} dateRange={selectedDateRange} />
+      <StatsCard transactions={transactions} dateRange={filters.dateRange} />
 
       {/* Charts and Insights Row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -277,10 +302,10 @@ const Transactions: React.FC = () => {
       <TransactionsFilter
         categories={categories}
         accounts={accounts}
-        selectedDateRange={selectedDateRange}
-        selectedCategories={selectedCategories}
-        selectedAccounts={selectedAccounts}
-        amountRange={amountRange}
+        selectedDateRange={filters.dateRange}
+        selectedCategories={filters.categories}
+        selectedAccounts={filters.accounts}
+        amountRange={filters.amountRange}
         onDateRangeChange={handleDateRangeChange}
         onCategoryFilter={handleCategoryFilter}
         onAccountFilter={handleAccountFilter}
@@ -292,12 +317,15 @@ const Transactions: React.FC = () => {
       {/* Enhanced Transactions Table */}
       <TransactionsDataTable
         transactions={transactions}
-        currentPage={currentPage}
+        currentPage={pagination.currentPage}
         totalTransactions={totalTransactions}
-        onPageChange={setCurrentPage}
+        onPageChange={handlePageChange}
         onSort={handleSort}
         onExport={handleExport}
       />
+
+      {/* Toast Container */}
+      <ToastContainer toasts={toasts} onDismiss={dismissToast} />
     </div>
   )
 }
