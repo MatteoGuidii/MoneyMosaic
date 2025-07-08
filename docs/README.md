@@ -8,6 +8,7 @@ Welcome to the MoneyMosaic documentation. This directory contains all technical 
 
 - **[ARCHITECTURE.md](./ARCHITECTURE.md)** - Complete technical architecture, project structure, and development best practices
 - **[API.md](./API.md)** - API documentation and quick reference
+- **[../DOCKER.md](../DOCKER.md)** - Docker setup and when to use it
 
 ### For Testing
 

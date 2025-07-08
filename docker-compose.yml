@@ -1,0 +1,31 @@
+# MoneyMosaic Docker Configuration
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - "8080:8080"
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - PORT=8080
+      - DB_PATH=/app/data/moneymosaic.db
+      - PLAID_CLIENT_ID=${PLAID_CLIENT_ID:-your_client_id}
+      - PLAID_SECRET=${PLAID_SECRET:-your_secret}
+      - PLAID_ENV=${PLAID_ENV:-sandbox}
+      - PLAID_CLIENT_NAME=MoneyMosaic
+    volumes:
+      # Mount source code for hot reload
+      - .:/app
+      - /app/node_modules
+      - /app/frontend/node_modules
+      # Persist SQLite database
+      - moneymosaic_data:/app/data
+      # Mount .env file if it exists
+      - ./.env:/app/.env:ro
+    restart: unless-stopped
+    command: npm run dev:both
+
+volumes:
+  moneymosaic_data:

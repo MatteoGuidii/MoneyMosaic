@@ -6,6 +6,11 @@ export interface APIResponse<T = any> {
   timestamp: string;
 }
 
+export interface UnhealthyConnection {
+  name: string;
+  error: string;
+}
+
 export interface PaginatedResponse<T = any> extends APIResponse<T> {
   pagination: {
     page: number;

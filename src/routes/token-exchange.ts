@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { bankService } from '../services/bank.service';
+import { logger } from '../utils/logger';
 
 const router = Router();
 
@@ -52,7 +53,7 @@ router.post('/token/exchange', async (req, res) => {
     
     res.json(result);
   } catch (err) {
-    console.error('exchangePublicToken error:', err);
+    logger.error('exchangePublicToken error:', err);
     res.status(500).json({ error: 'Failed to exchange public token' });
   }
 });

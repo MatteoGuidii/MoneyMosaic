@@ -1,31 +1,35 @@
 import * as cron from 'node-cron';
 import { bankService } from './bank.service';
+import { UnhealthyConnection } from '../types';
+import { logger } from '../utils/logger';
 
 export class SchedulerService {
   private jobs: Map<string, cron.ScheduledTask> = new Map();
+  private activeJobs: Set<string> = new Set();
 
   // Start the automatic transaction sync job
   startTransactionSync(intervalHours: number = 6): void {
     const cronPattern = `0 */${intervalHours} * * *`; // Every X hours
     
     const job = cron.schedule(cronPattern, async () => {
-      console.log(`[${new Date().toISOString()}] Starting scheduled transaction sync...`);
+      logger.info(`Starting scheduled transaction sync...`);
       
       try {
         const result = await bankService.fetchAllTransactions(30);
-        console.log(`✅ Synced ${result.transactions.length} transactions from all banks`);
+        logger.info(`✅ Synced ${result.transactions.length} transactions from all banks`);
         
         // Optional: Log summary
-        console.log(`💰 Total Spending: $${result.summary.totalSpending.toFixed(2)}`);
-        console.log(`💵 Total Income: $${result.summary.totalIncome.toFixed(2)}`);
+        logger.info(`💰 Total Spending: $${result.summary.totalSpending.toFixed(2)}`);
+        logger.info(`💵 Total Income: $${result.summary.totalIncome.toFixed(2)}`);
       } catch (error) {
-        console.error('❌ Scheduled transaction sync failed:', error);
+        logger.error('❌ Scheduled transaction sync failed:', error);
       }
     });
 
     this.jobs.set('transaction-sync', job);
+    this.activeJobs.add('transaction-sync');
     
-    console.log(`🕒 Transaction sync scheduled every ${intervalHours} hours`);
+    logger.info(`🕒 Transaction sync scheduled every ${intervalHours} hours`);
   }
 
   // Start connection health check job  
@@ -33,29 +37,30 @@ export class SchedulerService {
     const cronPattern = '0 0 * * *'; // Daily at midnight
     
     const job = cron.schedule(cronPattern, async () => {
-      console.log(`[${new Date().toISOString()}] Starting connection health check...`);
+      logger.info(`Starting connection health check...`);
       
       try {
         const health = await bankService.checkConnectionHealth();
         
         if (health.healthy.length > 0) {
-          console.log(`✅ Healthy connections: ${health.healthy.join(', ')}`);
+          logger.info(`✅ Healthy connections: ${health.healthy.join(', ')}`);
         }
         
         if (health.unhealthy.length > 0) {
-          console.log(`❌ Unhealthy connections:`);
-          health.unhealthy.forEach((conn: any) => {
-            console.log(`  - ${conn.name}: ${conn.error}`);
+          logger.warn(`❌ Unhealthy connections:`);
+          health.unhealthy.forEach((conn: UnhealthyConnection) => {
+            logger.warn(`  - ${conn.name}: ${conn.error}`);
           });
         }
       } catch (error) {
-        console.error('❌ Health check failed:', error);
+        logger.error('❌ Health check failed:', error);
       }
     });
 
     this.jobs.set('health-check', job);
+    this.activeJobs.add('health-check');
     
-    console.log('🏥 Health check scheduled daily at midnight');
+    logger.info('🏥 Health check scheduled daily at midnight');
   }
 
   // Start all jobs
@@ -63,7 +68,7 @@ export class SchedulerService {
     this.startTransactionSync(transactionSyncHours);
     this.startHealthCheck();
     
-    console.log('🚀 All background jobs started');
+    logger.info('🚀 All background jobs started');
   }
 
   // Stop a specific job
@@ -72,7 +77,8 @@ export class SchedulerService {
     if (job) {
       job.stop();
       this.jobs.delete(jobName);
-      console.log(`⏹️ Stopped job: ${jobName}`);
+      this.activeJobs.delete(jobName);
+      logger.info(`⏹️ Stopped job: ${jobName}`);
     }
   }
 
@@ -80,29 +86,30 @@ export class SchedulerService {
   stopAll(): void {
     this.jobs.forEach((job, name) => {
       job.stop();
-      console.log(`⏹️ Stopped job: ${name}`);
+      logger.info(`⏹️ Stopped job: ${name}`);
     });
     this.jobs.clear();
-    console.log('⏹️ All background jobs stopped');
+    this.activeJobs.clear();
+    logger.info('⏹️ All background jobs stopped');
   }
 
   // Get job status
   getJobStatus(): { [key: string]: boolean } {
     const status: { [key: string]: boolean } = {};
     this.jobs.forEach((_job, name) => {
-      status[name] = this.jobs.has(name); // Job exists means it's active
+      status[name] = this.activeJobs.has(name); // Check if the job is actively scheduled
     });
     return status;
   }
 
   // Manual trigger for transaction sync
   async triggerTransactionSync(): Promise<void> {
-    console.log('🔄 Manually triggering transaction sync...');
+    logger.info('🔄 Manually triggering transaction sync...');
     try {
       const result = await bankService.fetchAllTransactions(30);
-      console.log(`✅ Manual sync completed: ${result.transactions.length} transactions`);
+      logger.info(`✅ Manual sync completed: ${result.transactions.length} transactions`);
     } catch (error) {
-      console.error('❌ Manual sync failed:', error);
+      logger.error('❌ Manual sync failed:', error);
       throw error;
     }
   }

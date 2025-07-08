@@ -1,6 +1,7 @@
 import { database, Database } from '../database';
 import { plaidClient } from '../plaidClient';
 import { subDays, formatISO } from 'date-fns';
+import { UnhealthyConnection } from '../types';
 
 export class BankService {
   private database: Database;
@@ -258,11 +259,11 @@ export class BankService {
   // Health check for all connections
   async checkConnectionHealth(): Promise<{
     healthy: string[];
-    unhealthy: { name: string; error: string }[];
+    unhealthy: UnhealthyConnection[];
   }> {
     const institutions = await this.database.getInstitutions();
     const healthy: string[] = [];
-    const unhealthy: { name: string; error: string }[] = [];
+    const unhealthy: UnhealthyConnection[] = [];
 
     for (const institution of institutions) {
       try {
