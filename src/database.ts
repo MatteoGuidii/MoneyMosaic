@@ -100,6 +100,10 @@ export class Database {
     `);
 
     await this.runDirect(`
+      CREATE INDEX IF NOT EXISTS idx_transactions_date_category ON transactions(date, category_primary);
+    `);
+
+    await this.runDirect(`
       CREATE INDEX IF NOT EXISTS idx_transactions_account ON transactions(account_id);
     `);
 
@@ -419,8 +423,11 @@ export class Database {
   async createOrUpdateBudget(category: string, amount: number, month: string, year: number): Promise<void> {
     await this.ensureInitialized();
     await this.run(`
-      INSERT OR REPLACE INTO budgets (category, amount, month, year, updated_at)
+      INSERT INTO budgets (category, amount, month, year, updated_at)
       VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+      ON CONFLICT(category, month, year) DO UPDATE SET
+        amount = excluded.amount,
+        updated_at = CURRENT_TIMESTAMP
     `, [category, amount, month, year]);
   }
 
@@ -469,7 +476,7 @@ export class Database {
       category: budget.category,
       budgeted: budget.budgeted,
       spent: budget.spent,
-      percentage: budget.budgeted > 0 ? (budget.spent / budget.budgeted) * 100 : 0
+      percentage: budget.budgeted > 0 ? Math.round((budget.spent / budget.budgeted) * 100 * 100) / 100 : 0
     }));
   }
 }

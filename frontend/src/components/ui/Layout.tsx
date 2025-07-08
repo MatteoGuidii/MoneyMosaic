@@ -84,7 +84,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                   <Link
                     to={item.href}
                     onClick={() => setSidebarOpen(false)}
-                    className={`group relative flex items-center space-x-4 px-4 py-4 rounded-2xl text-sm font-medium transition-all duration-300 ${
+                    className={`group relative flex items-center space-x-4 px-4 py-4 rounded-2xl text-sm font-medium transition-all duration-200 ${
                       active
                         ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg shadow-emerald-500/25 scale-[1.02] ring-1 ring-emerald-500/20'
                         : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100/80 dark:hover:bg-zinc-800/50 hover:text-emerald-600 dark:hover:text-emerald-400 hover:scale-[1.01]'
@@ -99,9 +99,13 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                         active 
                           ? 'text-white drop-shadow-sm' 
                           : 'text-zinc-500 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 dark:text-zinc-400'
-                      } transition-colors duration-300`} 
+                      } transition-colors duration-200`} 
                     />
-                    <span className="relative z-10 font-medium tracking-wide">{item.name}</span>
+                    <span className={`relative z-10 font-medium tracking-wide ${
+                      active 
+                        ? 'text-white' 
+                        : 'text-zinc-700 dark:text-zinc-300 group-hover:text-emerald-600 dark:group-hover:text-emerald-400'
+                    } transition-colors duration-200`}>{item.name}</span>
                     {active && (
                       <div className="absolute right-4 w-1.5 h-1.5 bg-white rounded-full opacity-90 shadow-sm"></div>
                     )}

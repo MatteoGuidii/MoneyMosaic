@@ -552,11 +552,7 @@ const Investments: React.FC = () => {
               <select
                 value={filterSector}
                 onChange={(e) => {
-                  try {
-                    setFilterSector(e.target.value)
-                  } catch (error) {
-                    console.error('Error changing sector filter:', error)
-                  }
+                  setFilterSector(e.target.value)
                 }}
                 className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm"
               >
@@ -813,10 +809,18 @@ const Investments: React.FC = () => {
       {/* Investment Details Modal */}
       {showInvestmentModal && selectedInvestment && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <div 
+            className="bg-white dark:bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+            role="dialog" 
+            aria-modal="true" 
+            aria-labelledby="investment-modal-title"
+          >
             <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
               <div>
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
+                <h3 
+                  id="investment-modal-title" 
+                  className="text-xl font-semibold text-gray-900 dark:text-white"
+                >
                   {selectedInvestment.symbol} - {selectedInvestment.companyName}
                 </h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
