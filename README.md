@@ -2,10 +2,6 @@
 
 A comprehensive personal finance dashboard that connects multiple banks and tracks all your finances in one place using the Plaid API.
 
-![MoneyMosaic Dashboard](https://img.shields.io/badge/Status-Production%20Ready-brightgreen)
-![TypeScript](https://img.shields.io/badge/TypeScript-100%25-blue)
-![Test Coverage](https://img.shields.io/badge/Test%20Coverage-85%25-green)
-
 ## 📋 Table of Contents
 
 - [✨ Features](#-features)
@@ -28,6 +24,7 @@ For detailed information, see our comprehensive documentation:
 - **[ARCHITECTURE.md](./docs/ARCHITECTURE.md)** - Project structure
 - **[API.md](./docs/API.md)** - API documentation
 - **[TESTING.md](./docs/TESTING.md)** - Testing guide & best practices
+- **[DOCKER.md](./DOCKER.md)** - Docker setup and troubleshooting
 - **[openapi.json](./docs/openapi.json)** - OpenAPI specification
 
 **Key directories:**
@@ -50,6 +47,8 @@ For detailed information, see our comprehensive documentation:
 
 ## 🚀 Quick Start
 
+**Option 1: Local Development (Recommended)**
+
 ```bash
 # 1. Clone and setup
 git clone https://github.com/yourusername/moneymosaic.git
@@ -69,17 +68,21 @@ npm run dev:both
 # Backend API runs on http://localhost:8080
 ```
 
-### Alternative: Manual Startup
-
-If you prefer to run servers separately:
+**Option 2: Docker (Isolated Environment)**
 
 ```bash
-# Terminal 1 - Backend (API server)
-npm run dev
+# 1. Clone and setup
+git clone https://github.com/yourusername/moneymosaic.git
+cd moneymosaic
 
-# Terminal 2 - Frontend (React app)
-npm run dev:frontend
+# 2. Add your Plaid credentials to .env file
+# 3. Start with Docker
+npm run docker:up
+
+# Access at http://localhost:3000
 ```
+
+> 📝 **Need help choosing?** See [DOCKER.md](./DOCKER.md) for when to use each option.
 
 ## 📋 Prerequisites
 
@@ -149,17 +152,26 @@ For detailed database architecture, see [docs/ARCHITECTURE.md](./docs/ARCHITECTU
 
 ## 🛠️ Development
 
-### Quick Start Commands
+### Quick Commands
 
 ```bash
-npm run dev:both        # Start both backend + frontend
+# Local Development
+npm run dev:both        # Start both backend + frontend (recommended)
 npm run dev            # Backend only (port 8080)
 npm run dev:frontend   # Frontend only (port 3000)
+
+# Docker Development
+npm run docker:up      # Start with Docker
+npm run docker:down    # Stop Docker
+
+# Build & Production
 npm run build          # Build both backend + frontend
 npm start              # Start production server
 ```
 
-For detailed development information, see [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md).
+**Need help choosing Local vs Docker?** See [DOCKER.md](./DOCKER.md)
+
+For detailed development setup, see [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md).
 
 ## 🔒 Security & Production
 

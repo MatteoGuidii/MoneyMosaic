@@ -17,12 +17,9 @@
     "test:coverage": "jest --coverage --watchAll=false",
     "docs:generate": "ts-node src/generate-openapi.ts",
     "postinstall": "cd frontend && npm install",
-    "docker:up": "sudo docker-compose up -d",
-    "docker:up:dev": "sudo docker-compose -f docker-compose.dev.yml up -d",
-    "docker:down": "sudo docker-compose down",
-    "docker:down:dev": "sudo docker-compose -f docker-compose.dev.yml down",
-    "docker:logs": "sudo docker-compose logs -f app",
-    "docker:logs:dev": "sudo docker-compose -f docker-compose.dev.yml logs -f app-dev"
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f app"
   },
   "keywords": [],
   "author": "",
