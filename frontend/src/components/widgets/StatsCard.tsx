@@ -16,9 +16,9 @@ interface StatsCardProps {
 
 const StatsCard: React.FC<StatsCardProps> = ({ transactions, dateRange }) => {
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('en-CA', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'CAD',
       minimumFractionDigits: 0
     }).format(amount)
   }

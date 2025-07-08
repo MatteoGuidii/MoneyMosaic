@@ -161,31 +161,18 @@ const Accounts: React.FC = () => {
     return matchesSearch && matchesType && matchesStatus
   })
 
-  // Calculate balances and analytics
-  const calculateAnalytics = () => {
+  // Helper function to calculate account balances by type
+  const calculateBalances = (accounts: Account[]) => {
     let totalBalance = 0
     let checkingBalance = 0
     let savingsBalance = 0
     let creditBalance = 0
     let investmentBalance = 0
-    
-    const accountTypeCounts: Record<string, number> = {}
-    let healthyCount = 0
 
-    filteredAccounts.forEach(account => {
+    accounts.forEach(account => {
       const balance = account.balance || 0
       totalBalance += balance
       
-      // Count account types
-      accountTypeCounts[account.type] = (accountTypeCounts[account.type] || 0) + 1
-      
-      // Calculate health
-      const lastUpdate = new Date(account.lastUpdated)
-      const now = new Date()
-      const diffInHours = (now.getTime() - lastUpdate.getTime()) / (1000 * 60 * 60)
-      if (diffInHours < 24) healthyCount++
-      
-      // Categorize by type
       switch (account.type.toLowerCase()) {
         case 'checking':
         case 'depository':
@@ -203,15 +190,19 @@ const Accounts: React.FC = () => {
       }
     })
 
-    // Calculate realistic trends data based on actual account balances
-    const trendsData = Array.from({ length: 7 }, (_, i) => {
+    return { totalBalance, checkingBalance, savingsBalance, creditBalance, investmentBalance }
+  }
+
+  // Helper function to generate trends data with realistic variations
+  const generateTrendsData = (balances: ReturnType<typeof calculateBalances>, accountsLength: number) => {
+    return Array.from({ length: 7 }, (_, i) => {
       const date = new Date()
       date.setDate(date.getDate() - (6 - i))
       
       // If no accounts, return zero values
-      if (filteredAccounts.length === 0) {
+      if (accountsLength === 0) {
         return {
-          date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+          date: date.toLocaleDateString('en-CA', { month: 'short', day: 'numeric' }),
           totalBalance: 0,
           checkingBalance: 0,
           savingsBalance: 0,
@@ -219,43 +210,51 @@ const Accounts: React.FC = () => {
         }
       }
       
-      // For now, show current balances with small realistic variations
+      // Show current balances with small realistic variations
       // In a real app, this would come from historical balance data from the API
       const variance = 0.02 // 2% variance
       return {
-        date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-        totalBalance: totalBalance * (1 + (Math.random() - 0.5) * variance),
-        checkingBalance: checkingBalance * (1 + (Math.random() - 0.5) * variance),
-        savingsBalance: savingsBalance * (1 + (Math.random() - 0.5) * variance),
-        creditBalance: creditBalance * (1 + (Math.random() - 0.5) * variance)
+        date: date.toLocaleDateString('en-CA', { month: 'short', day: 'numeric' }),
+        totalBalance: balances.totalBalance * (1 + (Math.random() - 0.5) * variance),
+        checkingBalance: balances.checkingBalance * (1 + (Math.random() - 0.5) * variance),
+        savingsBalance: balances.savingsBalance * (1 + (Math.random() - 0.5) * variance),
+        creditBalance: balances.creditBalance * (1 + (Math.random() - 0.5) * variance)
       }
     })
+  }
 
-    // Distribution data for pie chart
-    const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6']
-    
-    // Helper function to format account type names
-    const formatAccountTypeName = (type: string) => {
-      switch (type.toLowerCase()) {
-        case 'depository':
-        case 'checking': 
-          return 'Checking Accounts'
-        case 'savings': 
-          return 'Savings Accounts'
-        case 'credit': 
-          return 'Credit Cards'
-        case 'investment': 
-          return 'Investment Accounts'
-        case 'loan': 
-          return 'Loans'
-        default: 
-          return type.charAt(0).toUpperCase() + type.slice(1) + ' Accounts'
-      }
+  // Helper function to format account type names for display
+  const formatAccountTypeName = (type: string) => {
+    switch (type.toLowerCase()) {
+      case 'depository':
+      case 'checking': 
+        return 'Checking Accounts'
+      case 'savings': 
+        return 'Savings Accounts'
+      case 'credit': 
+        return 'Credit Cards'
+      case 'investment': 
+        return 'Investment Accounts'
+      case 'loan': 
+        return 'Loans'
+      default: 
+        return type.charAt(0).toUpperCase() + type.slice(1) + ' Accounts'
     }
+  }
+
+  // Helper function to generate distribution data for pie charts
+  const generateDistributionData = (accounts: Account[], totalBalance: number) => {
+    const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6']
+    const accountTypeCounts: Record<string, number> = {}
     
-    const distributionData = Object.entries(accountTypeCounts)
+    // Count accounts and calculate balances by type
+    accounts.forEach(account => {
+      accountTypeCounts[account.type] = (accountTypeCounts[account.type] || 0) + 1
+    })
+    
+    return Object.entries(accountTypeCounts)
       .map(([type, count], index) => {
-        const typeBalance = filteredAccounts
+        const typeBalance = accounts
           .filter(acc => acc.type === type)
           .reduce((sum, acc) => sum + acc.balance, 0)
         
@@ -263,35 +262,55 @@ const Accounts: React.FC = () => {
           type: formatAccountTypeName(type), // Use formatted name
           originalType: type, // Keep original for filtering if needed
           balance: Math.abs(typeBalance),
-          percentage: (Math.abs(typeBalance) / Math.abs(totalBalance)) * 100,
+          percentage: totalBalance > 0 ? (Math.abs(typeBalance) / Math.abs(totalBalance)) * 100 : 0,
           color: colors[index % colors.length],
           count
         }
       })
       .filter(item => item.balance > 0)
+  }
+
+  // Helper function to calculate account health and sync statistics
+  const calculateAccountStats = (accounts: Account[], totalBalance: number) => {
+    let healthyCount = 0
+    
+    accounts.forEach(account => {
+      const lastUpdate = new Date(account.lastUpdated)
+      const now = new Date()
+      const diffInHours = (now.getTime() - lastUpdate.getTime()) / (1000 * 60 * 60)
+      if (diffInHours < 24) healthyCount++
+    })
 
     // Calculate last sync time (most recent account update)
-    const lastSyncTime = filteredAccounts.length > 0 
-      ? Math.min(...filteredAccounts.map(acc => 
+    const lastSyncTime = accounts.length > 0 
+      ? Math.min(...accounts.map(acc => 
           (new Date().getTime() - new Date(acc.lastUpdated).getTime()) / (1000 * 60 * 60)
         ))
       : 0
 
     // Calculate number of unique account types
-    const uniqueAccountTypes = new Set(filteredAccounts.map(acc => acc.type)).size
+    const uniqueAccountTypes = new Set(accounts.map(acc => acc.type)).size
 
-    const statsData = {
-      totalAccounts: filteredAccounts.length,
+    return {
+      totalAccounts: accounts.length,
       totalBalance,
-      monthlyChange: filteredAccounts.length > 0 ? 2.5 : 0, // Would be calculated from historical data
+      monthlyChange: accounts.length > 0 ? 2.5 : 0, // Would be calculated from historical data
       healthyAccounts: healthyCount,
       lastSyncedHours: lastSyncTime,
-      averageBalance: filteredAccounts.length > 0 ? totalBalance / filteredAccounts.length : 0,
+      averageBalance: accounts.length > 0 ? totalBalance / accounts.length : 0,
       uniqueAccountTypes
     }
+  }
+
+  // Main analytics calculation function - now much cleaner and focused
+  const calculateAnalytics = () => {
+    const balances = calculateBalances(filteredAccounts)
+    const trendsData = generateTrendsData(balances, filteredAccounts.length)
+    const distributionData = generateDistributionData(filteredAccounts, balances.totalBalance)
+    const statsData = calculateAccountStats(filteredAccounts, balances.totalBalance)
 
     return { 
-      balances: { totalBalance, checkingBalance, savingsBalance, creditBalance, investmentBalance },
+      balances,
       trendsData,
       distributionData,
       statsData

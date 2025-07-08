@@ -82,7 +82,7 @@ const Dashboard: React.FC = () => {
                 Welcome back! 👋
               </h1>
               <p className="text-indigo-600 dark:text-indigo-400 font-medium">
-                {new Date().toLocaleDateString('en-US', { 
+                {new Date().toLocaleDateString('en-CA', { 
                   weekday: 'long', 
                   year: 'numeric', 
                   month: 'long', 

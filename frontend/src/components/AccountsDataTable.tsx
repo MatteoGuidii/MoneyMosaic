@@ -94,7 +94,7 @@ const AccountsDataTable: React.FC<AccountsDataTableProps> = ({
     if (diffInHours < 1) return 'Just now'
     if (diffInHours < 24) return `${Math.floor(diffInHours)}h ago`
     if (diffInHours < 72) return `${Math.floor(diffInHours / 24)}d ago`
-    return date.toLocaleDateString()
+    return date.toLocaleDateString('en-CA')
   }
 
   const handleDropdownToggle = (accountId: string) => {

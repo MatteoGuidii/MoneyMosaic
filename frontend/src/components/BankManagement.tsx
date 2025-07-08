@@ -306,7 +306,7 @@ const BankManagement: React.FC<BankManagementProps> = ({
   }
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString()
+    return new Date(dateString).toLocaleDateString('en-CA')
   }
 
   if (loading) {

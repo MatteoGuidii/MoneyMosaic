@@ -14,9 +14,9 @@ interface TransactionTrendsChartProps {
 
 const TransactionTrendsChart: React.FC<TransactionTrendsChartProps> = ({ data }) => {
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('en-CA', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'CAD',
       minimumFractionDigits: 0
     }).format(value)
   }

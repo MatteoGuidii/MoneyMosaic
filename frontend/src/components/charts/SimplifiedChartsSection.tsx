@@ -52,15 +52,15 @@ const SimplifiedChartsSection: React.FC<SimplifiedChartsSectionProps> = ({
   }
 
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('en-CA', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'CAD',
       minimumFractionDigits: 0
     }).format(value)
   }
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    return new Date(dateString).toLocaleDateString('en-CA', { month: 'short', day: 'numeric' })
   }
 
   return (

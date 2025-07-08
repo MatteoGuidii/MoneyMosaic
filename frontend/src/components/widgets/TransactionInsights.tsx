@@ -178,7 +178,7 @@ export const generateTransactionInsights = (
     type: netFlow >= 0 ? 'positive' : 'negative',
     title: netFlow >= 0 ? 'Positive Cash Flow' : 'Negative Cash Flow',
     description: `Your net cash flow is ${netFlow >= 0 ? 'positive' : 'negative'} for this period.`,
-    value: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Math.abs(netFlow)),
+    value: new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD' }).format(Math.abs(netFlow)),
     icon: <DollarSign className="w-5 h-5" />
   })
 

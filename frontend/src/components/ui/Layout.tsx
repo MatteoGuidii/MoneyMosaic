@@ -116,7 +116,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                   {navigation.find(item => item.href === location.pathname)?.name || 'Dashboard'}
                 </h2>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                  {new Date().toLocaleDateString('en-US', { 
+                  {new Date().toLocaleDateString('en-CA', { 
                     weekday: 'long', 
                     year: 'numeric', 
                     month: 'long', 

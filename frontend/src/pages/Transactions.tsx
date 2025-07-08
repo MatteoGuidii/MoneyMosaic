@@ -199,7 +199,7 @@ const Transactions: React.FC = () => {
       )
       
       return {
-        date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        date: date.toLocaleDateString('en-CA', { month: 'short', day: 'numeric' }),
         income: dayTransactions.filter(t => t.amount < 0).reduce((sum, t) => sum + Math.abs(t.amount), 0),
         spending: dayTransactions.filter(t => t.amount > 0).reduce((sum, t) => sum + t.amount, 0),
         net: dayTransactions.reduce((sum, t) => sum + (t.amount < 0 ? Math.abs(t.amount) : -t.amount), 0)
