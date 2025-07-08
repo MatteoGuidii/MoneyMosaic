@@ -6,6 +6,7 @@ import BudgetSummaryWidget from '../components/widgets/BudgetSummaryWidget'
 import InvestmentSummaryWidget from '../components/widgets/InvestmentSummaryWidget'
 import RecentTransactionsWidget from '../components/widgets/RecentTransactionsWidget'
 import LoadingSpinner from '../components/ui/LoadingSpinner'
+import SyncButton from '../components/SyncButton'
 import { apiService, OverviewData, SpendingData, CategoryData, EarningsData } from '../services/apiService'
 import { Receipt, Building2, TrendingUp, Sparkles } from 'lucide-react'
 import { Link } from 'react-router-dom'
@@ -93,14 +94,18 @@ const Dashboard: React.FC = () => {
           <p className="text-lg text-gray-600 dark:text-gray-300 leading-relaxed mb-6">
             Here's your comprehensive financial overview. Your wealth is growing steadily, and all systems are performing well.
           </p>
-          <div className="flex items-center space-x-3">
-            <div className="flex items-center space-x-2 px-4 py-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-full">
-              <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-              <span className="text-sm font-medium text-emerald-700 dark:text-emerald-400">All systems operational</span>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="flex items-center space-x-2 px-4 py-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-full">
+                <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+                <span className="text-sm font-medium text-emerald-700 dark:text-emerald-400">All systems operational</span>
+              </div>
             </div>
-            <div className="text-sm text-gray-500 dark:text-gray-400">
-              Last synced: Just now
-            </div>
+            <SyncButton 
+              variant="button" 
+              onSyncComplete={loadDashboardData}
+              className="ml-4"
+            />
           </div>
         </div>
         <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-indigo-400/20 to-purple-600/20 rounded-full blur-3xl"></div>

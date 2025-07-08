@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import LoadingSpinner from '../components/ui/LoadingSpinner'
 import ToastContainer from '../components/ui/ToastContainer'
+import SyncButton from '../components/SyncButton'
 import { apiService, Transaction } from '../services/apiService'
 import { TrendingUp, PieChart as PieChartIcon, Download } from 'lucide-react'
 import { useToast } from '../hooks/useToast'
@@ -248,17 +249,23 @@ const Transactions: React.FC = () => {
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
             Transaction Analytics
           </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
-            Comprehensive view of your financial transactions and spending patterns
+          <p className="text-gray-600 dark:text-gray-400">
+            Track your spending patterns and analyze transaction trends
           </p>
         </div>
-        <button
-          onClick={handleExport}
-          className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-        >
-          <Download className="w-4 h-4 mr-2" />
-          Export Data
-        </button>
+        <div className="flex items-center gap-3">
+          <SyncButton 
+            variant="button" 
+            onSyncComplete={() => loadTransactions()}
+          />
+          <button 
+            onClick={handleExport}
+            className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+          >
+            <Download className="w-4 h-4" />
+            Export
+          </button>
+        </div>
       </div>
 
       {/* Quick Stats */}

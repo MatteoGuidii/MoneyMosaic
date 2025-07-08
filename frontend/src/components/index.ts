@@ -15,11 +15,15 @@ export { default as BankManagement } from './BankManagement'
 export { default as CashFlowInsights } from './CashFlowInsights'
 export { default as TransactionsFilter } from './TransactionsFilter'
 export { default as TransactionsDataTable } from './TransactionsDataTable'
+export { default as AccountsFilter } from './AccountsFilter'
+export { default as AccountsDataTable } from './AccountsDataTable'
 
 // Charts
 export { default as SimplifiedChartsSection } from './charts/SimplifiedChartsSection'
 export { default as TrendsChart } from './charts/TrendsChart'
 export { default as PieChart } from './charts/PieChart'
+export { default as AccountTrendsChart } from './charts/AccountTrendsChart'
+export { default as AccountDistributionChart } from './charts/AccountDistributionChart'
 
 // Widgets
 export { default as BudgetSummaryWidget } from './widgets/BudgetSummaryWidget'
@@ -27,3 +31,6 @@ export { default as InvestmentSummaryWidget } from './widgets/InvestmentSummaryW
 export { default as InsightsWidget } from './widgets/InsightsWidget'
 export { default as StatsCard } from './widgets/StatsCard'
 export { default as RecentTransactionsWidget } from './widgets/RecentTransactionsWidget'
+export { default as AccountInsightsWidget } from './widgets/AccountInsightsWidget'
+export { default as AccountStatsCards } from './widgets/AccountStatsCards'
+export { default as SyncButton } from './SyncButton'
