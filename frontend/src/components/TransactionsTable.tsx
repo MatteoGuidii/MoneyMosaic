@@ -19,14 +19,14 @@ const TransactionsTable: React.FC<TransactionsTableProps> = ({
   const totalPages = Math.ceil(totalTransactions / itemsPerPage)
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('en-CA', {
       style: 'currency',
-      currency: 'USD'
+      currency: 'CAD'
     }).format(Math.abs(amount))
   }
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+    return new Date(dateString).toLocaleDateString('en-CA', {
       month: 'short',
       day: 'numeric',
       year: 'numeric'

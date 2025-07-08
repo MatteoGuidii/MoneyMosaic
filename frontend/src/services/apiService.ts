@@ -133,6 +133,12 @@ class ApiService {
     categories?: string[],
     search?: string,
     page = 1,
+    startDate?: string,
+    accounts?: string[],
+    minAmount?: number,
+    maxAmount?: number,
+    sortField?: string,
+    sortDirection?: 'asc' | 'desc',
     limit = 20
   ): Promise<{ transactions: Transaction[]; total: number }> {
     const params = new URLSearchParams({
@@ -140,7 +146,13 @@ class ApiService {
       limit: limit.toString(),
       ...(dateRange && { range: dateRange }),
       ...(search && { search }),
-      ...(categories && categories.length > 0 && { categories: categories.join(',') })
+      ...(categories && categories.length > 0 && { categories: categories.join(',') }),
+      ...(accounts && accounts.length > 0 && { accounts: accounts.join(',') }),
+      ...(startDate && { startDate }),
+      ...(minAmount !== undefined && { minAmount: minAmount.toString() }),
+      ...(maxAmount !== undefined && { maxAmount: maxAmount.toString() }),
+      ...(sortField && { sortField }),
+      ...(sortDirection && { sortDirection })
     })
     
     const response = await fetch(`${this.baseURL}/transactions?${params}`)
