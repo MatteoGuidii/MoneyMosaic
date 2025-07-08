@@ -6,7 +6,6 @@ import {
   Building2,
   Menu,
   X,
-  User,
   TrendingUp,
   Target,
   Sun,
@@ -86,19 +85,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             })}
           </ul>
         </nav>
-
-        {/* User Section */}
-        <div className="absolute bottom-0 left-0 right-0 p-6 border-t border-gray-100 dark:border-gray-800">
-          <div className="flex items-center space-x-3 p-4 rounded-xl bg-gray-50 dark:bg-gray-800">
-            <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
-              <User size={18} className="text-white" />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-semibold text-gray-900 dark:text-white">Personal Account</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Privacy-focused finance</p>
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* Main Content */}
