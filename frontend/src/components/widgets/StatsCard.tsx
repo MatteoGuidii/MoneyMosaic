@@ -24,10 +24,10 @@ const StatsCard: React.FC<StatsCardProps> = ({ transactions, dateRange }) => {
   }
 
   const calculateStats = () => {
-    const totalSpending = transactions.filter(t => t.amount > 0).reduce((sum, t) => sum + t.amount, 0)
-    const totalIncome = transactions.filter(t => t.amount < 0).reduce((sum, t) => sum + Math.abs(t.amount), 0)
+    const totalSpending = transactions.filter(t => t.amount < 0).reduce((sum, t) => sum + Math.abs(t.amount), 0)
+    const totalIncome = transactions.filter(t => t.amount > 0).reduce((sum, t) => sum + t.amount, 0)
     const totalTransactions = transactions.length
-    const avgTransactionAmount = totalTransactions > 0 ? totalSpending / transactions.filter(t => t.amount > 0).length : 0
+    const avgTransactionAmount = totalTransactions > 0 ? totalSpending / transactions.filter(t => t.amount < 0).length : 0
 
     // Calculate frequency (transactions per day)
     const daysInPeriod = parseInt(dateRange)

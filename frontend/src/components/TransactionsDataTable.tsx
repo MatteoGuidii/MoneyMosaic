@@ -219,7 +219,6 @@ const TransactionsDataTable: React.FC<TransactionsDataTableProps> = ({
                 </td>
                 <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${getAmountColor(transaction.amount)}`}>
                   <div className="flex items-center space-x-1">
-                    <span>{transaction.amount >= 0 ? '+' : '-'}</span>
                     <span>{formatCurrency(transaction.amount)}</span>
                   </div>
                 </td>

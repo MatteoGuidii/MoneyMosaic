@@ -44,93 +44,212 @@ export class Database {
 
   private async createTables(): Promise<void> {
     // Direct database operations without ensureInitialized to avoid circular dependency
-    await this.runDirect(`
-      CREATE TABLE IF NOT EXISTS institutions (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        institution_id TEXT UNIQUE NOT NULL,
-        name TEXT NOT NULL,
-        access_token TEXT NOT NULL,
-        item_id TEXT NOT NULL,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        is_active BOOLEAN DEFAULT 1
-      )
-    `);
+    try {
+      console.log('Creating institutions table...');
+      await this.runDirect(`
+        CREATE TABLE IF NOT EXISTS institutions (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          institution_id TEXT UNIQUE NOT NULL,
+          name TEXT NOT NULL,
+          access_token TEXT NOT NULL,
+          item_id TEXT NOT NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          is_active BOOLEAN DEFAULT 1
+        )
+      `);
 
-    await this.runDirect(`
-      CREATE TABLE IF NOT EXISTS accounts (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        account_id TEXT UNIQUE NOT NULL,
-        institution_id INTEGER NOT NULL,
-        name TEXT NOT NULL,
-        official_name TEXT,
-        type TEXT NOT NULL,
-        subtype TEXT,
-        mask TEXT,
-        current_balance REAL,
-        available_balance REAL,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (institution_id) REFERENCES institutions (id)
-      )
-    `);
+      console.log('Creating accounts table...');
+      await this.runDirect(`
+        CREATE TABLE IF NOT EXISTS accounts (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          account_id TEXT UNIQUE NOT NULL,
+          institution_id INTEGER NOT NULL,
+          name TEXT NOT NULL,
+          official_name TEXT,
+          type TEXT NOT NULL,
+          subtype TEXT,
+          mask TEXT,
+          current_balance REAL,
+          available_balance REAL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (institution_id) REFERENCES institutions (id)
+        )
+      `);
 
-    await this.runDirect(`
-      CREATE TABLE IF NOT EXISTS transactions (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        transaction_id TEXT UNIQUE NOT NULL,
-        account_id TEXT NOT NULL,
-        institution_id INTEGER NOT NULL,
-        amount REAL NOT NULL,
-        date TEXT NOT NULL,
-        name TEXT NOT NULL,
-        merchant_name TEXT,
-        category_primary TEXT,
-        category_detailed TEXT,
-        type TEXT NOT NULL,
-        pending BOOLEAN DEFAULT 0,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (institution_id) REFERENCES institutions (id)
-      )
-    `);
+      console.log('Creating transactions table...');
+      await this.runDirect(`
+        CREATE TABLE IF NOT EXISTS transactions (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          transaction_id TEXT UNIQUE NOT NULL,
+          account_id TEXT NOT NULL,
+          institution_id INTEGER NOT NULL,
+          amount REAL NOT NULL,
+          date TEXT NOT NULL,
+          name TEXT NOT NULL,
+          merchant_name TEXT,
+          category_primary TEXT,
+          category_detailed TEXT,
+          type TEXT NOT NULL,
+          pending BOOLEAN DEFAULT 0,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (institution_id) REFERENCES institutions (id)
+        )
+      `);
 
-    await this.runDirect(`
-      CREATE INDEX IF NOT EXISTS idx_transactions_date ON transactions(date);
-    `);
+      await this.runDirect(`
+        CREATE INDEX IF NOT EXISTS idx_transactions_date ON transactions(date);
+      `);
 
-    await this.runDirect(`
-      CREATE INDEX IF NOT EXISTS idx_transactions_date_category ON transactions(date, category_primary);
-    `);
+      await this.runDirect(`
+        CREATE INDEX IF NOT EXISTS idx_transactions_date_category ON transactions(date, category_primary);
+      `);
 
-    await this.runDirect(`
-      CREATE INDEX IF NOT EXISTS idx_transactions_account ON transactions(account_id);
-    `);
+      await this.runDirect(`
+        CREATE INDEX IF NOT EXISTS idx_transactions_account ON transactions(account_id);
+      `);
 
-    await this.runDirect(`
-      CREATE INDEX IF NOT EXISTS idx_transactions_institution ON transactions(institution_id);
-    `);
+      await this.runDirect(`
+        CREATE INDEX IF NOT EXISTS idx_transactions_institution ON transactions(institution_id);
+      `);
 
-    await this.runDirect(`
-      CREATE TABLE IF NOT EXISTS budgets (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        category TEXT NOT NULL,
-        amount REAL NOT NULL,
-        month TEXT NOT NULL,
-        year INTEGER NOT NULL,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE(category, month, year)
-      )
-    `);
+      console.log('Creating budgets table...');
+      await this.runDirect(`
+        CREATE TABLE IF NOT EXISTS budgets (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          category TEXT NOT NULL,
+          amount REAL NOT NULL,
+          month TEXT NOT NULL,
+          year INTEGER NOT NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE(category, month, year)
+        )
+      `);
 
-    await this.runDirect(`
-      CREATE INDEX IF NOT EXISTS idx_budgets_period ON budgets(year, month);
-    `);
+      await this.runDirect(`
+        CREATE INDEX IF NOT EXISTS idx_budgets_period ON budgets(year, month);
+      `);
 
-    await this.runDirect(`
-      CREATE INDEX IF NOT EXISTS idx_budgets_category ON budgets(category);
-    `);
+      await this.runDirect(`
+        CREATE INDEX IF NOT EXISTS idx_budgets_category ON budgets(category);
+      `);
+
+      // Investment tables
+      console.log('Creating securities table...');
+      await this.runDirect(`
+        CREATE TABLE IF NOT EXISTS securities (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          security_id TEXT UNIQUE NOT NULL,
+          isin TEXT,
+          cusip TEXT,
+          symbol TEXT,
+          name TEXT,
+          type TEXT,
+          market_identifier_code TEXT,
+          sector TEXT,
+          industry TEXT,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      console.log('Creating holdings table...');
+      await this.runDirect(`
+        CREATE TABLE IF NOT EXISTS holdings (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          account_id TEXT NOT NULL,
+          security_id TEXT NOT NULL,
+          institution_id INTEGER NOT NULL,
+          quantity REAL NOT NULL,
+          price REAL NOT NULL,
+          value REAL NOT NULL,
+          cost_basis REAL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (institution_id) REFERENCES institutions (id),
+          FOREIGN KEY (security_id) REFERENCES securities (security_id),
+          UNIQUE(account_id, security_id)
+        )
+      `);
+
+      console.log('Creating investment_transactions table...');
+      await this.runDirect(`
+        CREATE TABLE IF NOT EXISTS investment_transactions (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          investment_transaction_id TEXT UNIQUE NOT NULL,
+          account_id TEXT NOT NULL,
+          security_id TEXT,
+          institution_id INTEGER NOT NULL,
+          type TEXT NOT NULL,
+          subtype TEXT,
+          quantity REAL,
+          price REAL,
+          fees REAL,
+          amount REAL NOT NULL,
+          date TEXT NOT NULL,
+          name TEXT,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (institution_id) REFERENCES institutions (id),
+          FOREIGN KEY (security_id) REFERENCES securities (security_id)
+        )
+      `);
+
+      console.log('Creating market_data table...');
+      await this.runDirect(`
+        CREATE TABLE IF NOT EXISTS market_data (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          symbol TEXT NOT NULL,
+          price REAL NOT NULL,
+          change REAL,
+          change_percent REAL,
+          volume INTEGER,
+          market_cap REAL,
+          pe_ratio REAL,
+          dividend_yield REAL,
+          fifty_two_week_high REAL,
+          fifty_two_week_low REAL,
+          sector TEXT,
+          industry TEXT,
+          date TEXT NOT NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE(symbol, date)
+        )
+      `);
+
+      // Create indexes for investment tables
+      await this.runDirect(`
+        CREATE INDEX IF NOT EXISTS idx_holdings_account ON holdings(account_id);
+      `);
+
+      await this.runDirect(`
+        CREATE INDEX IF NOT EXISTS idx_holdings_security ON holdings(security_id);
+      `);
+
+      await this.runDirect(`
+        CREATE INDEX IF NOT EXISTS idx_investment_transactions_account ON investment_transactions(account_id);
+      `);
+
+      await this.runDirect(`
+        CREATE INDEX IF NOT EXISTS idx_investment_transactions_date ON investment_transactions(date);
+      `);
+
+      await this.runDirect(`
+        CREATE INDEX IF NOT EXISTS idx_securities_symbol ON securities(symbol);
+      `);
+
+      await this.runDirect(`
+        CREATE INDEX IF NOT EXISTS idx_market_data_symbol_date ON market_data(symbol, date);
+      `);
+
+      console.log('Database tables created successfully');
+    } catch (error) {
+      console.error('Error creating database tables:', error);
+      throw error;
+    }
   }
 
   // Ensure database is initialized before operations
@@ -364,7 +483,7 @@ export class Database {
         SUM(ABS(amount)) as total
       FROM (
         SELECT 
-          CASE WHEN amount > 0 THEN 'spending' ELSE 'income' END as type,
+          CASE WHEN amount < 0 THEN 'spending' ELSE 'income' END as type,
           category_primary,
           i.name as institution_name,
           amount
@@ -478,6 +597,297 @@ export class Database {
       spent: budget.spent,
       percentage: budget.budgeted > 0 ? Math.round((budget.spent / budget.budgeted) * 100 * 100) / 100 : 0
     }));
+  }
+
+  // Investment-related methods
+  async upsertSecurity(security: {
+    security_id: string;
+    isin?: string;
+    cusip?: string;
+    symbol?: string;
+    name?: string;
+    type?: string;
+    market_identifier_code?: string;
+    sector?: string;
+    industry?: string;
+  }): Promise<void> {
+    await this.ensureInitialized();
+    const sql = `
+      INSERT OR REPLACE INTO securities (
+        security_id, isin, cusip, symbol, name, type, 
+        market_identifier_code, sector, industry, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+    `;
+    await this.run(sql, [
+      security.security_id,
+      security.isin,
+      security.cusip,
+      security.symbol,
+      security.name,
+      security.type,
+      security.market_identifier_code,
+      security.sector,
+      security.industry
+    ]);
+  }
+
+  async upsertHolding(holding: {
+    account_id: string;
+    security_id: string;
+    institution_id: number;
+    quantity: number;
+    price: number;
+    value: number;
+    cost_basis?: number;
+  }): Promise<void> {
+    await this.ensureInitialized();
+    const sql = `
+      INSERT OR REPLACE INTO holdings (
+        account_id, security_id, institution_id, quantity, price, value, cost_basis, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+    `;
+    await this.run(sql, [
+      holding.account_id,
+      holding.security_id,
+      holding.institution_id,
+      holding.quantity,
+      holding.price,
+      holding.value,
+      holding.cost_basis
+    ]);
+  }
+
+  async insertInvestmentTransaction(transaction: {
+    investment_transaction_id: string;
+    account_id: string;
+    security_id?: string;
+    institution_id: number;
+    type: string;
+    subtype?: string;
+    quantity?: number;
+    price?: number;
+    fees?: number;
+    amount: number;
+    date: string;
+    name?: string;
+  }): Promise<void> {
+    await this.ensureInitialized();
+    const sql = `
+      INSERT OR REPLACE INTO investment_transactions (
+        investment_transaction_id, account_id, security_id, institution_id,
+        type, subtype, quantity, price, fees, amount, date, name, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+    `;
+    await this.run(sql, [
+      transaction.investment_transaction_id,
+      transaction.account_id,
+      transaction.security_id,
+      transaction.institution_id,
+      transaction.type,
+      transaction.subtype,
+      transaction.quantity,
+      transaction.price,
+      transaction.fees,
+      transaction.amount,
+      transaction.date,
+      transaction.name
+    ]);
+  }
+
+  async getHoldings(accountId?: string): Promise<any[]> {
+    await this.ensureInitialized();
+    let sql = `
+      SELECT 
+        h.*,
+        s.symbol,
+        s.name as security_name,
+        s.type as security_type,
+        s.sector,
+        s.industry,
+        a.name as account_name,
+        i.name as institution_name,
+        md.price as current_price,
+        md.change as day_change,
+        md.change_percent as day_change_percent,
+        md.volume,
+        md.market_cap,
+        md.pe_ratio,
+        md.dividend_yield
+      FROM holdings h
+      JOIN securities s ON h.security_id = s.security_id
+      JOIN accounts a ON h.account_id = a.account_id
+      JOIN institutions i ON h.institution_id = i.id
+      LEFT JOIN market_data md ON s.symbol = md.symbol AND md.date = date('now')
+      WHERE i.is_active = 1
+    `;
+    
+    const params: any[] = [];
+    if (accountId) {
+      sql += ' AND h.account_id = ?';
+      params.push(accountId);
+    }
+    
+    sql += ' ORDER BY h.value DESC';
+    
+    return this.all(sql, params);
+  }
+
+  async getInvestmentTransactions(filters: {
+    account_id?: string;
+    start_date?: string;
+    end_date?: string;
+    limit?: number;
+    offset?: number;
+  } = {}): Promise<any[]> {
+    await this.ensureInitialized();
+    let sql = `
+      SELECT 
+        it.*,
+        s.symbol,
+        s.name as security_name,
+        a.name as account_name,
+        i.name as institution_name
+      FROM investment_transactions it
+      LEFT JOIN securities s ON it.security_id = s.security_id
+      JOIN accounts a ON it.account_id = a.account_id
+      JOIN institutions i ON it.institution_id = i.id
+      WHERE i.is_active = 1
+    `;
+    
+    const params: any[] = [];
+    
+    if (filters.account_id) {
+      sql += ' AND it.account_id = ?';
+      params.push(filters.account_id);
+    }
+    
+    if (filters.start_date) {
+      sql += ' AND it.date >= ?';
+      params.push(filters.start_date);
+    }
+    
+    if (filters.end_date) {
+      sql += ' AND it.date <= ?';
+      params.push(filters.end_date);
+    }
+    
+    sql += ' ORDER BY it.date DESC';
+    
+    if (filters.limit) {
+      sql += ' LIMIT ?';
+      params.push(filters.limit);
+      
+      if (filters.offset) {
+        sql += ' OFFSET ?';
+        params.push(filters.offset);
+      }
+    }
+    
+    return this.all(sql, params);
+  }
+
+  async upsertMarketData(marketData: {
+    symbol: string;
+    price: number;
+    change?: number;
+    change_percent?: number;
+    volume?: number;
+    market_cap?: number;
+    pe_ratio?: number;
+    dividend_yield?: number;
+    fifty_two_week_high?: number;
+    fifty_two_week_low?: number;
+    sector?: string;
+    industry?: string;
+    date: string;
+  }): Promise<void> {
+    await this.ensureInitialized();
+    const sql = `
+      INSERT OR REPLACE INTO market_data (
+        symbol, price, change, change_percent, volume, market_cap, pe_ratio,
+        dividend_yield, fifty_two_week_high, fifty_two_week_low, sector, industry, date
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `;
+    await this.run(sql, [
+      marketData.symbol,
+      marketData.price,
+      marketData.change,
+      marketData.change_percent,
+      marketData.volume,
+      marketData.market_cap,
+      marketData.pe_ratio,
+      marketData.dividend_yield,
+      marketData.fifty_two_week_high,
+      marketData.fifty_two_week_low,
+      marketData.sector,
+      marketData.industry,
+      marketData.date
+    ]);
+  }
+
+  async getMarketData(symbol?: string, date?: string): Promise<any[]> {
+    await this.ensureInitialized();
+    let sql = `
+      SELECT * FROM market_data
+      WHERE 1=1
+    `;
+    
+    const params: any[] = [];
+    
+    if (symbol) {
+      sql += ' AND symbol = ?';
+      params.push(symbol);
+    }
+    
+    if (date) {
+      sql += ' AND date = ?';
+      params.push(date);
+    } else {
+      sql += ' AND date = date("now")';
+    }
+    
+    sql += ' ORDER BY symbol ASC';
+    
+    return this.all(sql, params);
+  }
+
+  async getPortfolioSummary(): Promise<{
+    totalValue: number;
+    totalCostBasis: number;
+    totalDayChange: number;
+    totalDayChangePercent: number;
+    holdingsCount: number;
+    accountsCount: number;
+  }> {
+    await this.ensureInitialized();
+    const sql = `
+      SELECT 
+        COUNT(*) as holdings_count,
+        COUNT(DISTINCT h.account_id) as accounts_count,
+        SUM(h.value) as total_value,
+        SUM(h.cost_basis) as total_cost_basis,
+        SUM(CASE WHEN md.change IS NOT NULL THEN md.change * h.quantity ELSE 0 END) as total_day_change
+      FROM holdings h
+      JOIN securities s ON h.security_id = s.security_id
+      JOIN institutions i ON h.institution_id = i.id
+      LEFT JOIN market_data md ON s.symbol = md.symbol AND md.date = date('now')
+      WHERE i.is_active = 1
+    `;
+    
+    const result = await this.get(sql);
+    const totalValue = result?.total_value || 0;
+    const totalCostBasis = result?.total_cost_basis || 0;
+    const totalDayChange = result?.total_day_change || 0;
+    const totalDayChangePercent = totalValue > 0 ? (totalDayChange / totalValue) * 100 : 0;
+    
+    return {
+      totalValue,
+      totalCostBasis,
+      totalDayChange,
+      totalDayChangePercent,
+      holdingsCount: result?.holdings_count || 0,
+      accountsCount: result?.accounts_count || 0
+    };
   }
 }
 

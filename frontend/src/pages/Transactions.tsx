@@ -190,26 +190,28 @@ const Transactions: React.FC = () => {
 
   // Calculate analytics data
   const getAnalyticsData = () => {
+    const daysToShow = Math.min(parseInt(filters.dateRange), 30) // Limit chart to 30 days max for readability
+    
     // Transaction trends data for chart
-    const trendsData = Array.from({ length: 7 }, (_, i) => {
+    const trendsData = Array.from({ length: daysToShow }, (_, i) => {
       const date = new Date()
-      date.setDate(date.getDate() - (6 - i))
+      date.setDate(date.getDate() - (daysToShow - 1 - i))
       const dayTransactions = transactions.filter(t => 
         new Date(t.date).toDateString() === date.toDateString()
       )
       
       return {
         date: date.toLocaleDateString('en-CA', { month: 'short', day: 'numeric' }),
-        income: dayTransactions.filter(t => t.amount < 0).reduce((sum, t) => sum + Math.abs(t.amount), 0),
-        spending: dayTransactions.filter(t => t.amount > 0).reduce((sum, t) => sum + t.amount, 0),
-        net: dayTransactions.reduce((sum, t) => sum + (t.amount < 0 ? Math.abs(t.amount) : -t.amount), 0)
+        income: dayTransactions.filter(t => t.amount > 0).reduce((sum, t) => sum + t.amount, 0),
+        spending: dayTransactions.filter(t => t.amount < 0).reduce((sum, t) => sum + Math.abs(t.amount), 0),
+        net: dayTransactions.reduce((sum, t) => sum + t.amount, 0)
       }
     })
 
     // Category breakdown data
     const categoryTotals = transactions.reduce((acc, t) => {
-      if (t.amount > 0) {
-        acc[t.category] = (acc[t.category] || 0) + t.amount
+      if (t.amount < 0) {
+        acc[t.category] = (acc[t.category] || 0) + Math.abs(t.amount)
       }
       return acc
     }, {} as Record<string, number>)
@@ -243,7 +245,7 @@ const Transactions: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* Header with Date Range Toggle */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
@@ -254,6 +256,29 @@ const Transactions: React.FC = () => {
           </p>
         </div>
         <div className="flex items-center gap-3">
+          {/* Date Range Toggle */}
+          <div className="flex items-center gap-2 p-1 bg-gray-100 dark:bg-gray-800 rounded-lg">
+            {[
+              { value: '7', label: '7D' },
+              { value: '30', label: '30D' },
+              { value: '90', label: '90D' },
+              { value: '180', label: '6M' },
+              { value: '365', label: '1Y' }
+            ].map((range) => (
+              <button
+                key={range.value}
+                onClick={() => handleDateRangeChange(range.value)}
+                className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                  filters.dateRange === range.value
+                    ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                }`}
+              >
+                {range.label}
+              </button>
+            ))}
+          </div>
+          
           <SyncButton 
             variant="button" 
             onSyncComplete={() => loadTransactions()}
@@ -278,7 +303,11 @@ const Transactions: React.FC = () => {
           <div className="flex items-center space-x-2 mb-4">
             <TrendingUp className="w-5 h-5 text-blue-600 dark:text-blue-400" />
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-              7-Day Spending Trend
+              {filters.dateRange === '7' ? '7-Day' : 
+               filters.dateRange === '30' ? '30-Day' :
+               filters.dateRange === '90' ? '90-Day' :
+               filters.dateRange === '180' ? '6-Month' :
+               filters.dateRange === '365' ? '1-Year' : 'Transaction'} Trends
             </h3>
           </div>
           <TrendsChart data={trendsData} />

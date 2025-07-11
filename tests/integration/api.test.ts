@@ -321,14 +321,15 @@ describe('API Integration Tests', () => {
     });
 
     describe('GET /api/investments', () => {
-      it('should return investments array', async () => {
+      it('should return investments object', async () => {
         const response = await request(app)
           .get('/api/investments');
 
         expect(response.status).toBe(200);
-        expect(Array.isArray(response.body)).toBe(true);
-        // The endpoint returns mock data for investment accounts
-        // so we just check that it's an array, not necessarily empty
+        expect(typeof response.body).toBe('object');
+        expect(response.body).toHaveProperty('hasInvestmentAccounts');
+        expect(response.body).toHaveProperty('supportsDetailedData');
+        // The endpoint returns an object with investment data structure
       });
     });
 

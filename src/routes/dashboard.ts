@@ -1,5 +1,6 @@
 import express from 'express';
 import { database } from '../database';
+import { investmentService } from '../services/investment.service';
 
 const router = express.Router();
 
@@ -42,12 +43,11 @@ router.get('/overview', async (_req, res) => {
       account.type === 'investment'
     );
     
-    // Calculate total cash balance (depository accounts plus credit balances)
+    // Calculate total cash balance (only depository accounts, exclude credit)
     const totalCashBalance = cashAccounts.reduce((sum, account) => {
       if (account.type === 'credit') {
-        // For credit accounts, balance is negative (debt), so we add it as-is
-        // This effectively subtracts the debt from the total
-        return sum + (account.current_balance || 0);
+        // Credit accounts represent debt, so we don't include them in cash balance
+        return sum;
       }
       return sum + (account.current_balance || 0);
     }, 0);
@@ -229,10 +229,12 @@ router.get('/spending-data', async (req, res) => {
         dateGroups[tx.date] = { spending: 0, income: 0 };
       }
       
-      if (tx.amount < 0) {
-        dateGroups[tx.date].spending += Math.abs(tx.amount);
-      } else {
+      if (tx.amount > 0) {
+        // Positive amounts are income (money coming in)
         dateGroups[tx.date].income += tx.amount;
+      } else {
+        // Negative amounts are spending (money going out)
+        dateGroups[tx.date].spending += Math.abs(tx.amount);
       }
     });
     
@@ -485,57 +487,500 @@ router.delete('/budget/:category', async (req, res) => {
 // Get investments data
 router.get('/investments', async (_req, res) => {
   try {
-    // Get all investment accounts from active institutions
-    const activeAccounts = await database.all(`
-      SELECT a.*, i.access_token, i.name as institution_name FROM accounts a 
+    // First, get investment accounts (we know these exist)
+    const investmentAccounts = await database.all(`
+      SELECT a.* FROM accounts a 
       JOIN institutions i ON a.institution_id = i.id 
-      WHERE i.is_active = 1 AND a.type = 'investment'
+      WHERE a.type = 'investment' AND i.is_active = 1
     `);
     
-    if (activeAccounts.length === 0) {
-      return res.json([]);
+    // Try to get detailed holdings
+    const holdings = await database.getHoldings();
+    
+    if (holdings.length === 0) {
+      // Check if it's because no institutions support investments API
+      const supportStatus = await investmentService.getInvestmentSupportStatus();
+      
+      if (investmentAccounts.length > 0) {
+        // We have investment accounts but no detailed holdings data
+        const accountsWithBalances = investmentAccounts.map(account => ({
+          accountId: account.account_id,
+          accountName: account.name,
+          accountType: account.subtype || account.type,
+          institutionName: account.institution_name || 'Unknown Institution',
+          balance: account.current_balance || 0,
+          availableBalance: account.available_balance,
+          currency: account.iso_currency_code || 'CAD',
+          lastUpdated: account.updated_at
+        }));
+        
+        const totalValue = accountsWithBalances.reduce((sum, acc) => sum + (acc.balance || 0), 0);
+        
+        return res.json({
+          hasInvestmentAccounts: true,
+          supportsDetailedData: false,
+          totalValue,
+          accounts: accountsWithBalances,
+          investments: [], // No detailed holdings
+          message: 'Investment account balances available, but detailed holdings data is not supported by your institution',
+          supportStatus
+        });
+      }
+      
+      if (supportStatus.supportedInstitutions === 0) {
+        return res.json({
+          hasInvestmentAccounts: investmentAccounts.length > 0,
+          supportsDetailedData: false,
+          totalValue: 0,
+          accounts: [],
+          investments: [],
+          message: 'No institutions support detailed investment data',
+          supportStatus
+        });
+      }
+      
+      return res.json({
+        hasInvestmentAccounts: false,
+        supportsDetailedData: false,
+        totalValue: 0,
+        accounts: [],
+        investments: [],
+        message: 'No investment holdings found'
+      });
     }
 
-    // For now, we'll return mock data based on the investment accounts
-    // In a real implementation, you would use Plaid's investments API
-    const investments = activeAccounts.map((account, index) => {
-      const symbols = ['AAPL', 'GOOGL', 'MSFT', 'TSLA', 'AMZN', 'META', 'NFLX', 'NVDA'];
-      const names = [
-        'Apple Inc.',
-        'Alphabet Inc.',
-        'Microsoft Corporation',
-        'Tesla Inc.',
-        'Amazon.com Inc.',
-        'Meta Platforms Inc.',
-        'Netflix Inc.',
-        'NVIDIA Corporation'
-      ];
-      
-      const symbol = symbols[index % symbols.length];
-      const name = names[index % names.length];
-      const quantity = Math.floor(Math.random() * 100) + 1;
-      const marketPrice = Math.random() * 300 + 50;
-      const marketValue = quantity * marketPrice;
-      const dayChange = (Math.random() - 0.5) * 20;
-      const dayChangePercent = (dayChange / marketPrice) * 100;
-      
-      return {
-        symbol,
-        companyName: name,
-        quantity,
-        marketPrice: Math.round(marketPrice * 100) / 100,
-        marketValue: Math.round(marketValue * 100) / 100,
-        dayChange: Math.round(dayChange * 100) / 100,
-        dayChangePercent: Math.round(dayChangePercent * 100) / 100,
-        accountId: account.account_id,
-        accountName: account.name
-      };
-    });
+    // We have detailed holdings data
+    const investments = holdings.map(holding => ({
+      symbol: holding.symbol || 'N/A',
+      companyName: holding.security_name || 'Unknown Security',
+      quantity: holding.quantity,
+      marketPrice: holding.current_price || holding.price,
+      marketValue: holding.value,
+      dayChange: holding.day_change || 0,
+      dayChangePercent: holding.day_change_percent || 0,
+      accountId: holding.account_id,
+      accountName: holding.account_name,
+      institutionName: holding.institution_name,
+      sector: holding.sector,
+      industry: holding.industry,
+      costBasis: holding.cost_basis,
+      securityType: holding.security_type
+    }));
 
-    return res.json(investments);
+    return res.json({ 
+      hasInvestmentAccounts: true,
+      supportsDetailedData: true,
+      totalValue: investments.reduce((sum, inv) => sum + inv.marketValue, 0),
+      accounts: investmentAccounts,
+      investments 
+    });
   } catch (error) {
     console.error('Error fetching investments:', error);
     return res.status(500).json({ error: 'Failed to fetch investments data' });
+  }
+});
+
+/**
+ * @swagger
+ * /api/investments/summary:
+ *   get:
+ *     summary: Get investment portfolio summary
+ *     description: Returns portfolio summary including total value, performance, and sector allocation
+ *     tags: [Investments]
+ *     responses:
+ *       200:
+ *         description: Investment portfolio summary
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 totalValue:
+ *                   type: number
+ *                   format: float
+ *                 totalCostBasis:
+ *                   type: number
+ *                   format: float
+ *                 totalDayChange:
+ *                   type: number
+ *                   format: float
+ *                 totalDayChangePercent:
+ *                   type: number
+ *                   format: float
+ *                 holdingsCount:
+ *                   type: integer
+ *                 accountsCount:
+ *                   type: integer
+ *                 topHoldings:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                 sectorAllocation:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       sector:
+ *                         type: string
+ *                       value:
+ *                         type: number
+ *                       percentage:
+ *                         type: number
+ *       500:
+ *         description: Server error
+ */
+router.get('/investments/summary', async (_req, res) => {
+  try {
+    // Get investment accounts first
+    const investmentAccounts = await database.all(`
+      SELECT a.* FROM accounts a 
+      JOIN institutions i ON a.institution_id = i.id 
+      WHERE a.type = 'investment' AND i.is_active = 1
+    `);
+    
+    // Check if any institutions support investments API
+    const supportStatus = await investmentService.getInvestmentSupportStatus();
+    
+    if (investmentAccounts.length === 0) {
+      return res.json({
+        totalValue: 0,
+        totalCostBasis: 0,
+        totalDayChange: 0,
+        totalDayChangePercent: 0,
+        holdingsCount: 0,
+        accountsCount: 0,
+        topHoldings: [],
+        sectorAllocation: [],
+        hasInvestmentAccounts: false,
+        supportsDetailedData: false,
+        message: 'No investment accounts found',
+        supportStatus
+      });
+    }
+    
+    // Calculate total value from account balances
+    const totalValueFromAccounts = investmentAccounts.reduce((sum, account) => 
+      sum + (account.current_balance || 0), 0
+    );
+    
+    if (supportStatus.supportedInstitutions === 0) {
+      // We have investment accounts but no detailed holdings API support
+      return res.json({
+        totalValue: totalValueFromAccounts,
+        totalCostBasis: 0, // We don't have cost basis data without holdings API
+        totalDayChange: 0, // We don't have day change data without holdings API
+        totalDayChangePercent: 0,
+        holdingsCount: 0,
+        accountsCount: investmentAccounts.length,
+        topHoldings: [],
+        sectorAllocation: [],
+        accounts: investmentAccounts.map(account => ({
+          accountId: account.account_id,
+          accountName: account.name,
+          accountType: account.subtype || account.type,
+          balance: account.current_balance || 0,
+          institutionName: account.institution_name || 'Unknown Institution'
+        })),
+        hasInvestmentAccounts: true,
+        supportsDetailedData: false,
+        message: 'Investment account balances available, but detailed holdings data is not supported by your institution',
+        supportStatus
+      });
+    }
+    
+    // Try to get detailed summary (this will only work if holdings API is supported)
+    try {
+      const summary = await investmentService.getInvestmentSummary();
+      return res.json({
+        ...summary,
+        hasInvestmentAccounts: true,
+        supportsDetailedData: true,
+        accountsCount: investmentAccounts.length
+      });
+    } catch (error) {
+      // Fallback to account-based summary
+      return res.json({
+        totalValue: totalValueFromAccounts,
+        totalCostBasis: 0,
+        totalDayChange: 0,
+        totalDayChangePercent: 0,
+        holdingsCount: 0,
+        accountsCount: investmentAccounts.length,
+        topHoldings: [],
+        sectorAllocation: [],
+        accounts: investmentAccounts.map(account => ({
+          accountId: account.account_id,
+          accountName: account.name,
+          accountType: account.subtype || account.type,
+          balance: account.current_balance || 0,
+          institutionName: account.institution_name || 'Unknown Institution'
+        })),
+        hasInvestmentAccounts: true,
+        supportsDetailedData: false,
+        message: 'Investment account balances available, but detailed holdings data is not accessible',
+        supportStatus
+      });
+    }
+  } catch (error) {
+    console.error('Error fetching investment summary:', error);
+    return res.status(500).json({ error: 'Failed to fetch investment summary' });
+  }
+});
+
+/**
+ * @swagger
+ * /api/investments/transactions:
+ *   get:
+ *     summary: Get investment transactions
+ *     description: Returns investment transactions with optional filtering
+ *     tags: [Investments]
+ *     parameters:
+ *       - in: query
+ *         name: account_id
+ *         schema:
+ *           type: string
+ *         description: Filter by account ID
+ *       - in: query
+ *         name: start_date
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Start date for filtering (YYYY-MM-DD)
+ *       - in: query
+ *         name: end_date
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: End date for filtering (YYYY-MM-DD)
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 100
+ *           default: 50
+ *         description: Number of transactions to return
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *           minimum: 0
+ *           default: 0
+ *         description: Number of transactions to skip
+ *     responses:
+ *       200:
+ *         description: Investment transactions
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   investment_transaction_id:
+ *                     type: string
+ *                   account_id:
+ *                     type: string
+ *                   security_id:
+ *                     type: string
+ *                   type:
+ *                     type: string
+ *                   subtype:
+ *                     type: string
+ *                   quantity:
+ *                     type: number
+ *                   price:
+ *                     type: number
+ *                   amount:
+ *                     type: number
+ *                   date:
+ *                     type: string
+ *                   symbol:
+ *                     type: string
+ *                   security_name:
+ *                     type: string
+ *                   account_name:
+ *                     type: string
+ *       500:
+ *         description: Server error
+ */
+router.get('/investments/transactions', async (req, res) => {
+  try {
+    const filters = {
+      account_id: req.query.account_id as string,
+      start_date: req.query.start_date as string,
+      end_date: req.query.end_date as string,
+      limit: req.query.limit ? parseInt(req.query.limit as string) : 50,
+      offset: req.query.offset ? parseInt(req.query.offset as string) : 0
+    };
+    
+    const transactions = await investmentService.getInvestmentTransactions(filters);
+    return res.json(transactions);
+  } catch (error) {
+    console.error('Error fetching investment transactions:', error);
+    return res.status(500).json({ error: 'Failed to fetch investment transactions' });
+  }
+});
+
+/**
+ * @swagger
+ * /api/investments/sync:
+ *   post:
+ *     summary: Manually trigger investment data sync
+ *     description: Triggers a manual sync of investment data from all connected institutions
+ *     tags: [Investments]
+ *     responses:
+ *       200:
+ *         description: Sync initiated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *       500:
+ *         description: Server error
+ */
+router.post('/investments/sync', async (_req, res) => {
+  try {
+    const activeInstitutions = await database.all(`
+      SELECT id, access_token, name FROM institutions WHERE is_active = 1
+    `);
+    
+    if (activeInstitutions.length === 0) {
+      return res.json({
+        success: true,
+        message: 'No institutions connected',
+        processed: 0,
+        skipped: 0,
+        errors: 0,
+        details: []
+      });
+    }
+    
+    console.log(`📊 Starting investment sync for ${activeInstitutions.length} institutions...`);
+    
+    const results = {
+      success: true,
+      message: 'Investment data sync completed',
+      processed: 0,
+      skipped: 0,
+      errors: 0,
+      details: [] as any[]
+    };
+    
+    for (const institution of activeInstitutions) {
+      try {
+        console.log(`🔍 Checking investment support for ${institution.name}...`);
+        
+        // Check if institution supports investments first
+        const supportsInvestments = await investmentService.checkInvestmentSupport(institution.access_token, institution.id);
+        
+        if (!supportsInvestments) {
+          console.log(`⚠️  ${institution.name} does not support investments or has no investment accounts`);
+          results.skipped++;
+          results.details.push({
+            institutionId: institution.id,
+            institutionName: institution.name,
+            status: 'skipped',
+            reason: 'Institution does not support investments or has no investment accounts'
+          });
+          continue;
+        }
+        
+        console.log(`✅ ${institution.name} supports investments, syncing data...`);
+        await investmentService.syncInvestmentData(institution.access_token, institution.id);
+        results.processed++;
+        results.details.push({
+          institutionId: institution.id,
+          institutionName: institution.name,
+          status: 'success'
+        });
+      } catch (error: any) {
+        console.error(`❌ Error syncing investment data for ${institution.name}:`, error.message);
+        results.errors++;
+        results.details.push({
+          institutionId: institution.id,
+          institutionName: institution.name,
+          status: 'error',
+          error: error.message || 'Unknown error'
+        });
+      }
+    }
+    
+    console.log(`📈 Investment sync completed: ${results.processed} processed, ${results.skipped} skipped, ${results.errors} errors`);
+    
+    // Refresh market data if any institutions were processed
+    if (results.processed > 0) {
+      try {
+        console.log('🔄 Refreshing market data...');
+        await investmentService.refreshAllMarketData();
+        console.log('✅ Market data refreshed');
+      } catch (error) {
+        console.error('❌ Error refreshing market data:', error);
+        results.details.push({
+          institutionId: 'all',
+          institutionName: 'Market Data',
+          status: 'market_data_error',
+          error: 'Failed to refresh market data'
+        });
+      }
+    }
+    
+    return res.json(results);
+  } catch (error) {
+    console.error('❌ Error syncing investment data:', error);
+    return res.status(500).json({ error: 'Failed to sync investment data' });
+  }
+});
+
+/**
+ * @swagger
+ * /api/investments/support-status:
+ *   get:
+ *     summary: Get investment support status for all institutions
+ *     description: Returns which institutions support investments and which don't
+ *     tags: [Investments]
+ *     responses:
+ *       200:
+ *         description: Investment support status
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 supportedInstitutions:
+ *                   type: number
+ *                 unsupportedInstitutions:
+ *                   type: number
+ *                 totalInstitutions:
+ *                   type: number
+ *                 details:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       institutionId:
+ *                         type: number
+ *                       institutionName:
+ *                         type: string
+ *                       supportsInvestments:
+ *                         type: boolean
+ *                       hasInvestmentAccounts:
+ *                         type: boolean
+ *       500:
+ *         description: Server error
+ */
+router.get('/investments/support-status', async (_req, res) => {
+  try {
+    const status = await investmentService.getInvestmentSupportStatus();
+    return res.json(status);
+  } catch (error) {
+    console.error('Error getting investment support status:', error);
+    return res.status(500).json({ error: 'Failed to get investment support status' });
   }
 });
 
@@ -666,7 +1111,7 @@ router.get('/transactions', async (req, res) => {
       date: tx.date,
       name: tx.name,
       merchant_name: tx.merchant_name,
-      category: tx.category_primary || 'Other',
+      category: tx.category_primary || tx.category_detailed || 'Uncategorized',
       category_detailed: tx.category_detailed,
       type: tx.type,
       pending: tx.pending,
@@ -786,5 +1231,126 @@ router.get('/banks', async (_req, res) => {
     res.status(500).json({ error: 'Failed to fetch bank connections' });
   }
 });
+
+/**
+ * @swagger
+ * /api/investments/all:
+ *   get:
+ *     summary: Get all investment data (optimized)
+ *     description: Returns combined investment accounts and summary data in a single optimized call
+ *     tags: [Investments]
+ *     responses:
+ *       200:
+ *         description: Combined investment data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 investments:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                 accounts:
+ *                   type: object
+ *                 summary:
+ *                   type: object
+ *                   properties:
+ *                     totalValue:
+ *                       type: number
+ *                     totalCostBasis:
+ *                       type: number
+ *                     totalDayChange:
+ *                       type: number
+ *                     totalDayChangePercent:
+ *                       type: number
+ *                     holdingsCount:
+ *                       type: integer
+ *                     accountsCount:
+ *                       type: integer
+ *                     topHoldings:
+ *                       type: array
+ *                     sectorAllocation:
+ *                       type: array
+ *       500:
+ *         description: Server error
+ */
+router.get('/investments/all', async (_req, res) => {
+  try {
+    // Fetch both investment accounts and summary data concurrently
+    const [investmentAccounts, investmentSummary] = await Promise.all([
+      // Get investment accounts
+      database.all(`
+        SELECT a.* FROM accounts a 
+        JOIN institutions i ON a.institution_id = i.id 
+        WHERE a.type = 'investment' AND i.is_active = 1
+      `),
+      // Get investment summary (this may fail if no detailed data available)
+      investmentService.getInvestmentSummary().catch(() => null)
+    ])
+    
+    // Get detailed holdings if available
+    const holdings = await database.getHoldings().catch(() => [])
+    
+    // Process investment data
+    const investments = holdings.length > 0 ? holdings.map(holding => ({
+      symbol: holding.symbol || 'N/A',
+      companyName: holding.security_name || 'Unknown Security',
+      quantity: holding.quantity,
+      marketPrice: holding.current_price || holding.price,
+      marketValue: holding.value,
+      dayChange: holding.day_change || 0,
+      dayChangePercent: holding.day_change_percent || 0,
+      accountId: holding.account_id,
+      accountName: holding.account_name,
+      institutionName: holding.institution_name,
+      sector: holding.sector,
+      industry: holding.industry,
+      costBasis: holding.cost_basis,
+      securityType: holding.security_type
+    })) : []
+    
+    // Process accounts data
+    const accounts = {
+      hasInvestmentAccounts: investmentAccounts.length > 0,
+      supportsDetailedData: holdings.length > 0,
+      totalValue: investmentAccounts.reduce((sum, account) => sum + (account.current_balance || 0), 0),
+      accounts: investmentAccounts.map(account => ({
+        accountId: account.account_id,
+        accountName: account.name,
+        accountType: account.subtype || account.type,
+        institutionName: account.institution_name || 'Unknown Institution',
+        balance: account.current_balance || 0,
+        availableBalance: account.available_balance,
+        currency: account.iso_currency_code || 'CAD',
+        lastUpdated: account.updated_at
+      })),
+      investments
+    }
+    
+    // Process summary data
+    const summary = investmentSummary || {
+      totalValue: accounts.totalValue,
+      totalCostBasis: 0,
+      totalDayChange: 0,
+      totalDayChangePercent: 0,
+      holdingsCount: investments.length,
+      accountsCount: investmentAccounts.length,
+      topHoldings: investments.slice(0, 5),
+      sectorAllocation: [],
+      hasInvestmentAccounts: accounts.hasInvestmentAccounts,
+      supportsDetailedData: accounts.supportsDetailedData
+    }
+    
+    return res.json({
+      investments,
+      accounts,
+      summary
+    })
+  } catch (error) {
+    console.error('Error fetching combined investment data:', error)
+    return res.status(500).json({ error: 'Failed to fetch investment data' })
+  }
+})
 
 export default router;

@@ -6,6 +6,8 @@ interface SyncButtonProps {
   onSyncComplete?: () => void
   variant?: 'icon' | 'button' | 'full'
   className?: string
+  includeInvestments?: boolean
+  investmentOnly?: boolean
 }
 
 interface SyncStatus {
@@ -17,7 +19,9 @@ interface SyncStatus {
 const SyncButton: React.FC<SyncButtonProps> = ({ 
   onSyncComplete, 
   variant = 'button',
-  className = '' 
+  className = '',
+  includeInvestments = true,
+  investmentOnly = false
 }) => {
   const [isLoading, setIsLoading] = useState(false)
   const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null)
@@ -51,14 +55,43 @@ const SyncButton: React.FC<SyncButtonProps> = ({
     setLastSyncResult(null)
     
     try {
-      const result = await apiService.syncAllData()
+      let result: any
       
-      if (result.success) {
-        setLastSyncResult(`✅ Synced ${result.transactionCount || 0} transactions`)
-        await fetchSyncStatus() // Refresh status
-        onSyncComplete?.()
+      if (investmentOnly) {
+        // Only sync investments
+        result = await apiService.syncInvestments()
+        if (result.success) {
+          setLastSyncResult(`✅ Investment sync completed`)
+          await fetchSyncStatus()
+          onSyncComplete?.()
+        } else {
+          setLastSyncResult('❌ Investment sync failed')
+        }
       } else {
-        setLastSyncResult('❌ Sync failed')
+        // Sync all data (transactions and optionally investments)
+        result = await apiService.syncAllData()
+        
+        if (result.success) {
+          let message = `✅ Synced ${result.transactionCount || 0} transactions`
+          
+          // Also sync investments if requested
+          if (includeInvestments) {
+            try {
+              const investmentResult = await apiService.syncInvestments()
+              if (investmentResult.success) {
+                message += ` and investments`
+              }
+            } catch (error) {
+              console.error('Investment sync failed:', error)
+            }
+          }
+          
+          setLastSyncResult(message)
+          await fetchSyncStatus()
+          onSyncComplete?.()
+        } else {
+          setLastSyncResult('❌ Sync failed')
+        }
       }
     } catch (error) {
       console.error('Sync failed:', error)
@@ -101,6 +134,13 @@ const SyncButton: React.FC<SyncButtonProps> = ({
     }
   }
 
+  const getSyncButtonText = () => {
+    if (isLoading) {
+      return investmentOnly ? 'Syncing Investments...' : 'Syncing...'
+    }
+    return investmentOnly ? 'Sync Investments' : 'Sync'
+  }
+
   const renderIcon = () => {
     if (isLoading) {
       return <RefreshCw className="w-4 h-4 animate-spin" />
@@ -135,7 +175,7 @@ const SyncButton: React.FC<SyncButtonProps> = ({
             className={`inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${className}`}
           >
             {renderIcon()}
-            {isLoading ? 'Syncing...' : 'Sync'}
+            {getSyncButtonText()}
           </button>
         )
 
