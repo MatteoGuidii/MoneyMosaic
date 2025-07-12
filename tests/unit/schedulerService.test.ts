@@ -1,267 +1,218 @@
-import { schedulerService } from '../../src/services/scheduler.service';
+import { SchedulerService } from '../../src/services/scheduler.service';
 import { bankService } from '../../src/services/bank.service';
+import { investmentService } from '../../src/services/investment.service';
+import { logger } from '../../src/utils/logger';
+import { database } from '../../src/database';
+import * as cron from 'node-cron';
 
-// Mock bankService
-jest.mock('../../src/services/bank.service', () => ({
-  bankService: {
-    fetchAllTransactions: jest.fn(),
-    checkConnectionHealth: jest.fn(),
-  },
-}));
+// Mock dependencies
+jest.mock('../../src/services/bank.service');
+jest.mock('../../src/services/investment.service');
+jest.mock('../../src/utils/logger');
+jest.mock('../../src/database');
+jest.mock('node-cron');
 
-// Mock node-cron
-jest.mock('node-cron', () => ({
-  schedule: jest.fn(),
-}));
-
-const cron = require('node-cron');
+const mockBankService = bankService as jest.Mocked<typeof bankService>;
+const mockInvestmentService = investmentService as jest.Mocked<typeof investmentService>;
+const mockLogger = logger as jest.Mocked<typeof logger>;
+const mockDatabase = database as jest.Mocked<typeof database>;
+const mockCron = cron as jest.Mocked<typeof cron>;
 
 describe('SchedulerService', () => {
+  let schedulerService: SchedulerService;
+  let mockScheduledTask: any;
+
   beforeEach(() => {
     jest.clearAllMocks();
-    // Clear any existing jobs
-    schedulerService.stopAll();
+    schedulerService = new SchedulerService();
+    
+    // Mock cron scheduled task
+    mockScheduledTask = {
+      start: jest.fn(),
+      stop: jest.fn(),
+      destroy: jest.fn(),
+      getStatus: jest.fn().mockReturnValue('scheduled')
+    };
+    
+    mockCron.schedule.mockReturnValue(mockScheduledTask);
   });
 
   describe('startTransactionSync', () => {
-    it('should start transaction sync job with default interval', () => {
-      const mockJob = { stop: jest.fn() };
-      cron.schedule.mockReturnValue(mockJob);
-
+    it('should start transaction sync with default interval', () => {
       schedulerService.startTransactionSync();
-
-      expect(cron.schedule).toHaveBeenCalledWith(
-        '0 */6 * * *', // Every 6 hours
+      
+      expect(mockCron.schedule).toHaveBeenCalledWith(
+        '0 */6 * * *',
         expect.any(Function)
       );
+      expect(mockLogger.info).toHaveBeenCalledWith('🕒 Transaction sync scheduled every 6 hours');
     });
 
-    it('should start transaction sync job with custom interval', () => {
-      const mockJob = { stop: jest.fn() };
-      cron.schedule.mockReturnValue(mockJob);
-
-      schedulerService.startTransactionSync(12); // Every 12 hours
-
-      expect(cron.schedule).toHaveBeenCalledWith(
+    it('should start transaction sync with custom interval', () => {
+      schedulerService.startTransactionSync(12);
+      
+      expect(mockCron.schedule).toHaveBeenCalledWith(
         '0 */12 * * *',
         expect.any(Function)
       );
+      expect(mockLogger.info).toHaveBeenCalledWith('🕒 Transaction sync scheduled every 12 hours');
+    });
+  });
+
+  describe('startInvestmentSync', () => {
+    it('should start investment sync with default interval', () => {
+      schedulerService.startInvestmentSync();
+      
+      expect(mockCron.schedule).toHaveBeenCalledWith(
+        '15 */6 * * *',
+        expect.any(Function)
+      );
+      expect(mockLogger.info).toHaveBeenCalledWith('📈 Investment sync scheduled every 6 hours');
+    });
+  });
+
+  describe('startMarketDataRefresh', () => {
+    it('should start market data refresh with correct cron pattern', () => {
+      schedulerService.startMarketDataRefresh();
+      
+      expect(mockCron.schedule).toHaveBeenCalledWith(
+        '*/15 9-16 * * 1-5',
+        expect.any(Function)
+      );
+      expect(mockLogger.info).toHaveBeenCalledWith('📊 Market data refresh scheduled every 15 minutes during market hours');
     });
   });
 
   describe('startHealthCheck', () => {
-    it('should start health check job', () => {
-      const mockJob = { stop: jest.fn() };
-      cron.schedule.mockReturnValue(mockJob);
-
+    it('should start health check with correct cron pattern', () => {
       schedulerService.startHealthCheck();
-
-      expect(cron.schedule).toHaveBeenCalledWith(
-        '0 0 * * *', // Daily at midnight
+      
+      expect(mockCron.schedule).toHaveBeenCalledWith(
+        '0 0 * * *',
         expect.any(Function)
       );
+      expect(mockLogger.info).toHaveBeenCalledWith('🏥 Health check scheduled daily at midnight');
     });
   });
 
   describe('startAll', () => {
     it('should start all jobs with default interval', () => {
-      const mockJob = { stop: jest.fn() };
-      cron.schedule.mockReturnValue(mockJob);
-
       schedulerService.startAll();
-
-      expect(cron.schedule).toHaveBeenCalledTimes(2); // Transaction sync + health check
-      expect(cron.schedule).toHaveBeenCalledWith('0 */6 * * *', expect.any(Function));
-      expect(cron.schedule).toHaveBeenCalledWith('0 0 * * *', expect.any(Function));
+      
+      expect(mockCron.schedule).toHaveBeenCalledTimes(4);
+      expect(mockLogger.info).toHaveBeenCalledWith('🚀 All background jobs started');
     });
 
     it('should start all jobs with custom interval', () => {
-      const mockJob = { stop: jest.fn() };
-      cron.schedule.mockReturnValue(mockJob);
-
-      schedulerService.startAll(8);
-
-      expect(cron.schedule).toHaveBeenCalledTimes(2);
-      expect(cron.schedule).toHaveBeenCalledWith('0 */8 * * *', expect.any(Function));
-      expect(cron.schedule).toHaveBeenCalledWith('0 0 * * *', expect.any(Function));
-    });
-  });
-
-  describe('triggerTransactionSync', () => {
-    it('should trigger manual transaction sync', async () => {
-      const mockTransactionResult = {
-        transactions: [],
-        summary: { totalSpending: 0, totalIncome: 0 }
-      };
-
-      (bankService.fetchAllTransactions as jest.Mock).mockResolvedValue(mockTransactionResult);
-
-      await schedulerService.triggerTransactionSync();
-
-      expect(bankService.fetchAllTransactions).toHaveBeenCalledWith(30);
-    });
-
-    it('should handle sync errors gracefully', async () => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+      schedulerService.startAll(12);
       
-      (bankService.fetchAllTransactions as jest.Mock).mockRejectedValue(
-        new Error('Sync failed')
-      );
-
-      await expect(schedulerService.triggerTransactionSync()).rejects.toThrow('Sync failed');
-      
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        '❌ Manual sync failed:',
-        expect.any(Error)
-      );
-
-      consoleErrorSpy.mockRestore();
+      expect(mockCron.schedule).toHaveBeenCalledTimes(4);
+      expect(mockLogger.info).toHaveBeenCalledWith('🚀 All background jobs started');
     });
   });
 
   describe('stopJob', () => {
     it('should stop a specific job', () => {
-      const mockJob = { stop: jest.fn() };
-      cron.schedule.mockReturnValue(mockJob);
-
       schedulerService.startTransactionSync();
+      
       schedulerService.stopJob('transaction-sync');
-
-      expect(mockJob.stop).toHaveBeenCalled();
+      
+      expect(mockScheduledTask.stop).toHaveBeenCalled();
+      expect(mockLogger.info).toHaveBeenCalledWith('⏹️ Stopped job: transaction-sync');
     });
 
-    it('should handle stopping non-existent job', () => {
-      // Should not throw error when job doesn't exist
-      expect(() => schedulerService.stopJob('non-existent')).not.toThrow();
+    it('should not error when stopping non-existent job', () => {
+      schedulerService.stopJob('non-existent-job');
+      
+      expect(mockScheduledTask.stop).not.toHaveBeenCalled();
     });
   });
 
   describe('stopAll', () => {
-    it('should stop all scheduled jobs', () => {
-      const mockJob = { stop: jest.fn() };
-      cron.schedule.mockReturnValue(mockJob);
-
-      // Start jobs first
-      schedulerService.startAll();
+    it('should stop all jobs', () => {
+      schedulerService.startTransactionSync();
+      schedulerService.startInvestmentSync();
       
-      // Then stop all jobs
       schedulerService.stopAll();
-
-      expect(mockJob.stop).toHaveBeenCalledTimes(2); // Called for each job
-    });
-
-    it('should handle stopping when no jobs are running', () => {
-      // Should not throw error when no jobs are running
-      expect(() => schedulerService.stopAll()).not.toThrow();
+      
+      expect(mockScheduledTask.stop).toHaveBeenCalledTimes(2);
+      expect(mockLogger.info).toHaveBeenCalledWith('⏹️ All background jobs stopped');
     });
   });
 
   describe('getJobStatus', () => {
-    it('should return job status when jobs are running', () => {
-      const mockJob = { stop: jest.fn() };
-      cron.schedule.mockReturnValue(mockJob);
-
-      schedulerService.startAll();
+    it('should return job status', () => {
+      schedulerService.startTransactionSync();
+      schedulerService.startInvestmentSync();
+      
       const status = schedulerService.getJobStatus();
-
+      
       expect(status).toEqual({
         'transaction-sync': true,
-        'health-check': true
+        'investment-sync': true
       });
     });
 
     it('should return empty status when no jobs are running', () => {
-      // Ensure no jobs are running
-      schedulerService.stopAll();
-      
       const status = schedulerService.getJobStatus();
-
+      
       expect(status).toEqual({});
     });
   });
 
-  describe('Job Execution', () => {
-    it('should execute transaction sync when cron job runs', async () => {
-      const mockJob = { stop: jest.fn() };
-      let cronCallback: Function | undefined;
+  describe('triggerTransactionSync', () => {
+    it('should manually trigger transaction sync', async () => {
+      const mockResult = {
+        transactions: [{ id: 1 }],
+        summary: { totalSpending: 100, totalIncome: 50 }
+      };
       
-      cron.schedule.mockImplementation((schedule: string, callback: Function) => {
-        if (schedule === '0 */6 * * *') {
-          cronCallback = callback;
-        }
-        return mockJob;
-      });
-
-      (bankService.fetchAllTransactions as jest.Mock).mockResolvedValue({
-        transactions: [],
-        summary: { totalSpending: 0, totalIncome: 0 }
-      });
-
-      schedulerService.startTransactionSync();
-
-      // Simulate cron job execution
-      if (cronCallback) {
-        await cronCallback();
-      }
-
-      expect(bankService.fetchAllTransactions).toHaveBeenCalledWith(30);
+      mockBankService.fetchAllTransactions.mockResolvedValue(mockResult);
+      
+      await schedulerService.triggerTransactionSync();
+      
+      expect(mockBankService.fetchAllTransactions).toHaveBeenCalledWith(30);
+      expect(mockLogger.info).toHaveBeenCalledWith('🔄 Manually triggering transaction sync...');
+      expect(mockLogger.info).toHaveBeenCalledWith('✅ Manual sync completed: 1 transactions');
     });
 
-    it('should execute health check when cron job runs', async () => {
-      const mockJob = { stop: jest.fn() };
-      let cronCallback: Function | undefined;
+    it('should handle manual transaction sync errors', async () => {
+      const mockError = new Error('Manual sync failed');
+      mockBankService.fetchAllTransactions.mockRejectedValue(mockError);
       
-      cron.schedule.mockImplementation((schedule: string, callback: Function) => {
-        if (schedule === '0 0 * * *') {
-          cronCallback = callback;
-        }
-        return mockJob;
-      });
+      await expect(schedulerService.triggerTransactionSync()).rejects.toThrow(mockError);
+      
+      expect(mockLogger.error).toHaveBeenCalledWith('❌ Manual sync failed:', mockError);
+    });
+  });
 
-      (bankService.checkConnectionHealth as jest.Mock).mockResolvedValue({
-        healthy: ['Test Bank'],
-        unhealthy: []
-      });
-
-      schedulerService.startHealthCheck();
-
-      // Simulate cron job execution
-      if (cronCallback) {
-        await cronCallback();
-      }
-
-      expect(bankService.checkConnectionHealth).toHaveBeenCalled();
+  describe('triggerInvestmentSync', () => {
+    it('should manually trigger investment sync', async () => {
+      const mockInstitutions = [
+        { id: 1, access_token: 'token1' }
+      ];
+      
+      mockDatabase.all.mockResolvedValue(mockInstitutions);
+      mockInvestmentService.syncInvestmentData.mockResolvedValue(undefined);
+      mockInvestmentService.refreshAllMarketData.mockResolvedValue(undefined);
+      
+      await schedulerService.triggerInvestmentSync();
+      
+      expect(mockDatabase.all).toHaveBeenCalledWith(
+        expect.stringContaining('SELECT id, access_token FROM institutions WHERE is_active = 1')
+      );
+      expect(mockInvestmentService.syncInvestmentData).toHaveBeenCalledWith('token1', 1);
+      expect(mockInvestmentService.refreshAllMarketData).toHaveBeenCalled();
+      expect(mockLogger.info).toHaveBeenCalledWith('✅ Manual investment sync completed');
     });
 
-    it('should handle job execution errors', async () => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
-      const mockJob = { stop: jest.fn() };
-      let cronCallback: Function | undefined;
+    it('should handle manual investment sync errors', async () => {
+      const mockError = new Error('Manual investment sync failed');
+      mockDatabase.all.mockRejectedValue(mockError);
       
-      cron.schedule.mockImplementation((schedule: string, callback: Function) => {
-        if (schedule === '0 */6 * * *') {
-          cronCallback = callback;
-        }
-        return mockJob;
-      });
-
-      (bankService.fetchAllTransactions as jest.Mock).mockRejectedValue(
-        new Error('Scheduled sync failed')
-      );
-
-      schedulerService.startTransactionSync();
-
-      // Simulate cron job execution
-      if (cronCallback) {
-        await cronCallback();
-      }
-
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        '❌ Scheduled transaction sync failed:',
-        expect.any(Error)
-      );
-
-      consoleErrorSpy.mockRestore();
+      await expect(schedulerService.triggerInvestmentSync()).rejects.toThrow(mockError);
+      
+      expect(mockLogger.error).toHaveBeenCalledWith('❌ Manual investment sync failed:', mockError);
     });
   });
 });

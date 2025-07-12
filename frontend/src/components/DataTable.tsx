@@ -1,8 +1,8 @@
 import React, { useState } from 'react'
-import { SortAsc, SortDesc, Download, Calendar, MoreHorizontal } from 'lucide-react'
+import { SortAsc, SortDesc, Download, Calendar } from 'lucide-react'
 import { Transaction } from '../services/apiService'
 
-interface EnhancedTransactionsTableProps {
+interface TransactionsDataTableProps {
   transactions: Transaction[]
   currentPage: number
   totalTransactions: number
@@ -14,7 +14,7 @@ interface EnhancedTransactionsTableProps {
 type SortField = 'date' | 'amount' | 'category' | 'name'
 type SortDirection = 'asc' | 'desc'
 
-const EnhancedTransactionsTable: React.FC<EnhancedTransactionsTableProps> = ({
+const TransactionsDataTable: React.FC<TransactionsDataTableProps> = ({
   transactions,
   currentPage,
   totalTransactions,
@@ -30,10 +30,8 @@ const EnhancedTransactionsTable: React.FC<EnhancedTransactionsTableProps> = ({
   const totalPages = Math.ceil(totalTransactions / itemsPerPage)
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
-    }).format(Math.abs(amount))
+    const sign = amount < 0 ? '+' : '-'
+    return `${sign}$${Math.abs(amount).toFixed(2)}`
   }
 
   const formatDate = (dateString: string) => {
@@ -70,7 +68,7 @@ const EnhancedTransactionsTable: React.FC<EnhancedTransactionsTableProps> = ({
   }
 
   const getAmountColor = (amount: number) => {
-    return amount >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+    return amount < 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
   }
 
   const getCategoryColor = (category: string) => {
@@ -178,9 +176,6 @@ const EnhancedTransactionsTable: React.FC<EnhancedTransactionsTableProps> = ({
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                 Status
               </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                Actions
-              </th>
             </tr>
           </thead>
           <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
@@ -219,7 +214,6 @@ const EnhancedTransactionsTable: React.FC<EnhancedTransactionsTableProps> = ({
                 </td>
                 <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${getAmountColor(transaction.amount)}`}>
                   <div className="flex items-center space-x-1">
-                    <span>{transaction.amount >= 0 ? '+' : '-'}</span>
                     <span>{formatCurrency(transaction.amount)}</span>
                   </div>
                 </td>
@@ -239,11 +233,6 @@ const EnhancedTransactionsTable: React.FC<EnhancedTransactionsTableProps> = ({
                   }`}>
                     {transaction.pending ? 'Pending' : 'Posted'}
                   </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                  <button className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
-                    <MoreHorizontal className="w-4 h-4" />
-                  </button>
                 </td>
               </tr>
             ))}
@@ -299,4 +288,4 @@ const EnhancedTransactionsTable: React.FC<EnhancedTransactionsTableProps> = ({
   )
 }
 
-export default EnhancedTransactionsTable
+export default TransactionsDataTable

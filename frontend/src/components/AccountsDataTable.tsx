@@ -173,7 +173,7 @@ const AccountsDataTable: React.FC<AccountsDataTableProps> = ({
                           {account.name}
                         </div>
                         <div className="text-sm text-gray-500 dark:text-gray-400">
-                          {account.id || 'Unknown Bank'}
+                          {account.institutionName || 'Unknown Bank'}
                         </div>
                       </div>
                     </div>

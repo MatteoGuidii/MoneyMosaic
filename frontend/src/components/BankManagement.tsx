@@ -155,6 +155,11 @@ const BankManagement: React.FC<BankManagementProps> = ({
         if (onBankConnectionChange) {
           await onBankConnectionChange()
         }
+        
+        // Also trigger sync complete to refresh all related components
+        if (onSyncComplete) {
+          await onSyncComplete()
+        }
       } else {
         setError('Failed to connect bank')
       }
@@ -227,6 +232,11 @@ const BankManagement: React.FC<BankManagementProps> = ({
         if (onSyncComplete) {
           await onSyncComplete()
         }
+        
+        // Also trigger bank connection change to refresh all related components
+        if (onBankConnectionChange) {
+          await onBankConnectionChange()
+        }
       } else {
         setError('Sync failed')
       }
@@ -291,6 +301,11 @@ const BankManagement: React.FC<BankManagementProps> = ({
         // Trigger dashboard refresh
         if (onBankConnectionChange) {
           await onBankConnectionChange()
+        }
+        
+        // Also trigger sync complete to refresh all related components
+        if (onSyncComplete) {
+          await onSyncComplete()
         }
       } else {
         setError('Failed to remove bank connection')

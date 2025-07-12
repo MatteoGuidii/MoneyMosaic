@@ -171,21 +171,24 @@ const Accounts: React.FC = () => {
 
     accounts.forEach(account => {
       const balance = account.balance || 0
-      totalBalance += balance
       
       switch (account.type.toLowerCase()) {
         case 'checking':
         case 'depository':
           checkingBalance += balance
+          totalBalance += balance // Only add checking/depository to total
           break
         case 'savings':
           savingsBalance += balance
+          totalBalance += balance // Only add savings to total
           break
         case 'credit':
-          creditBalance += Math.abs(balance)
+          creditBalance += Math.abs(balance) // Track credit debt separately
+          // Don't add credit to total balance as it's debt
           break
         case 'investment':
           investmentBalance += balance
+          totalBalance += balance // Add investments to total
           break
       }
     })

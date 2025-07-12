@@ -1,18 +1,17 @@
 import React from 'react'
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
+import { LineChart as RechartsLineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 
 interface TransactionTrendsData {
   date: string
   income: number
   spending: number
-  net: number
 }
 
-interface TransactionTrendsChartProps {
+interface LineChartProps {
   data: TransactionTrendsData[]
 }
 
-const TransactionTrendsChart: React.FC<TransactionTrendsChartProps> = ({ data }) => {
+const LineChart: React.FC<LineChartProps> = ({ data }) => {
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-CA', {
       style: 'currency',
@@ -40,7 +39,7 @@ const TransactionTrendsChart: React.FC<TransactionTrendsChartProps> = ({ data })
   return (
     <div className="w-full h-64">
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+        <RechartsLineChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
           <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
           <XAxis 
             dataKey="date" 
@@ -54,22 +53,27 @@ const TransactionTrendsChart: React.FC<TransactionTrendsChartProps> = ({ data })
           />
           <Tooltip content={<CustomTooltip />} />
           <Legend />
-          <Bar 
+          <Line 
+            type="monotone" 
             dataKey="income" 
-            name="Income" 
-            fill="#10b981" 
-            radius={[2, 2, 0, 0]}
+            stroke="#10b981" 
+            strokeWidth={2}
+            name="Income"
+            dot={{ fill: '#10b981', strokeWidth: 2, r: 4 }}
           />
-          <Bar 
+          <Line 
+            type="monotone" 
             dataKey="spending" 
-            name="Spending" 
-            fill="#ef4444" 
-            radius={[2, 2, 0, 0]}
+            stroke="#ef4444" 
+            strokeWidth={2}
+            name="Spending"
+            dot={{ fill: '#ef4444', strokeWidth: 2, r: 4 }}
           />
-        </BarChart>
+
+        </RechartsLineChart>
       </ResponsiveContainer>
     </div>
   )
 }
 
-export default TransactionTrendsChart
+export default LineChart

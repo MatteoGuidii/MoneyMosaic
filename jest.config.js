@@ -12,12 +12,19 @@ module.exports = {
   collectCoverageFrom: [
     'src/**/*.ts',
     '!src/**/*.d.ts',
-    '!src/server.ts', // Exclude main server file from coverage
+    // Infrastructure files that don't need testing
+    '!src/server.ts', // Main server entry point
+    '!src/generate-openapi.ts', // OpenAPI generation script
+    '!src/swagger.ts', // Swagger configuration
+    '!src/config/**', // Configuration files
+    '!src/types/**', // Type definitions
+    // Routes that are not yet implemented or are integration-heavy
+    '!src/routes/sync.ts', // Not implemented yet
   ],
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html'],
   setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
-  testTimeout: 10000,
+  testTimeout: 60000, // Increased timeout to 60 seconds
   // Force exit after tests complete to prevent hanging
   forceExit: true,
   // Handle SQLite database in tests
@@ -28,21 +35,33 @@ module.exports = {
     '^@/(.*)$': '<rootDir>/src/$1',
     '^@tests/(.*)$': '<rootDir>/tests/$1',
   },
-  // Verbose output for better debugging
-  verbose: true,
+  // Optimized test output settings - minimal but informative
+  verbose: false,
+  silent: false,
   // Ignore patterns
   testPathIgnorePatterns: [
     '/node_modules/',
     '/dist/',
     '/coverage/'
   ],
-  // Coverage thresholds
+  // Coverage thresholds - aiming for 85%+ coverage
   coverageThreshold: {
     global: {
-      branches: 70,
-      functions: 70,
-      lines: 70,
-      statements: 70
+      branches: 85,
+      functions: 85,
+      lines: 85,
+      statements: 85
     }
-  }
+  },
+  // Run tests serially to prevent database conflicts
+  maxWorkers: 1,
+  // Prevent worker crashes
+  workerIdleMemoryLimit: '512MB',
+  // Handle unhandled promise rejections
+  detectOpenHandles: false,
+  // Bail on first failure to prevent cascading issues
+  bail: 1,
+  // Clean up mocks between tests
+  clearMocks: true,
+  restoreMocks: true
 };

@@ -115,6 +115,7 @@ export const generateTransactionInsights = (
   if (transactions.length === 0) return insights
 
   // Calculate current period stats
+  // In Plaid: negative amounts = income/deposits, positive amounts = spending/withdrawals
   const totalSpending = transactions.filter(t => t.amount > 0).reduce((sum, t) => sum + t.amount, 0)
   const totalIncome = transactions.filter(t => t.amount < 0).reduce((sum, t) => sum + Math.abs(t.amount), 0)
   const avgTransactionAmount = totalSpending / transactions.filter(t => t.amount > 0).length
@@ -152,8 +153,8 @@ export const generateTransactionInsights = (
 
   // Top spending category
   const categoryTotals = transactions.reduce((acc, t) => {
-    if (t.amount > 0) {
-      acc[t.category] = (acc[t.category] || 0) + t.amount
+    if (t.amount < 0) {
+      acc[t.category] = (acc[t.category] || 0) + Math.abs(t.amount)
     }
     return acc
   }, {} as Record<string, number>)

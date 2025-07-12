@@ -25,7 +25,7 @@ const FilterBar: React.FC<FilterBarProps> = ({
     { value: '7', label: 'Last 7 days' },
     { value: '30', label: 'Last 30 days' },
     { value: '90', label: 'Last 90 days' },
-    { value: '365', label: 'Last 365 days' }
+    { value: '180', label: 'Last 6 months' }
   ]
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {

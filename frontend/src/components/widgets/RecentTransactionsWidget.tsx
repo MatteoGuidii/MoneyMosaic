@@ -23,14 +23,6 @@ const RecentTransactionsWidget: React.FC = () => {
     }
   }
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-CA', {
-      style: 'currency',
-      currency: 'CAD',
-      minimumFractionDigits: 0
-    }).format(Math.abs(amount))
-  }
-
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-CA', {
       month: 'short',
@@ -83,13 +75,13 @@ const RecentTransactionsWidget: React.FC = () => {
             >
               <div className="flex items-center space-x-4">
                 <div className="flex-shrink-0">
-                  {transaction.amount > 0 ? (
+                  {transaction.amount < 0 ? (
                     <div className="w-10 h-10 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg flex items-center justify-center">
-                      <ArrowDownRight className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                      <ArrowUpRight className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
                     </div>
                   ) : (
                     <div className="w-10 h-10 bg-red-100 dark:bg-red-900/30 rounded-lg flex items-center justify-center">
-                      <ArrowUpRight className="w-5 h-5 text-red-600 dark:text-red-400" />
+                      <ArrowDownRight className="w-5 h-5 text-red-600 dark:text-red-400" />
                     </div>
                   )}
                 </div>
@@ -104,11 +96,11 @@ const RecentTransactionsWidget: React.FC = () => {
               </div>
               <div className="text-right">
                 <p className={`text-sm font-semibold ${
-                  transaction.amount > 0 
+                  transaction.amount < 0 
                     ? 'text-emerald-600 dark:text-emerald-400' 
-                    : 'text-gray-900 dark:text-white'
+                    : 'text-red-600 dark:text-red-400'
                 }`}>
-                  {transaction.amount > 0 ? '+' : ''}{formatCurrency(transaction.amount)}
+                  {transaction.amount < 0 ? '+' : '-'}${Math.abs(transaction.amount).toFixed(2)}
                 </p>
               </div>
             </div>

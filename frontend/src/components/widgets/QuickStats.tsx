@@ -24,6 +24,7 @@ const QuickStats: React.FC<QuickStatsProps> = ({ transactions, dateRange }) => {
   }
 
   const calculateStats = () => {
+    // In Plaid: negative amounts = income/deposits, positive amounts = spending/withdrawals
     const totalSpending = transactions.filter(t => t.amount > 0).reduce((sum, t) => sum + t.amount, 0)
     const totalIncome = transactions.filter(t => t.amount < 0).reduce((sum, t) => sum + Math.abs(t.amount), 0)
     const totalTransactions = transactions.length

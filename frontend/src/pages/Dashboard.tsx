@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import OverviewCards from '../components/OverviewCards'
 import CashFlowInsights from '../components/CashFlowInsights'
-import SimplifiedChartsSection from '../components/charts/SimplifiedChartsSection'
+import ChartsSection from '../components/charts/ChartsSection'
 import BudgetSummaryWidget from '../components/widgets/BudgetSummaryWidget'
 import InvestmentSummaryWidget from '../components/widgets/InvestmentSummaryWidget'
 import RecentTransactionsWidget from '../components/widgets/RecentTransactionsWidget'
@@ -176,7 +176,7 @@ const Dashboard: React.FC = () => {
       </div>
 
       {/* Charts Section - Simplified */}
-      <SimplifiedChartsSection
+      <ChartsSection
         spendingData={spendingData}
         categoryData={categoryData}
         onCategorySelect={handleCategorySelect}

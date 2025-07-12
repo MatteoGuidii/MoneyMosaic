@@ -12,9 +12,10 @@ interface QuickStat {
 interface StatsCardProps {
   transactions: any[]
   dateRange: string
+  customDateRange?: { start: string; end: string }
 }
 
-const StatsCard: React.FC<StatsCardProps> = ({ transactions, dateRange }) => {
+const StatsCard: React.FC<StatsCardProps> = ({ transactions, dateRange, customDateRange }) => {
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-CA', {
       style: 'currency',
@@ -24,14 +25,34 @@ const StatsCard: React.FC<StatsCardProps> = ({ transactions, dateRange }) => {
   }
 
   const calculateStats = () => {
+    // In Plaid: negative amounts = income/deposits, positive amounts = spending/withdrawals
     const totalSpending = transactions.filter(t => t.amount > 0).reduce((sum, t) => sum + t.amount, 0)
     const totalIncome = transactions.filter(t => t.amount < 0).reduce((sum, t) => sum + Math.abs(t.amount), 0)
     const totalTransactions = transactions.length
     const avgTransactionAmount = totalTransactions > 0 ? totalSpending / transactions.filter(t => t.amount > 0).length : 0
 
     // Calculate frequency (transactions per day)
-    const daysInPeriod = parseInt(dateRange)
+    // Handle custom date range by calculating actual days from the filter dates
+    let daysInPeriod: number
+    if (dateRange === 'custom' && customDateRange?.start && customDateRange?.end) {
+      // Calculate actual days from the custom date range
+      const startDate = new Date(customDateRange.start)
+      const endDate = new Date(customDateRange.end)
+      daysInPeriod = Math.max(1, Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1)
+    } else {
+      daysInPeriod = parseInt(dateRange) || 30
+    }
+    
     const transactionFrequency = totalTransactions / daysInPeriod
+
+    // Calculate net flow: Income - Spending
+    const netFlow = totalIncome - totalSpending
+    
+    // Calculate savings rate as percentage of income saved
+    // Savings Rate = (Net Flow / Total Income) * 100
+    // If net flow is positive, it means you're saving money
+    // If net flow is negative, it means you're spending more than you earn
+    const savingsRate = totalIncome > 0 ? (netFlow / totalIncome) * 100 : 0
 
     return {
       totalSpending,
@@ -39,8 +60,8 @@ const StatsCard: React.FC<StatsCardProps> = ({ transactions, dateRange }) => {
       totalTransactions,
       avgTransactionAmount,
       transactionFrequency,
-      netFlow: totalIncome - totalSpending,
-      savingsRate: totalIncome > 0 ? ((totalIncome - totalSpending) / totalIncome) * 100 : 0
+      netFlow,
+      savingsRate
     }
   }
 
@@ -65,7 +86,7 @@ const StatsCard: React.FC<StatsCardProps> = ({ transactions, dateRange }) => {
     },
     {
       label: 'Net Flow',
-      value: formatCurrency(Math.abs(stats.netFlow)),
+      value: formatCurrency(stats.netFlow),
       changeType: stats.netFlow >= 0 ? 'positive' : 'negative',
       icon: stats.netFlow >= 0 ? <ArrowUpRight className="w-5 h-5" /> : <ArrowDownRight className="w-5 h-5" />
     }
@@ -77,6 +98,8 @@ const StatsCard: React.FC<StatsCardProps> = ({ transactions, dateRange }) => {
         return 'text-green-600 dark:text-green-400'
       case 'negative':
         return 'text-red-600 dark:text-red-400'
+      case 'neutral':
+        return 'text-yellow-600 dark:text-yellow-400'
       default:
         return 'text-blue-600 dark:text-blue-400'
     }
@@ -88,6 +111,8 @@ const StatsCard: React.FC<StatsCardProps> = ({ transactions, dateRange }) => {
         return 'bg-green-100 dark:bg-green-900/20'
       case 'negative':
         return 'bg-red-100 dark:bg-red-900/20'
+      case 'neutral':
+        return 'bg-yellow-100 dark:bg-yellow-900/20'
       default:
         return 'bg-blue-100 dark:bg-blue-900/20'
     }

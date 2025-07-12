@@ -74,7 +74,7 @@ export class BankService {
   }
 
   // Fetch transactions for all connected banks
-  async fetchAllTransactions(days: number = 30): Promise<{
+  async fetchAllTransactions(days: number = 730): Promise<{
     transactions: any[];
     summary: any;
   }> {
@@ -149,53 +149,125 @@ export class BankService {
     }
   }
 
-  // Fetch transactions for a specific bank
+  // Fetch transactions for a specific bank using modern /transactions/sync endpoint
   private async fetchTransactionsForBank(
     access_token: string,
     institution_id: number,
     days: number
   ): Promise<any[]> {
-    const endDate = formatISO(new Date(), { representation: 'date' });
-    const startDate = formatISO(subDays(new Date(), days), { representation: 'date' });
-
     try {
-      const { data: { transactions: txns } } = await plaidClient.transactionsGet({
-        access_token,
-        start_date: startDate,
-        end_date: endDate,
-        options: { count: 500, offset: 0 }
-      });
+      // Use transactions/sync for modern API approach
+      let cursor: string | undefined;
+      let hasMore = true;
+      let allTransactions: any[] = [];
 
-      // Save transactions to database
-      for (const tx of txns) {
-        const type = tx.amount > 0 ? 'expense' : 'income';
-        
-        let category: string;
-        const pfc = tx.personal_finance_category;
-        if (Array.isArray(pfc) && pfc.length > 0) {
-          category = pfc[0];
-        } else if (typeof pfc === 'string') {
-          category = pfc;
-        } else {
-          category = 'Uncategorized';
+      console.log(`📋 Fetching transactions for institution ${institution_id} using /transactions/sync...`);
+
+      while (hasMore) {
+        const request: any = {
+          access_token,
+        };
+
+        if (cursor) {
+          request.cursor = cursor;
         }
 
-        await this.database.saveTransaction({
-          transaction_id: tx.transaction_id,
-          account_id: tx.account_id,
-          institution_id,
-          amount: tx.amount,
-          date: tx.date,
-          name: tx.name,
-          merchant_name: tx.merchant_name || undefined,
-          category_primary: category,
-          category_detailed: Array.isArray(pfc) && pfc.length > 1 ? pfc[1] : null,
-          type,
-          pending: tx.pending
-        });
+        const response = await plaidClient.transactionsSync(request);
+        const { added, modified, removed, next_cursor, has_more } = response.data;
+
+        // Process added transactions
+        for (const tx of added) {
+          try {
+            const type = tx.amount > 0 ? 'expense' : 'income';
+            
+            let category: string;
+            const pfc = tx.personal_finance_category;
+            if (pfc?.primary) {
+              category = pfc.primary;
+            } else if (Array.isArray(pfc) && pfc.length > 0) {
+              category = pfc[0];
+            } else if (typeof pfc === 'string') {
+              category = pfc;
+            } else {
+              category = 'Uncategorized';
+            }
+
+            await this.database.saveTransaction({
+              transaction_id: tx.transaction_id,
+              account_id: tx.account_id,
+              institution_id,
+              amount: tx.amount,
+              date: tx.date,
+              name: tx.name,
+              merchant_name: tx.merchant_name || undefined,
+              category_primary: category,
+              category_detailed: pfc?.detailed || undefined,
+              type,
+              pending: tx.pending || false
+            });
+
+            allTransactions.push(tx);
+          } catch (error) {
+            console.error(`Error saving transaction ${tx.transaction_id}:`, error);
+            // Continue processing other transactions
+          }
+        }
+
+        // Process modified transactions
+        for (const tx of modified) {
+          try {
+            const type = tx.amount > 0 ? 'expense' : 'income';
+            
+            let category: string;
+            const pfc = tx.personal_finance_category;
+            if (pfc?.primary) {
+              category = pfc.primary;
+            } else if (Array.isArray(pfc) && pfc.length > 0) {
+              category = pfc[0];
+            } else if (typeof pfc === 'string') {
+              category = pfc;
+            } else {
+              category = 'Uncategorized';
+            }
+
+            await this.database.updateTransaction(tx.transaction_id, {
+              amount: tx.amount,
+              date: tx.date,
+              name: tx.name,
+              merchant_name: tx.merchant_name || undefined,
+              category_primary: category,
+              category_detailed: pfc?.detailed || undefined,
+              type,
+              pending: tx.pending || false
+            });
+          } catch (error) {
+            console.error(`Error updating transaction ${tx.transaction_id}:`, error);
+            // Continue processing other transactions
+          }
+        }
+
+        // Process removed transactions
+        for (const removedTx of removed) {
+          try {
+            await this.database.deleteTransaction(removedTx.transaction_id);
+          } catch (error) {
+            console.error(`Error removing transaction ${removedTx.transaction_id}:`, error);
+            // Continue processing other transactions
+          }
+        }
+
+        cursor = next_cursor;
+        hasMore = has_more;
+
+        console.log(`📥 Processed ${added.length} added, ${modified.length} modified, ${removed.length} removed transactions. Has more: ${hasMore}`);
       }
 
-      // Return transactions from database (includes institution/account names)
+      console.log(`✅ Total transactions processed: ${allTransactions.length}`);
+
+      // Return transactions from database within the requested date range
+      const endDate = formatISO(new Date(), { representation: 'date' });
+      const startDate = formatISO(subDays(new Date(), days), { representation: 'date' });
+      
       return this.database.getTransactions({
         institution_id,
         start_date: startDate,
@@ -203,6 +275,97 @@ export class BankService {
       });
     } catch (error) {
       console.error(`Error fetching transactions for institution ${institution_id}:`, error);
+      throw error;
+    }
+  }
+
+  // Fetch historical transactions using legacy /transactions/get endpoint
+  async fetchHistoricalTransactions(
+    access_token: string,
+    institution_id: number,
+    startDate: string = '2024-01-01' // Default to start of 2024
+  ): Promise<any[]> {
+    try {
+      console.log(`📅 Fetching historical transactions for institution ${institution_id} from ${startDate}...`);
+
+      const endDate = formatISO(new Date(), { representation: 'date' });
+      
+      let allTransactions: any[] = [];
+      let offset = 0;
+      const count = 500; // Maximum allowed per request
+      let hasMore = true;
+
+      while (hasMore) {
+        try {
+          const request = {
+            access_token,
+            start_date: startDate,
+            end_date: endDate,
+            count,
+            offset
+          };
+
+          const response = await plaidClient.transactionsGet(request);
+          const { transactions, total_transactions } = response.data;
+
+          console.log(`📥 Fetched ${transactions.length} transactions (offset: ${offset}, total: ${total_transactions})`);
+
+          // Save transactions to database
+          for (const tx of transactions) {
+            try {
+              const type = tx.amount > 0 ? 'expense' : 'income';
+              
+              let category: string;
+              const pfc = tx.personal_finance_category;
+              if (pfc?.primary) {
+                category = pfc.primary;
+              } else if (Array.isArray(pfc) && pfc.length > 0) {
+                category = pfc[0];
+              } else if (typeof pfc === 'string') {
+                category = pfc;
+              } else {
+                category = 'Uncategorized';
+              }
+
+              await this.database.saveTransaction({
+                transaction_id: tx.transaction_id,
+                account_id: tx.account_id,
+                institution_id,
+                amount: tx.amount,
+                date: tx.date,
+                name: tx.name,
+                merchant_name: tx.merchant_name || undefined,
+                category_primary: category,
+                category_detailed: tx.category ? tx.category.join(', ') : undefined,
+                type,
+                pending: tx.pending || false
+              });
+
+              allTransactions.push(tx);
+            } catch (dbError) {
+              console.error(`Error saving transaction ${tx.transaction_id}:`, dbError);
+              // Continue processing other transactions
+            }
+          }
+
+          offset += transactions.length;
+          hasMore = offset < total_transactions;
+          
+          // Add a small delay to avoid rate limits
+          if (hasMore) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+          }
+        } catch (error: any) {
+          console.error(`Error fetching transactions at offset ${offset}:`, error);
+          // If we get an error, stop fetching more
+          hasMore = false;
+        }
+      }
+
+      console.log(`✅ Historical fetch completed: ${allTransactions.length} transactions from ${startDate}`);
+      return allTransactions;
+    } catch (error) {
+      console.error(`Error fetching historical transactions for institution ${institution_id}:`, error);
       throw error;
     }
   }
@@ -302,6 +465,58 @@ export class BankService {
         console.error(`Error syncing data for institution ${institution.id}:`, error);
         // Handle or log error as needed, but don't stop the sync process
       }
+    }
+  }
+
+  // Check available transaction date range for an institution
+  async checkTransactionDateRange(access_token: string, institution_id: number): Promise<{
+    earliestDate: string | null;
+    latestDate: string | null;
+    availableTransactionCount: number;
+  }> {
+    try {
+      console.log(`📅 Checking transaction date range for institution ${institution_id}...`);
+
+      // Try to get a small sample of transactions with a wide date range
+      const twoYearsAgo = formatISO(subDays(new Date(), 730), { representation: 'date' });
+      const today = formatISO(new Date(), { representation: 'date' });
+      
+      const request = {
+        access_token,
+        start_date: twoYearsAgo,
+        end_date: today
+      };
+
+      const response = await plaidClient.transactionsGet(request);
+      const { transactions, total_transactions } = response.data;
+
+      if (transactions.length === 0) {
+        return {
+          earliestDate: null,
+          latestDate: null,
+          availableTransactionCount: 0
+        };
+      }
+
+      // Find the earliest and latest dates
+      const dates = transactions.map(tx => tx.date).sort();
+      const earliestDate = dates[0];
+      const latestDate = dates[dates.length - 1];
+
+      console.log(`📊 Institution ${institution_id} has ${total_transactions} transactions available from ${earliestDate} to ${latestDate}`);
+
+      return {
+        earliestDate,
+        latestDate,
+        availableTransactionCount: total_transactions
+      };
+    } catch (error) {
+      console.error(`Error checking transaction date range for institution ${institution_id}:`, error);
+      return {
+        earliestDate: null,
+        latestDate: null,
+        availableTransactionCount: 0
+      };
     }
   }
 

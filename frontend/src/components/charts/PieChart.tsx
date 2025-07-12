@@ -59,26 +59,46 @@ const PieChart: React.FC<PieChartProps> = ({ data }) => {
   }
 
   return (
-    <div className="w-full h-64">
-      <ResponsiveContainer width="100%" height="100%">
-        <RechartsPieChart>
-          <Pie
-            data={data}
-            cx="50%"
-            cy="50%"
-            labelLine={false}
-            label={CustomLabel}
-            outerRadius={80}
-            fill="#8884d8"
-            dataKey="amount"
-          >
-            {data.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={entry.color} />
-            ))}
-          </Pie>
-          <Tooltip content={<CustomTooltip />} />
-        </RechartsPieChart>
-      </ResponsiveContainer>
+    <div className="w-full">
+      <div className="w-full h-64 mb-4">
+        <ResponsiveContainer width="100%" height="100%">
+          <RechartsPieChart>
+            <Pie
+              data={data}
+              cx="50%"
+              cy="50%"
+              labelLine={false}
+              label={CustomLabel}
+              outerRadius={80}
+              fill="#8884d8"
+              dataKey="amount"
+            >
+              {data.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={entry.color} />
+              ))}
+            </Pie>
+            <Tooltip content={<CustomTooltip />} />
+          </RechartsPieChart>
+        </ResponsiveContainer>
+      </div>
+      
+      {/* Legend */}
+      <div className="grid grid-cols-2 gap-2 text-sm">
+        {data.map((entry, index) => (
+          <div key={`legend-${index}`} className="flex items-center space-x-2">
+            <div 
+              className="w-3 h-3 rounded-full flex-shrink-0" 
+              style={{ backgroundColor: entry.color }}
+            />
+            <span className="text-gray-700 dark:text-gray-300 truncate">
+              {entry.category}
+            </span>
+            <span className="text-gray-500 dark:text-gray-400 ml-auto">
+              {entry.percentage.toFixed(1)}%
+            </span>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }

@@ -60,7 +60,10 @@ router.post('/link/token/create', async (req, res) => {
       },
       products: [Products.Transactions],
       country_codes: [CountryCode.Ca], 
-      language: 'en'
+      language: 'en',
+      transactions: {
+        days_requested: 730 // Request 24 months (730 days) of transaction history
+      }
     };
 
     // Add optional fields only if they're configured
@@ -98,10 +101,21 @@ router.post('/link/token/create', async (req, res) => {
       }
     });
     
-    res.status(500).json({ 
-      error: 'Failed to create link token',
-      details: err.response?.data?.error_message || err.message
-    });
+    // Provide more specific error information
+    if (err.response?.data?.error_code === 'DIRECT_INTEGRATION_NOT_ENABLED') {
+      res.status(400).json({ 
+        error: 'Direct integration not enabled',
+        message: 'You must use Plaid Link to create Items in Development/Production environment',
+        solution: 'Ensure you are using the proper Link flow instead of direct API calls',
+        environment: config.plaid.environment,
+        details: err.response.data
+      });
+    } else {
+      res.status(500).json({ 
+        error: 'Failed to create link token',
+        details: err.response?.data?.error_message || err.message
+      });
+    }
   }
 });
 
@@ -136,6 +150,112 @@ router.get('/config/check', async (_req, res) => {
     res.status(500).json({ 
       error: 'Configuration check failed',
       message: error.message
+    });
+  }
+});
+
+/**
+ * Diagnostic endpoint for troubleshooting Plaid issues
+ * @route POST /api/link/diagnose
+ * @access Public (in development only)
+ * @description Test Plaid connection and diagnose issues
+ */
+router.post('/link/diagnose', async (_req, res) => {
+  if (config.server.environment === 'production') {
+    res.status(403).json({ error: 'Diagnostic endpoint not available in production' });
+    return;
+  }
+
+  try {
+    // Test basic link token creation with minimal config
+    const testUserId = `diagnose_${Date.now()}`;
+    
+    const linkTokenRequest = {
+      client_name: config.plaid.clientName,
+      user: { 
+        client_user_id: testUserId 
+      },
+      products: [Products.Transactions],
+      country_codes: [CountryCode.Ca], 
+      language: 'en'
+    };
+
+    logger.info('Running Plaid diagnostic test...', {
+      environment: config.plaid.environment,
+      request: linkTokenRequest
+    });
+
+    const response = await plaidClient.linkTokenCreate(linkTokenRequest);
+    
+    res.json({
+      status: 'success',
+      message: 'Plaid connection is working correctly',
+      environment: config.plaid.environment,
+      linkTokenCreated: !!response.data.link_token,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error: any) {
+    logger.error('Plaid diagnostic failed:', error);
+    
+    res.status(400).json({
+      status: 'error',
+      error: error.message,
+      errorCode: error.response?.data?.error_code,
+      errorType: error.response?.data?.error_type,
+      displayMessage: error.response?.data?.display_message,
+      environment: config.plaid.environment,
+      troubleshooting: {
+        'DIRECT_INTEGRATION_NOT_ENABLED': 'Your account may not have access to Development environment or you need to request access',
+        'INVALID_CLIENT_ID': 'Check your PLAID_CLIENT_ID',
+        'INVALID_SECRET': 'Check your PLAID_SECRET',
+        'INVALID_ENVIRONMENT': 'Verify your PLAID_ENV setting'
+      },
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+/**
+ * Get available institutions for testing
+ * @route GET /api/link/institutions
+ * @access Public (in development only)
+ * @description Get list of supported institutions
+ */
+router.get('/institutions', async (_req, res) => {
+  if (config.server.environment === 'production') {
+    res.status(403).json({ error: 'Institution list not available in production' });
+    return;
+  }
+
+  try {
+    const response = await plaidClient.institutionsGet({
+      count: 50,
+      offset: 0,
+      country_codes: [CountryCode.Ca, CountryCode.Us],
+      options: {
+        include_optional_metadata: true
+      }
+    });
+    
+    const institutions = response.data.institutions.map(inst => ({
+      institution_id: inst.institution_id,
+      name: inst.name,
+      country_codes: inst.country_codes,
+      products: inst.products,
+      oauth: inst.oauth
+    }));
+
+    res.json({
+      status: 'success',
+      total: institutions.length,
+      institutions: institutions
+    });
+  } catch (error: any) {
+    logger.error('Failed to fetch institutions:', error);
+    res.status(500).json({
+      status: 'error',
+      error: error.message,
+      message: 'Failed to fetch supported institutions'
     });
   }
 });
