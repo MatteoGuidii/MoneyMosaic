@@ -15,7 +15,10 @@ const Budget = lazy(() => import('./pages/Budget'))
 function App() {
   return (
     <ThemeProvider>
-      <Router>
+      <Router future={{ 
+        v7_relativeSplatPath: true,
+        v7_startTransition: true 
+      }}>
         <div className="min-h-screen bg-gradient-to-br from-zinc-50 via-neutral-50 to-stone-50 dark:from-zinc-950 dark:via-neutral-950 dark:to-stone-950">
           <Layout>
             <Suspense fallback={
