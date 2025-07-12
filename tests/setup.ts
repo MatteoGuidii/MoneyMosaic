@@ -11,8 +11,13 @@ process.env.PLAID_ENV = 'sandbox';
 const originalLog = console.log;
 const originalError = console.error;
 
-// Completely silence console output during tests for clean results
+// Conditionally silence console output during tests based on environment
+const isVerbose = process.env.VERBOSE_LOGS === 'true';
 console.log = (...args) => {
+  if (isVerbose) {
+    originalLog(...args);
+    return;
+  }
   // Only show logs that are explicitly marked as critical/important
   const logText = args.join(' ');
   if (logText.includes('CRITICAL') || logText.includes('FATAL') || logText.includes('IMPORTANT')) {
@@ -22,6 +27,10 @@ console.log = (...args) => {
 };
 
 console.error = (...args) => {
+  if (isVerbose) {
+    originalError(...args);
+    return;
+  }
   // Only show truly unexpected errors
   const errorText = args.join(' ');
   if (errorText.includes('CRITICAL') || errorText.includes('FATAL') || errorText.includes('UNEXPECTED')) {

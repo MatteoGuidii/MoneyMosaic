@@ -74,6 +74,7 @@ export class BankService {
   }
 
   // Fetch transactions for all connected banks
+  // Note: Default changed from 30 to 730 days (major version change)
   async fetchAllTransactions(days: number = 730): Promise<{
     transactions: any[];
     summary: any;

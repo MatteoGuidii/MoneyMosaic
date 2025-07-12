@@ -7,7 +7,6 @@ import { database } from '../database';
 
 export class SchedulerService {
   private jobs: Map<string, cron.ScheduledTask> = new Map();
-  private activeJobs: Set<string> = new Set();
 
   // Start the automatic transaction sync job
   startTransactionSync(intervalHours: number = 6): void {
@@ -29,7 +28,6 @@ export class SchedulerService {
     });
 
     this.jobs.set('transaction-sync', job);
-    this.activeJobs.add('transaction-sync');
     
     logger.info(`🕒 Transaction sync scheduled every ${intervalHours} hours`);
   }
@@ -65,7 +63,6 @@ export class SchedulerService {
     });
 
     this.jobs.set('investment-sync', job);
-    this.activeJobs.add('investment-sync');
     
     logger.info(`📈 Investment sync scheduled every ${intervalHours} hours`);
   }
@@ -86,7 +83,6 @@ export class SchedulerService {
     });
 
     this.jobs.set('market-data-refresh', job);
-    this.activeJobs.add('market-data-refresh');
     
     logger.info(`📊 Market data refresh scheduled every 15 minutes during market hours`);
   }
@@ -117,7 +113,6 @@ export class SchedulerService {
     });
 
     this.jobs.set('health-check', job);
-    this.activeJobs.add('health-check');
     
     logger.info('🏥 Health check scheduled daily at midnight');
   }
@@ -138,7 +133,6 @@ export class SchedulerService {
     if (job) {
       job.stop();
       this.jobs.delete(jobName);
-      this.activeJobs.delete(jobName);
       logger.info(`⏹️ Stopped job: ${jobName}`);
     }
   }
@@ -150,7 +144,6 @@ export class SchedulerService {
       logger.info(`⏹️ Stopped job: ${name}`);
     });
     this.jobs.clear();
-    this.activeJobs.clear();
     logger.info('⏹️ All background jobs stopped');
   }
 
@@ -158,7 +151,7 @@ export class SchedulerService {
   getJobStatus(): { [key: string]: boolean } {
     const status: { [key: string]: boolean } = {};
     this.jobs.forEach((_job, name) => {
-      status[name] = this.activeJobs.has(name); // Check if the job is actively scheduled
+      status[name] = this.jobs.has(name); // Check if the job is actively scheduled
     });
     return status;
   }
