@@ -1,159 +1,211 @@
 import { BankService } from '../../src/services/bank.service';
-import { Database } from '../../src/database';
+import { database } from '../../src/database';
 import { plaidClient } from '../../src/plaidClient';
-import fs from 'fs';
+import { formatISO, subDays } from 'date-fns';
 
-// Mock plaidClient
-jest.mock('../../src/plaidClient', () => ({
-  plaidClient: {
-    itemPublicTokenExchange: jest.fn(),
-    institutionsGetById: jest.fn(),
-    accountsGet: jest.fn(),
-    transactionsGet: jest.fn(),
-  },
-}));
+// Mock dependencies
+jest.mock('../../src/database');
+jest.mock('../../src/plaidClient');
+jest.mock('date-fns');
 
-describe('BankService', () => {
-  let testDatabase: Database;
+const mockDatabase = database as jest.Mocked<typeof database>;
+const mockPlaidClient = plaidClient as jest.Mocked<typeof plaidClient>;
+const mockFormatISO = formatISO as jest.MockedFunction<typeof formatISO>;
+const mockSubDays = subDays as jest.MockedFunction<typeof subDays>;
+
+describe('BankService - Comprehensive Tests', () => {
   let bankService: BankService;
-  let testDbPath: string;
 
-  beforeEach(async () => {
-    // Create a unique test database for each test
-    testDbPath = (global as any).getUniqueTestDbPath();
-    
-    // Clean up test database
-    if (fs.existsSync(testDbPath)) {
-      fs.unlinkSync(testDbPath);
-    }
-    
-    // Create test database and service
-    testDatabase = new Database(testDbPath);
-    bankService = new BankService(testDatabase);
-    
-    // Wait for database initialization
-    await new Promise(resolve => setTimeout(resolve, 100));
-    
-    // Reset all mocks
+  beforeEach(() => {
     jest.clearAllMocks();
+    bankService = new BankService();
+    
+    // Setup date mocks
+    mockFormatISO.mockReturnValue('2023-01-01');
+    mockSubDays.mockReturnValue(new Date('2023-01-01'));
+    
+    // Mock database.getTransactionSummary to return consistent structure
+    mockDatabase.getTransactionSummary.mockResolvedValue({
+      totalSpending: 0,
+      totalIncome: 0,
+      byCategory: {},
+      byInstitution: {}
+    });
+    
+    // Suppress console output in tests
+    jest.spyOn(console, 'log').mockImplementation(() => {});
+    jest.spyOn(console, 'error').mockImplementation(() => {});
   });
 
-  afterEach(async () => {
-    if (testDatabase) {
-      await testDatabase.close();
-    }
-    if (fs.existsSync(testDbPath)) {
-      fs.unlinkSync(testDbPath);
-    }
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
   describe('addBankConnection', () => {
     it('should successfully add a bank connection', async () => {
-      const mockExchangeResponse = {
-        data: {
-          access_token: 'test_access_token',
-          item_id: 'test_item_id',
-        },
+      const mockTokenData = {
+        access_token: 'access-sandbox-test-token',
+        item_id: 'test-item-id'
       };
 
-      const mockInstitutionResponse = {
-        data: {
-          institution: {
-            institution_id: 'test_institution_id',
-            name: 'Test Bank',
-            url: 'https://testbank.com',
-            primary_color: '#000000',
-            logo: 'https://testbank.com/logo.png',
-          },
-        },
+      const mockInstitution = {
+        institution_id: 'ins_123',
+        name: 'Test Bank'
       };
 
-      const mockAccountsResponse = {
+      const connectionData = {
+        public_token: 'public-token-test',
+        institution: mockInstitution
+      };
+
+      mockPlaidClient.itemPublicTokenExchange.mockResolvedValue({
+        data: mockTokenData
+      } as any);
+
+      mockDatabase.saveInstitution.mockResolvedValue(undefined);
+      mockDatabase.getInstitutionByAccessToken.mockResolvedValue({
+        id: 1,
+        name: 'Test Bank'
+      });
+
+      mockPlaidClient.accountsGet.mockResolvedValue({
         data: {
           accounts: [
             {
-              account_id: 'test_account_id',
-              name: 'Test Checking',
+              account_id: 'acc_1',
+              name: 'Checking',
               official_name: 'Test Checking Account',
               type: 'depository',
               subtype: 'checking',
-              mask: '1234',
+              mask: '0000',
               balances: {
-                current: 1000.00,
-                available: 950.00,
-              },
-            },
-          ],
-        },
-      };
+                current: 1000,
+                available: 950
+              }
+            }
+          ]
+        }
+      } as any);
 
-      (plaidClient.itemPublicTokenExchange as jest.Mock).mockResolvedValue(mockExchangeResponse);
-      (plaidClient.institutionsGetById as jest.Mock).mockResolvedValue(mockInstitutionResponse);
-      (plaidClient.accountsGet as jest.Mock).mockResolvedValue(mockAccountsResponse);
+      mockDatabase.saveAccount.mockResolvedValue(undefined);
 
-      const result = await bankService.addBankConnection({
-        public_token: 'test_public_token',
-        institution: {
-          institution_id: 'test_institution_id',
-          name: 'Test Bank',
-        },
+      const result = await bankService.addBankConnection(connectionData);
+
+      expect(result).toEqual({
+        access_token: 'access-sandbox-test-token',
+        item_id: 'test-item-id'
       });
 
-      expect(result.access_token).toBe('test_access_token');
-      expect(result.item_id).toBe('test_item_id');
-      expect(plaidClient.itemPublicTokenExchange).toHaveBeenCalledWith({
-        public_token: 'test_public_token',
+      expect(mockPlaidClient.itemPublicTokenExchange).toHaveBeenCalledWith({
+        public_token: 'public-token-test'
+      });
+      expect(mockDatabase.saveInstitution).toHaveBeenCalledWith({
+        institution_id: 'ins_123',
+        name: 'Test Bank',
+        access_token: 'access-sandbox-test-token',
+        item_id: 'test-item-id'
       });
     });
 
-    it('should handle Plaid API errors', async () => {
-      (plaidClient.itemPublicTokenExchange as jest.Mock).mockRejectedValue(new Error('Plaid API Error'));
+    it('should handle Plaid API errors during token exchange', async () => {
+      const connectionData = {
+        public_token: 'invalid-token',
+        institution: {
+          institution_id: 'ins_123',
+          name: 'Test Bank'
+        }
+      };
 
-      await expect(
-        bankService.addBankConnection({
-          public_token: 'invalid_token',
-          institution: {
-            institution_id: 'test_institution_id',
-            name: 'Test Bank',
-          },
-        })
-      ).rejects.toThrow('Plaid API Error');
+      mockPlaidClient.itemPublicTokenExchange.mockRejectedValue(
+        new Error('INVALID_PUBLIC_TOKEN')
+      );
+
+      await expect(bankService.addBankConnection(connectionData)).rejects.toThrow(
+        'INVALID_PUBLIC_TOKEN'
+      );
+    });
+
+    it('should handle database errors during institution save', async () => {
+      const connectionData = {
+        public_token: 'public-token-test',
+        institution: {
+          institution_id: 'ins_123',
+          name: 'Test Bank'
+        }
+      };
+
+      mockPlaidClient.itemPublicTokenExchange.mockResolvedValue({
+        data: {
+          access_token: 'access-token',
+          item_id: 'item-id'
+        }
+      } as any);
+
+      mockDatabase.saveInstitution.mockRejectedValue(new Error('Database error'));
+
+      await expect(bankService.addBankConnection(connectionData)).rejects.toThrow(
+        'Database error'
+      );
+    });
+
+    it('should handle errors during account fetching', async () => {
+      const connectionData = {
+        public_token: 'public-token-test',
+        institution: {
+          institution_id: 'ins_123',
+          name: 'Test Bank'
+        }
+      };
+
+      mockPlaidClient.itemPublicTokenExchange.mockResolvedValue({
+        data: {
+          access_token: 'access-token',
+          item_id: 'item-id'
+        }
+      } as any);
+
+      mockDatabase.saveInstitution.mockResolvedValue(undefined);
+      mockPlaidClient.accountsGet.mockRejectedValue(new Error('INVALID_ACCESS_TOKEN'));
+
+      await expect(bankService.addBankConnection(connectionData)).rejects.toThrow(
+        'INVALID_ACCESS_TOKEN'
+      );
     });
   });
 
   describe('fetchAllTransactions', () => {
-    it('should fetch transactions for all connected banks', async () => {
-      // Setup a test institution and account first
-      await testDatabase.saveInstitution({
-        institution_id: 'test_institution_id',
-        name: 'Test Bank',
-        access_token: 'access-sandbox-test-institution-token',
-        item_id: 'test_item_id',
-      });
+    it('should fetch transactions from all connected institutions', async () => {
+      const institutions = [
+        {
+          id: 1,
+          name: 'Test Bank 1',
+          access_token: 'access-sandbox-test-token-1',
+          item_id: 'item-1'
+        },
+        {
+          id: 2,
+          name: 'Test Bank 2',
+          access_token: 'access-sandbox-test-token-2',
+          item_id: 'item-2'
+        }
+      ];
 
-      const savedInstitution = await testDatabase.getInstitutionByAccessToken('access-sandbox-test-institution-token');
-      
-      await testDatabase.saveAccount({
-        account_id: 'test_account_id',
-        institution_id: savedInstitution.id,
-        name: 'Test Checking',
-        type: 'depository',
-      });
+      mockDatabase.getInstitutions.mockResolvedValue(institutions);
 
       const mockTransactionsResponse = {
         data: {
           accounts: [
             {
-              account_id: 'test_account_id',
-              name: 'Test Checking',
+              account_id: 'acc_1',
+              name: 'Checking',
               type: 'depository',
-              subtype: 'checking',
-            },
+              subtype: 'checking'
+            }
           ],
           transactions: [
             {
               transaction_id: 'txn_1',
-              account_id: 'test_account_id',
+              account_id: 'acc_1',
               amount: 25.50,
               date: '2023-01-01',
               name: 'Test Purchase',
@@ -161,108 +213,429 @@ describe('BankService', () => {
               category: ['Food and Drink', 'Restaurants'],
               type: 'place',
               pending: false,
-            },
+              personal_finance_category: {
+                primary: 'FOOD_AND_DRINK',
+                detailed: 'FOOD_AND_DRINK_RESTAURANTS'
+              }
+            }
           ],
-          total_transactions: 1,
-        },
+          total_transactions: 1
+        }
       };
 
-      (plaidClient.transactionsGet as jest.Mock).mockResolvedValue(mockTransactionsResponse);
+      mockPlaidClient.transactionsGet.mockResolvedValue(mockTransactionsResponse as any);
+      mockDatabase.saveTransaction.mockResolvedValue(undefined);
+      mockDatabase.getTransactions.mockResolvedValue([
+        {
+          transaction_id: 'txn_1',
+          account_id: 'acc_1',
+          amount: 25.50,
+          date: '2023-01-01',
+          name: 'Test Purchase',
+          institution_name: 'Test Bank 1',
+          account_name: 'Checking'
+        }
+      ]);
+      mockDatabase.getTransactionSummary.mockResolvedValue({
+        totalSpending: 25.50,
+        totalIncome: 0,
+        byCategory: { 'Food and Drink': 25.50 },
+        byInstitution: { 'Test Bank 1': 25.50 }
+      });
 
       const result = await bankService.fetchAllTransactions(30);
 
-      expect(result.transactions).toBeDefined();
-      expect(result.summary).toBeDefined();
-      expect(plaidClient.transactionsGet).toHaveBeenCalled();
+      expect(result).toHaveProperty('transactions');
+      expect(result).toHaveProperty('summary');
+      expect(result.transactions).toHaveLength(2); // 2 calls to getTransactions
+      expect(mockPlaidClient.transactionsGet).toHaveBeenCalledTimes(2);
     });
 
-    it('should handle no connected banks', async () => {
+    it('should handle case with no connected institutions', async () => {
+      mockDatabase.getInstitutions.mockResolvedValue([]);
+
       const result = await bankService.fetchAllTransactions(30);
 
-      expect(result.transactions).toBeDefined();
-      expect(result.summary).toBeDefined();
+      expect(result).toEqual({
+        transactions: [],
+        summary: {
+          totalExpenses: 0,
+          totalIncome: 0,
+          netCashFlow: 0,
+          transactionCount: 0
+        }
+      });
+    });
+
+    it('should handle invalid access tokens gracefully', async () => {
+      const institutions = [
+        {
+          id: 1,
+          name: 'Test Bank',
+          access_token: 'invalid-token-format',
+          item_id: 'item-1'
+        }
+      ];
+
+      mockDatabase.getInstitutions.mockResolvedValue(institutions);
+
+      const result = await bankService.fetchAllTransactions(30);
+
+      expect(result).toEqual({
+        transactions: [],
+        summary: {
+          totalSpending: 0,
+          totalIncome: 0,
+          byCategory: {},
+          byInstitution: {}
+        }
+      });
+    });
+
+    it('should handle Plaid API errors gracefully', async () => {
+      const institutions = [
+        {
+          id: 1,
+          name: 'Test Bank',
+          access_token: 'access-sandbox-test-token',
+          item_id: 'item-1'
+        }
+      ];
+
+      mockDatabase.getInstitutions.mockResolvedValue(institutions);
+      mockDatabase.getTransactionSummary.mockResolvedValue({
+        totalSpending: 0,
+        totalIncome: 0,
+        byCategory: {},
+        byInstitution: {}
+      });
+      
+      // Mock the plaidClient.transactionsGet to reject with an error
+      mockPlaidClient.transactionsGet.mockRejectedValue(new Error('API Error'));
+
+      const result = await bankService.fetchAllTransactions(30);
+
+      expect(result).toEqual({
+        transactions: [],
+        summary: {
+          totalSpending: 0,
+          totalIncome: 0,
+          byCategory: {},
+          byInstitution: {}
+        }
+      });
+    });
+
+    it('should handle INVALID_ACCESS_TOKEN errors and mark tokens as invalid', async () => {
+      const institutions = [
+        {
+          id: 1,
+          name: 'Test Bank',
+          access_token: 'access-sandbox-test-token',
+          item_id: 'item-1'
+        }
+      ];
+
+      mockDatabase.getInstitutions.mockResolvedValue(institutions);
+      mockPlaidClient.transactionsGet.mockRejectedValue({
+        response: {
+          data: {
+            error_code: 'INVALID_ACCESS_TOKEN'
+          }
+        }
+      });
+      mockDatabase.getTransactionSummary.mockResolvedValue({
+        totalSpending: 0,
+        totalIncome: 0,
+        byCategory: {},
+        byInstitution: {}
+      });
+
+      const result = await bankService.fetchAllTransactions(30);
+
+      expect(result).toEqual({
+        transactions: [],
+        summary: {
+          totalSpending: 0,
+          totalIncome: 0,
+          byCategory: {},
+          byInstitution: {}
+        }
+      });
     });
   });
 
   describe('getConnectedBanks', () => {
-    it('should return connected banks', async () => {
-      await testDatabase.saveInstitution({
-        institution_id: 'test_institution_id',
-        name: 'Test Bank',
-        access_token: 'test_access_token',
-        item_id: 'test_item_id',
-      });
+    it('should return list of connected banks', async () => {
+      const mockInstitutions = [
+        {
+          id: 1,
+          name: 'Test Bank 1',
+          access_token: 'token-1',
+          item_id: 'item-1',
+          created_at: '2023-01-01'
+        },
+        {
+          id: 2,
+          name: 'Test Bank 2',
+          access_token: 'token-2',
+          item_id: 'item-2',
+          created_at: '2023-01-02'
+        }
+      ];
 
-      const banks = await bankService.getConnectedBanks();
+      mockDatabase.getInstitutions.mockResolvedValue(mockInstitutions);
 
-      expect(banks).toHaveLength(1);
-      expect(banks[0].name).toBe('Test Bank');
+      const result = await bankService.getConnectedBanks();
+
+      expect(result).toHaveLength(2);
+      expect(result[0].name).toBe('Test Bank 1');
+      expect(result[1].name).toBe('Test Bank 2');
     });
 
     it('should return empty array when no banks connected', async () => {
-      const banks = await bankService.getConnectedBanks();
+      mockDatabase.getInstitutions.mockResolvedValue([]);
 
-      expect(banks).toHaveLength(0);
+      const result = await bankService.getConnectedBanks();
+
+      expect(result).toHaveLength(0);
+    });
+
+    it('should handle database errors', async () => {
+      mockDatabase.getInstitutions.mockRejectedValue(new Error('Database error'));
+
+      await expect(bankService.getConnectedBanks()).rejects.toThrow('Database error');
     });
   });
 
   describe('removeBankConnection', () => {
-    it('should remove a bank connection', async () => {
-      await testDatabase.saveInstitution({
-        institution_id: 'test_institution_id',
-        name: 'Test Bank',
-        access_token: 'test_access_token',
-        item_id: 'test_item_id',
-      });
-
-      const savedInstitution = await testDatabase.getInstitutionByAccessToken('test_access_token');
+    it('should remove a bank connection and associated data', async () => {
+      const institutionId = 1;
       
-      await bankService.removeBankConnection(savedInstitution.id);
+      const mockAccounts = [
+        { account_id: 'acc_1' },
+        { account_id: 'acc_2' }
+      ];
 
-      const banks = await bankService.getConnectedBanks();
-      expect(banks).toHaveLength(0);
+      mockDatabase.run.mockResolvedValue(undefined);
+      mockDatabase.all.mockResolvedValue(mockAccounts);
+
+      await bankService.removeBankConnection(institutionId);
+
+      // Check that transaction was started
+      expect(mockDatabase.run).toHaveBeenCalledWith('BEGIN TRANSACTION');
+      
+      // Check that accounts were fetched
+      expect(mockDatabase.all).toHaveBeenCalledWith(
+        'SELECT account_id FROM accounts WHERE institution_id = ?',
+        [institutionId]
+      );
+      
+      // Check that transaction was committed
+      expect(mockDatabase.run).toHaveBeenCalledWith('COMMIT');
+    });
+
+    it('should handle database errors when removing connection', async () => {
+      const institutionId = 1;
+      
+      mockDatabase.run.mockRejectedValue(new Error('Database error'));
+
+      await expect(bankService.removeBankConnection(institutionId)).rejects.toThrow(
+        'Database error'
+      );
+    });
+
+    it('should rollback transaction on error', async () => {
+      const institutionId = 1;
+      
+      mockDatabase.run
+        .mockResolvedValueOnce(undefined) // BEGIN TRANSACTION
+        .mockRejectedValueOnce(new Error('SQL error')); // First DELETE operation fails
+      
+      mockDatabase.all.mockResolvedValue([{ account_id: 'acc_1' }]);
+
+      await expect(bankService.removeBankConnection(institutionId)).rejects.toThrow();
+      
+      expect(mockDatabase.run).toHaveBeenCalledWith('ROLLBACK');
     });
   });
 
   describe('checkConnectionHealth', () => {
     it('should check health of all connections', async () => {
-      await testDatabase.saveInstitution({
-        institution_id: 'test_institution_id',
-        name: 'Test Bank',
-        access_token: 'test_access_token',
-        item_id: 'test_item_id',
-      });
-
-      const mockAccountsResponse = {
-        data: {
-          accounts: [],
+      const mockInstitutions = [
+        {
+          id: 1,
+          name: 'Healthy Bank',
+          access_token: 'access-sandbox-test-token',
+          item_id: 'item-1'
         },
-      };
+        {
+          id: 2,
+          name: 'Unhealthy Bank',
+          access_token: 'access-sandbox-invalid-token',
+          item_id: 'item-2'
+        }
+      ];
 
-      (plaidClient.accountsGet as jest.Mock).mockResolvedValue(mockAccountsResponse);
+      mockDatabase.getInstitutions.mockResolvedValue(mockInstitutions);
 
-      const health = await bankService.checkConnectionHealth();
+      mockPlaidClient.accountsGet
+        .mockResolvedValueOnce({ data: { accounts: [] } } as any)
+        .mockRejectedValueOnce({ 
+          error_code: 'INVALID_ACCESS_TOKEN'
+        });
 
-      expect(health.healthy).toHaveLength(1);
-      expect(health.unhealthy).toHaveLength(0);
-      expect(health.healthy).toContain('Test Bank');
+      const result = await bankService.checkConnectionHealth();
+
+      expect(result.healthy).toContain('Healthy Bank');
+      expect(result.unhealthy).toHaveLength(1);
+      expect(result.unhealthy[0].name).toBe('Unhealthy Bank');
+      expect(result.unhealthy[0].error).toBe('INVALID_ACCESS_TOKEN');
     });
 
-    it('should handle connection failures', async () => {
-      await testDatabase.saveInstitution({
-        institution_id: 'test_institution_id',
-        name: 'Test Bank',
-        access_token: 'test_access_token',
-        item_id: 'test_item_id',
+    it('should handle case with no institutions', async () => {
+      mockDatabase.getInstitutions.mockResolvedValue([]);
+
+      const result = await bankService.checkConnectionHealth();
+
+      expect(result.healthy).toHaveLength(0);
+      expect(result.unhealthy).toHaveLength(0);
+    });
+
+    it('should handle database errors', async () => {
+      mockDatabase.getInstitutions.mockRejectedValue(new Error('Database error'));
+
+      await expect(bankService.checkConnectionHealth()).rejects.toThrow('Database error');
+    });
+  });
+
+  describe('syncBankData', () => {
+    it('should sync data for all connected institutions', async () => {
+      const mockInstitutions = [
+        {
+          id: 1,
+          name: 'Test Bank',
+          access_token: 'access-sandbox-test-token',
+          item_id: 'item-1'
+        }
+      ];
+
+      mockDatabase.getInstitutions.mockResolvedValue(mockInstitutions);
+      mockDatabase.getInstitutionByAccessToken.mockResolvedValue({
+        id: 1,
+        name: 'Test Bank'
       });
 
-      (plaidClient.accountsGet as jest.Mock).mockRejectedValue(new Error('Connection failed'));
+      mockPlaidClient.accountsGet.mockResolvedValue({
+        data: {
+          accounts: [
+            {
+              account_id: 'acc_1',
+              name: 'Checking',
+              type: 'depository',
+              subtype: 'checking',
+              balances: {
+                current: 1000,
+                available: 950
+              }
+            }
+          ]
+        }
+      } as any);
 
-      const health = await bankService.checkConnectionHealth();
+      mockDatabase.saveAccount.mockResolvedValue(undefined);
 
-      expect(health.healthy).toHaveLength(0);
-      expect(health.unhealthy).toHaveLength(1);
-      expect(health.unhealthy[0].name).toBe('Test Bank');
+      const mockTransactionsResponse = {
+        data: {
+          accounts: [
+            {
+              account_id: 'acc_1',
+              name: 'Checking',
+              type: 'depository',
+              subtype: 'checking'
+            }
+          ],
+          transactions: [
+            {
+              transaction_id: 'txn_1',
+              account_id: 'acc_1',
+              amount: 25.50,
+              date: '2023-01-01',
+              name: 'Test Purchase',
+              category: ['Food and Drink'],
+              type: 'place',
+              pending: false,
+              personal_finance_category: {
+                primary: 'FOOD_AND_DRINK',
+                detailed: 'FOOD_AND_DRINK_RESTAURANTS'
+              }
+            }
+          ],
+          total_transactions: 1
+        }
+      };
+
+      mockPlaidClient.transactionsGet.mockResolvedValue(mockTransactionsResponse as any);
+      mockDatabase.saveTransaction.mockResolvedValue(undefined);
+
+      await bankService.syncBankData();
+
+      expect(mockDatabase.getInstitutions).toHaveBeenCalled();
+      expect(mockPlaidClient.accountsGet).toHaveBeenCalled();
+      expect(mockPlaidClient.transactionsGet).toHaveBeenCalled();
+    });
+
+    it('should handle errors for individual institutions gracefully', async () => {
+      const mockInstitutions = [
+        {
+          id: 1,
+          name: 'Test Bank 1',
+          access_token: 'access-sandbox-test-token-1',
+          item_id: 'item-1'
+        },
+        {
+          id: 2,
+          name: 'Test Bank 2',
+          access_token: 'access-sandbox-test-token-2',
+          item_id: 'item-2'
+        }
+      ];
+
+      mockDatabase.getInstitutions.mockResolvedValue(mockInstitutions);
+      mockPlaidClient.accountsGet
+        .mockRejectedValueOnce(new Error('INVALID_ACCESS_TOKEN'))
+        .mockResolvedValueOnce({
+          data: {
+            accounts: []
+          }
+        } as any);
+
+      await bankService.syncBankData();
+
+      expect(mockDatabase.getInstitutions).toHaveBeenCalled();
+      expect(mockPlaidClient.accountsGet).toHaveBeenCalledTimes(2);
+    });
+
+    it('should handle case with no institutions', async () => {
+      mockDatabase.getInstitutions.mockResolvedValue([]);
+
+      await bankService.syncBankData();
+
+      expect(mockDatabase.getInstitutions).toHaveBeenCalled();
+      expect(mockPlaidClient.accountsGet).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('constructor', () => {
+    it('should create instance with default database', () => {
+      const service = new BankService();
+      expect(service).toBeInstanceOf(BankService);
+    });
+
+    it('should create instance with provided database', () => {
+      const mockDb = {} as any;
+      const service = new BankService(mockDb);
+      expect(service).toBeInstanceOf(BankService);
     });
   });
 });

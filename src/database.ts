@@ -26,7 +26,7 @@ export class Database {
     try {
       // Use AbortController for proper cleanup
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // Increased timeout
       
       try {
         await this.createTables();
@@ -282,10 +282,20 @@ export class Database {
   // Direct method that doesn't wait for initialization (used during initialization)
   private async runDirect(sql: string, params: any[] = []): Promise<void> {
     return new Promise((resolve, reject) => {
-      this.db.run(sql, params, function(err) {
-        if (err) reject(err);
-        else resolve();
-      });
+      // Check if database is still available
+      if (!this.db) {
+        reject(new Error('Database is not initialized'));
+        return;
+      }
+      
+      try {
+        this.db.run(sql, params, function(err) {
+          if (err) reject(err);
+          else resolve();
+        });
+      } catch (error) {
+        reject(error);
+      }
     });
   }
 
@@ -483,7 +493,7 @@ export class Database {
         SUM(ABS(amount)) as total
       FROM (
         SELECT 
-          CASE WHEN amount < 0 THEN 'spending' ELSE 'income' END as type,
+          CASE WHEN amount > 0 THEN 'spending' ELSE 'income' END as type,
           category_primary,
           i.name as institution_name,
           amount

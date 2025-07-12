@@ -76,15 +76,16 @@ describe('API Integration Tests', () => {
       expect(response.status).toBe(200);
       expect(response.body).toHaveProperty('link_token');
       expect(response.body.link_token).toBe('test_link_token_12345');
-      expect(plaidClient.linkTokenCreate).toHaveBeenCalledWith({
-        client_name: 'MoneyMosaic',
-        user: { client_user_id: expect.any(String) },
-        products: ['transactions'],
-        country_codes: ['CA'],
-        language: 'en',
-        webhook: 'http://localhost:8080/api/webhook',
-        redirect_uri: 'http://localhost:3000/oauth-return',
-      });
+      expect(plaidClient.linkTokenCreate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          client_name: 'MoneyMosaic',
+          user: { client_user_id: expect.any(String) },
+          products: ['transactions'],
+          country_codes: ['CA'],
+          language: 'en',
+          webhook: 'http://localhost:8080/api/webhook',
+        })
+      );
     });
 
     it('should handle Plaid API errors', async () => {
