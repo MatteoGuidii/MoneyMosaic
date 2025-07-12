@@ -8,6 +8,7 @@ import './index.css'
 // Lazy load pages
 const Dashboard = lazy(() => import('./pages/Dashboard'))
 const Transactions = lazy(() => import('./pages/Transactions'))
+const Analytics = lazy(() => import('./pages/Analytics'))
 const Accounts = lazy(() => import('./pages/Accounts'))
 const Investments = lazy(() => import('./pages/Investments'))
 const Budget = lazy(() => import('./pages/Budget'))
@@ -29,6 +30,7 @@ function App() {
               <Routes>
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/transactions" element={<Transactions />} />
+                <Route path="/analytics" element={<Analytics />} />
                 <Route path="/accounts" element={<Accounts />} />
                 <Route path="/investments" element={<Investments />} />
                 <Route path="/budget" element={<Budget />} />

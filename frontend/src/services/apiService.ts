@@ -540,6 +540,124 @@ class ApiService {
       }
     }
   }
+
+  // New advanced endpoints
+
+  // Get filtered transactions with advanced filtering
+  async fetchFilteredTransactions(filters: {
+    startDate?: string;
+    endDate?: string;
+    category?: string;
+    merchant?: string;
+    minAmount?: number;
+    maxAmount?: number;
+    type?: 'income' | 'expense';
+    includePending?: boolean;
+    search?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<{
+    transactions: Transaction[];
+    total: number;
+    summary: {
+      totalExpenses: number;
+      totalIncome: number;
+      netCashFlow: number;
+      transactionCount: number;
+    };
+  }> {
+    const params = new URLSearchParams();
+    
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined) {
+        params.append(key, value.toString());
+      }
+    });
+
+    const response = await fetch(`${this.baseURL}/transactions/?${params}`);
+    if (!response.ok) throw new Error('Failed to fetch filtered transactions');
+    return await response.json();
+  }
+
+  // Get spending trends
+  async fetchSpendingTrends(days: number = 90): Promise<{
+    weeklyTrends: { week: string; amount: number }[];
+    monthlyTrends: { month: string; amount: number }[];
+    categoryTrends: { category: string; trend: 'increasing' | 'decreasing' | 'stable'; changePercent: number }[];
+    topMerchants: { name: string; amount: number; frequency: number }[];
+  }> {
+    const response = await fetch(`${this.baseURL}/transactions/trends?days=${days}`);
+    if (!response.ok) throw new Error('Failed to fetch spending trends');
+    return await response.json();
+  }
+
+  // Get budget insights
+  async fetchBudgetInsights(): Promise<{
+    categorySpending: { category: string; spent: number; avgMonthly: number; recommendation: string }[];
+    unusualSpending: { merchant: string; amount: number; date: string; reason: string }[];
+    savingsOpportunities: { category: string; potentialSavings: number; suggestion: string }[];
+  }> {
+    const response = await fetch(`${this.baseURL}/transactions/insights`);
+    if (!response.ok) throw new Error('Failed to fetch budget insights');
+    return await response.json();
+  }
+
+  // Get advanced transaction summary
+  async fetchTransactionSummary(
+    period: string = 'month',
+    compareWithPrevious: boolean = false
+  ): Promise<{
+    summary: {
+      totalIncome: number;
+      totalExpenses: number;
+      netCashFlow: number;
+      transactionCount: number;
+      avgTransactionAmount: number;
+      topExpenseCategory: string;
+      savingsRate: number;
+    };
+    categoryBreakdown: { category: string; amount: number; percentage: number; transactionCount: number }[];
+    comparison?: {
+      previousPeriod: any;
+      changes: any;
+    };
+  }> {
+    const params = new URLSearchParams({
+      period,
+      compareWithPrevious: compareWithPrevious.toString()
+    });
+
+    const response = await fetch(`${this.baseURL}/transactions/summary?${params}`);
+    if (!response.ok) throw new Error('Failed to fetch transaction summary')
+    return await response.json();
+  }
+
+  // Get category analysis
+  async fetchCategoryAnalysis(category: string, days: number = 90): Promise<{
+    category: string;
+    totalSpent: number;
+    transactionCount: number;
+    avgPerTransaction: number;
+    trend: 'increasing' | 'decreasing' | 'stable';
+    topMerchants: { name: string; amount: number; frequency: number }[];
+    monthlyBreakdown: { month: string; amount: number }[];
+    recommendations: string[];
+  }> {
+    const response = await fetch(`${this.baseURL}/transactions/categories/${encodeURIComponent(category)}/analysis?days=${days}`);
+    if (!response.ok) throw new Error('Failed to fetch category analysis')
+    return await response.json();
+  }
+
+  // Get spending alerts
+  async fetchSpendingAlerts(): Promise<{
+    budgetAlerts: { category: string; budgetAmount: number; currentSpending: number; percentageUsed: number; severity: string; message: string }[];
+    spendingAlerts: { type: string; message: string; amount: number; date: string; severity: string }[];
+    recurringPayments: { merchant: string; amount: number; frequency: string; nextExpectedDate: string }[];
+  }> {
+    const response = await fetch(`${this.baseURL}/transactions/alerts`);
+    if (!response.ok) throw new Error('Failed to fetch spending alerts')
+    return await response.json();
+  }
 }
 
 export const apiService = new ApiService()

@@ -5,6 +5,7 @@ import ChartsSection from '../components/charts/ChartsSection'
 import BudgetSummaryWidget from '../components/widgets/BudgetSummaryWidget'
 import InvestmentSummaryWidget from '../components/widgets/InvestmentSummaryWidget'
 import RecentTransactionsWidget from '../components/widgets/RecentTransactionsWidget'
+import InsightPreview from '../components/widgets/InsightPreview'
 import LoadingSpinner from '../components/ui/LoadingSpinner'
 import SyncButton from '../components/SyncButton'
 import { apiService, OverviewData, SpendingData, CategoryData, EarningsData } from '../services/apiService'
@@ -164,9 +165,10 @@ const Dashboard: React.FC = () => {
       </div>
 
       {/* Financial Summary Widgets */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <BudgetSummaryWidget />
         <InvestmentSummaryWidget />
+        <InsightPreview />
       </div>
 
       {/* Recent Transactions & Cash Flow */}
