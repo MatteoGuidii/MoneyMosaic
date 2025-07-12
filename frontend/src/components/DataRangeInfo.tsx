@@ -12,9 +12,11 @@ interface DateRangeInfo {
 
 interface DataRangeInfoProps {
   onRefresh?: () => void
+  selectedDateRange?: string
+  customDateRange?: { start: string; end: string }
 }
 
-const DataRangeInfo: React.FC<DataRangeInfoProps> = ({ onRefresh }) => {
+const DataRangeInfo: React.FC<DataRangeInfoProps> = ({ onRefresh, selectedDateRange, customDateRange }) => {
   const [dateRanges, setDateRanges] = useState<DateRangeInfo[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -51,6 +53,22 @@ const DataRangeInfo: React.FC<DataRangeInfoProps> = ({ onRefresh }) => {
       month: 'short',
       day: 'numeric'
     })
+  }
+
+  const getSelectedDateRangeDisplay = () => {
+    if (customDateRange && customDateRange.start && customDateRange.end) {
+      return `${formatDate(customDateRange.start)} - ${formatDate(customDateRange.end)}`
+    }
+    
+    if (selectedDateRange) {
+      const days = parseInt(selectedDateRange)
+      const endDate = new Date()
+      const startDate = new Date()
+      startDate.setDate(startDate.getDate() - days)
+      return `${formatDate(startDate.toISOString().split('T')[0])} - ${formatDate(endDate.toISOString().split('T')[0])}`
+    }
+    
+    return null
   }
 
   if (loading) {
@@ -103,11 +121,15 @@ const DataRangeInfo: React.FC<DataRangeInfoProps> = ({ onRefresh }) => {
                     {range.availableTransactionCount > 0 ? (
                       <>
                         <span className="font-medium">{range.availableTransactionCount}</span> transactions available
-                        {range.earliestDate && range.latestDate && (
+                        {getSelectedDateRangeDisplay() ? (
+                          <span className="ml-1">
+                            ({getSelectedDateRangeDisplay()})
+                          </span>
+                        ) : range.earliestDate && range.latestDate ? (
                           <span className="ml-1">
                             ({formatDate(range.earliestDate)} - {formatDate(range.latestDate)})
                           </span>
-                        )}
+                        ) : null}
                       </>
                     ) : (
                       <span>No transaction data available</span>
@@ -124,6 +146,11 @@ const DataRangeInfo: React.FC<DataRangeInfoProps> = ({ onRefresh }) => {
           )}
           
           <div className="mt-3 text-xs text-blue-600 dark:text-blue-400">
+            {getSelectedDateRangeDisplay() && (
+              <p className="mb-2">
+                <strong>Selected Range:</strong> {getSelectedDateRangeDisplay()}
+              </p>
+            )}
             <p>
               <strong>Note:</strong> The available date range depends on your bank's data sharing policy. 
               Some banks only provide recent transactions (30-180 days), while others may provide up to 2 years of history.

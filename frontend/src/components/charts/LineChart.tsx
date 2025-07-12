@@ -10,9 +10,10 @@ interface TransactionTrendsData {
 
 interface LineChartProps {
   data: TransactionTrendsData[]
+  hideIncomeWhenAllExpenses?: boolean
 }
 
-const LineChart: React.FC<LineChartProps> = ({ data }) => {
+const LineChart: React.FC<LineChartProps> = ({ data, hideIncomeWhenAllExpenses = false }) => {
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-CA', {
       style: 'currency',
@@ -40,6 +41,9 @@ const LineChart: React.FC<LineChartProps> = ({ data }) => {
   // If no data or all data points are empty (all zeros), show empty state
   const hasData = data && data.length > 0 && 
     data.some(item => item.income > 0 || item.spending > 0)
+
+  // Check if all transactions are expenses (spending) to conditionally hide income line
+  const allExpenses = hideIncomeWhenAllExpenses && data.every(item => item.income === 0)
 
   if (!hasData) {
     return (
@@ -70,14 +74,17 @@ const LineChart: React.FC<LineChartProps> = ({ data }) => {
           />
           <Tooltip content={<CustomTooltip />} />
           <Legend />
-          <Line 
-            type="monotone" 
-            dataKey="income" 
-            stroke="#10b981" 
-            strokeWidth={2}
-            name="Income"
-            dot={{ fill: '#10b981', strokeWidth: 2, r: 4 }}
-          />
+          {/* Only show income line if we have income data or if we're not hiding it */}
+          {!allExpenses && (
+            <Line 
+              type="monotone" 
+              dataKey="income" 
+              stroke="#10b981" 
+              strokeWidth={2}
+              name="Income"
+              dot={{ fill: '#10b981', strokeWidth: 2, r: 4 }}
+            />
+          )}
           <Line 
             type="monotone" 
             dataKey="spending" 

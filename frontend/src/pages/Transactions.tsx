@@ -455,17 +455,39 @@ const Transactions: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Transaction Trends Chart */}
         <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm">
-          <div className="flex items-center space-x-2 mb-4">
-            <TrendingUp className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-              {filters.dateRange === '7' ? '7-Day' : 
-               filters.dateRange === '30' ? '30-Day' :
-               filters.dateRange === '90' ? '90-Day' :
-               filters.dateRange === '180' ? '6-Month' :
-               filters.dateRange === 'custom' ? 'Custom Range' : 'Transaction'} Trends
-            </h3>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center space-x-2">
+              <TrendingUp className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                {filters.dateRange === '7' ? '7-Day' : 
+                 filters.dateRange === '30' ? '30-Day' :
+                 filters.dateRange === '90' ? '90-Day' :
+                 filters.dateRange === '180' ? '6-Month' :
+                 filters.dateRange === 'custom' ? 'Custom Range' : 'Transaction'} Trends
+              </h3>
+            </div>
+            {filters.categories.length > 0 && (
+              <div className="flex items-center space-x-2">
+                <span className="text-xs text-gray-500 dark:text-gray-400">Filtered by:</span>
+                <div className="flex flex-wrap gap-1">
+                  {filters.categories.slice(0, 2).map(category => (
+                    <span key={category} className="bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-200 text-xs px-2 py-1 rounded-full">
+                      {category}
+                    </span>
+                  ))}
+                  {filters.categories.length > 2 && (
+                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                      +{filters.categories.length - 2} more
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
-          <LineChart data={trendsData} />
+          <LineChart 
+            data={trendsData} 
+            hideIncomeWhenAllExpenses={filters.categories.length > 0} 
+          />
         </div>
 
         {/* Category Breakdown */}
@@ -477,24 +499,37 @@ const Transactions: React.FC = () => {
                 Category Breakdown
               </h3>
             </div>
-            <select
-              value={filters.categories.length === 1 ? filters.categories[0] : 'all'}
-              onChange={(e) => {
-                if (e.target.value === 'all') {
-                  handleCategoryFilter([]);
-                } else {
-                  handleCategoryFilter([e.target.value]);
-                }
-              }}
-              className="text-sm border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="all">All Categories</option>
-              {allCategories.map(category => (
-                <option key={category} value={category}>
-                  {category}
-                </option>
-              ))}
-            </select>
+            <div className="flex flex-col items-end space-y-2">
+              <select
+                value={filters.categories.length === 1 ? filters.categories[0] : filters.categories.length > 1 ? 'multiple' : 'all'}
+                onChange={(e) => {
+                  if (e.target.value === 'all') {
+                    handleCategoryFilter([]);
+                  } else if (e.target.value === 'multiple') {
+                    // Keep existing multiple selection
+                    return;
+                  } else {
+                    handleCategoryFilter([e.target.value]);
+                  }
+                }}
+                className="text-sm border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="all">All Categories</option>
+                {filters.categories.length > 1 && (
+                  <option value="multiple">Multiple Categories ({filters.categories.length})</option>
+                )}
+                {allCategories.map(category => (
+                  <option key={category} value={category}>
+                    {category}
+                  </option>
+                ))}
+              </select>
+              {filters.categories.length > 0 && (
+                <span className="text-xs text-gray-500 dark:text-gray-400">
+                  Shows filtered data only
+                </span>
+              )}
+            </div>
           </div>
           {categoryData.length > 0 ? (
             <PieChart data={categoryData} />
@@ -510,17 +545,21 @@ const Transactions: React.FC = () => {
       <InsightsWidget insights={insights} />
 
       {/* Data Range Info */}
-      <DataRangeInfo onRefresh={() => {
-        // Trigger historical data fetch
-        fetch('/api/transactions/fetch-historical', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ startDate: '2024-01-01' })
-        }).then(() => {
-          // Refresh transactions after fetch
-          loadTransactions()
-        }).catch(console.error)
-      }} />
+      <DataRangeInfo 
+        selectedDateRange={filters.dateRange}
+        customDateRange={filters.customDateRange}
+        onRefresh={() => {
+          // Trigger historical data fetch
+          fetch('/api/transactions/fetch-historical', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ startDate: '2024-01-01' })
+          }).then(() => {
+            // Refresh transactions after fetch
+            loadTransactions()
+          }).catch(console.error)
+        }} 
+      />
 
       {/* Advanced Filters */}
       <Filter
