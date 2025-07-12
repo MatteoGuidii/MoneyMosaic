@@ -1,5 +1,6 @@
 import React from 'react'
 import { PieChart as RechartsPieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts'
+import { PieChart as PieChartIcon } from 'lucide-react'
 
 interface CategoryBreakdownData {
   category: string
@@ -55,6 +56,19 @@ const PieChart: React.FC<PieChartProps> = ({ data }) => {
       >
         {`${percentage.toFixed(0)}%`}
       </text>
+    )
+  }
+
+  // If no data, show empty state
+  if (!data || data.length === 0) {
+    return (
+      <div className="w-full h-64 flex flex-col items-center justify-center text-gray-500 dark:text-gray-400">
+        <PieChartIcon className="w-12 h-12 mb-4 opacity-30" />
+        <h4 className="text-lg font-medium mb-2">No Category Data</h4>
+        <p className="text-sm text-center">
+          Connect your bank accounts to see spending breakdown by category
+        </p>
+      </div>
     )
   }
 

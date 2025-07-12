@@ -1,5 +1,6 @@
 import React from 'react'
 import { LineChart as RechartsLineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
+import { TrendingUp } from 'lucide-react'
 
 interface TransactionTrendsData {
   date: string
@@ -34,6 +35,22 @@ const LineChart: React.FC<LineChartProps> = ({ data }) => {
       )
     }
     return null
+  }
+
+  // If no data or all data points are empty (all zeros), show empty state
+  const hasData = data && data.length > 0 && 
+    data.some(item => item.income > 0 || item.spending > 0)
+
+  if (!hasData) {
+    return (
+      <div className="w-full h-64 flex flex-col items-center justify-center text-gray-500 dark:text-gray-400">
+        <TrendingUp className="w-12 h-12 mb-4 opacity-30" />
+        <h4 className="text-lg font-medium mb-2">No Transaction Data</h4>
+        <p className="text-sm text-center">
+          Connect your bank accounts to see transaction trends
+        </p>
+      </div>
+    )
   }
 
   return (
