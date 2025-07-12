@@ -354,7 +354,9 @@ export class BankService {
           
           // Add a small delay to avoid rate limits
           if (hasMore) {
-            await new Promise(resolve => setTimeout(resolve, 100));
+            // Use minimal delay in production, keep some delay for development
+            const delay = process.env.NODE_ENV === 'production' ? 50 : 100;
+            await new Promise(resolve => setTimeout(resolve, delay));
           }
         } catch (error: any) {
           console.error(`Error fetching transactions at offset ${offset}:`, error);

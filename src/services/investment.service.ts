@@ -49,8 +49,11 @@ class MockMarketDataProvider implements MarketDataProvider {
   };
 
   async getQuote(symbol: string): Promise<any> {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 100));
+    // Simulate API delay only in development/test environments
+    // In production, we want faster responses for better user experience
+    if (process.env.NODE_ENV !== 'production') {
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
     
     const baseData = this.mockData[symbol];
     if (!baseData) {
@@ -447,7 +450,9 @@ export class InvestmentService {
         try {
           // Add delay between institutions to avoid rate limiting
           if (details.length > 0) {
-            await new Promise(resolve => setTimeout(resolve, 500)); // 500ms delay
+            // Use shorter delay in production, longer in development for testing
+            const delay = process.env.NODE_ENV === 'production' ? 100 : 500;
+            await new Promise(resolve => setTimeout(resolve, delay));
           }
 
           const supportsInvestments = await this.checkInvestmentSupport(institution.access_token, institution.id);
