@@ -278,6 +278,33 @@ export class Database {
     });
   }
 
+  // Clean all data from database (useful for sandbox cleanup)
+  public async cleanAllData(): Promise<void> {
+    await this.ensureInitialized();
+    
+    try {
+      console.log('Cleaning all data from database...');
+      
+      // Delete in reverse order of dependencies to avoid foreign key constraints
+      await this.run('DELETE FROM market_data');
+      await this.run('DELETE FROM investment_transactions');
+      await this.run('DELETE FROM holdings');
+      await this.run('DELETE FROM securities');
+      await this.run('DELETE FROM budgets');
+      await this.run('DELETE FROM transactions');
+      await this.run('DELETE FROM accounts');
+      await this.run('DELETE FROM institutions');
+      
+      // Reset auto-increment counters
+      await this.run("UPDATE sqlite_sequence SET seq = 0 WHERE name IN ('institutions', 'accounts', 'transactions', 'budgets', 'securities', 'holdings', 'investment_transactions', 'market_data')");
+      
+      console.log('Database cleaned successfully - all data removed');
+    } catch (error) {
+      console.error('Error cleaning database:', error);
+      throw error;
+    }
+  }
+
   // Promisify database methods for async/await
   // Direct method that doesn't wait for initialization (used during initialization)
   private async runDirect(sql: string, params: any[] = []): Promise<void> {
@@ -427,6 +454,40 @@ export class Database {
       data.type,
       data.pending ? 1 : 0
     ]);
+  }
+
+  async updateTransaction(transaction_id: string, data: {
+    amount: number;
+    date: string;
+    name: string;
+    merchant_name?: string;
+    category_primary?: string;
+    category_detailed?: string;
+    type: string;
+    pending: boolean;
+  }) {
+    await this.run(`
+      UPDATE transactions 
+      SET amount = ?, date = ?, name = ?, merchant_name = ?, 
+          category_primary = ?, category_detailed = ?, type = ?, pending = ?, updated_at = CURRENT_TIMESTAMP
+      WHERE transaction_id = ?
+    `, [
+      data.amount,
+      data.date,
+      data.name,
+      data.merchant_name,
+      data.category_primary,
+      data.category_detailed,
+      data.type,
+      data.pending ? 1 : 0,
+      transaction_id
+    ]);
+  }
+
+  async deleteTransaction(transaction_id: string) {
+    await this.run(`
+      DELETE FROM transactions WHERE transaction_id = ?
+    `, [transaction_id]);
   }
 
   async getTransactions(filters: {

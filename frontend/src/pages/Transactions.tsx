@@ -7,12 +7,13 @@ import { TrendingUp, PieChart as PieChartIcon, Download } from 'lucide-react'
 import { useToast } from '../hooks/useToast'
 
 // Import new components
-import TrendsChart from '../components/charts/TrendsChart'
+import LineChart from '../components/charts/LineChart'
 import PieChart from '../components/charts/PieChart'
 import InsightsWidget, { generateTransactionInsights } from '../components/widgets/InsightsWidget'
 import StatsCard from '../components/widgets/StatsCard'
-import TransactionsFilter from '../components/TransactionsFilter'
-import TransactionsDataTable from '../components/TransactionsDataTable'
+import Filter from '../components/Filter'
+import DataTable from '../components/DataTable'
+import DataRangeInfo from '../components/DataRangeInfo'
 
 const Transactions: React.FC = () => {
   // Toast functionality
@@ -28,12 +29,16 @@ const Transactions: React.FC = () => {
 
   // Filter and pagination states - grouped for better organization
   const [filters, setFilters] = useState({
-    dateRange: '30',
+    dateRange: '180', // Changed to 6 months to show good amount of historical data
     categories: [] as string[],
     accounts: [] as string[],
     searchTerm: '',
-    amountRange: { min: 0, max: 10000 }
+    amountRange: { min: 0, max: 10000 },
+    customDateRange: { start: '', end: '' }
   })
+
+  const [showCustomDatePicker, setShowCustomDatePicker] = useState(false)
+  // Remove separate category filter - use the main filters.categories instead
 
   const [pagination, setPagination] = useState({
     currentPage: 1
@@ -74,26 +79,53 @@ const Transactions: React.FC = () => {
 
   const loadTransactions = async () => {
     try {
+      // Determine date parameters based on filter type
+      let dateRange: string | undefined = filters.dateRange;
+      let startDate: string | undefined;
+      let endDate: string | undefined;
+      
+      if (filters.dateRange === 'custom' && filters.customDateRange.start && filters.customDateRange.end) {
+        startDate = filters.customDateRange.start;
+        endDate = filters.customDateRange.end;
+        dateRange = undefined; // Don't use range when we have custom dates
+      }
+      
       const transactionsResponse = await apiService.fetchTransactions(
-        filters.dateRange,
+        dateRange,
         filters.categories.length > 0 ? filters.categories : undefined,
         filters.searchTerm || undefined,
         pagination.currentPage,
-        undefined, // startDate
+        startDate,
         filters.accounts.length > 0 ? filters.accounts : undefined,
         filters.amountRange.min > 0 ? filters.amountRange.min : undefined,
         filters.amountRange.max < 10000 ? filters.amountRange.max : undefined,
         sorting.field,
-        sorting.direction
+        sorting.direction,
+        1000, // Default to 1000 for open source usage
+        endDate
       )
       setTransactions(transactionsResponse.transactions)
       setTotalTransactions(transactionsResponse.total)
 
       // Load previous period for comparison
       try {
-        const prevStartDate = new Date(Date.now() - parseInt(filters.dateRange) * 24 * 60 * 60 * 1000 * 2).toISOString()
+        let prevStartDate: string;
+        if (filters.dateRange === 'custom' && filters.customDateRange.start && filters.customDateRange.end) {
+          // For custom ranges, calculate a previous period of the same length
+          const start = new Date(filters.customDateRange.start);
+          const end = new Date(filters.customDateRange.end);
+          const daysDiff = Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+          const prevEnd = new Date(start);
+          prevEnd.setDate(prevEnd.getDate() - 1);
+          const prevStart = new Date(prevEnd);
+          prevStart.setDate(prevStart.getDate() - daysDiff);
+          prevStartDate = prevStart.toISOString().split('T')[0];
+        } else {
+          prevStartDate = new Date(Date.now() - parseInt(filters.dateRange) * 24 * 60 * 60 * 1000 * 2).toISOString().split('T')[0];
+        }
+        
         const prevPeriodResponse = await apiService.fetchTransactions(
-          filters.dateRange,
+          filters.dateRange !== 'custom' ? filters.dateRange : undefined,
           filters.categories.length > 0 ? filters.categories : undefined,
           filters.searchTerm || undefined,
           1,
@@ -111,6 +143,16 @@ const Transactions: React.FC = () => {
   const handleDateRangeChange = (range: string) => {
     setFilters(prev => ({ ...prev, dateRange: range }))
     setPagination(prev => ({ ...prev, currentPage: 1 }))
+  }
+
+  const handleCustomDateRangeChange = (startDate: string, endDate: string) => {
+    setFilters(prev => ({ 
+      ...prev, 
+      dateRange: 'custom',
+      customDateRange: { start: startDate, end: endDate }
+    }))
+    setPagination(prev => ({ ...prev, currentPage: 1 }))
+    setShowCustomDatePicker(false)
   }
 
   const handleCategoryFilter = (categories: string[]) => {
@@ -139,11 +181,12 @@ const Transactions: React.FC = () => {
 
   const handleClearFilters = () => {
     setFilters({
-      dateRange: '30',
+      dateRange: '180',
       categories: [],
       accounts: [],
       searchTerm: '',
-      amountRange: { min: 0, max: 10000 }
+      amountRange: { min: 0, max: 10000 },
+      customDateRange: { start: '', end: '' }
     })
     setPagination({ currentPage: 1 })
   }
@@ -190,49 +233,85 @@ const Transactions: React.FC = () => {
 
   // Calculate analytics data
   const getAnalyticsData = () => {
-    const daysToShow = Math.min(parseInt(filters.dateRange), 30) // Limit chart to 30 days max for readability
+    // Calculate date range based on filter
+    let startDate: Date;
+    let endDate: Date = new Date();
     
-    // Transaction trends data for chart
+    if (filters.dateRange === 'custom' && filters.customDateRange.start && filters.customDateRange.end) {
+      startDate = new Date(filters.customDateRange.start);
+      endDate = new Date(filters.customDateRange.end);
+    } else {
+      const days = parseInt(filters.dateRange);
+      startDate = new Date();
+      startDate.setDate(startDate.getDate() - days);
+    }
+    
+    // Calculate the number of days to show in the chart
+    const daysDiff = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+    const daysToShow = Math.min(daysDiff, 30); // Limit to 30 days max for readability
+    
+    // Generate date range for the chart based on actual date range
+    const chartStartDate = new Date(endDate);
+    chartStartDate.setDate(chartStartDate.getDate() - daysToShow + 1);
+    
+    // Transaction trends data for chart - filter by categories if selected
+    const filteredForTrends = filters.categories.length > 0 
+      ? transactions.filter(t => filters.categories.includes(t.category))
+      : transactions;
+
     const trendsData = Array.from({ length: daysToShow }, (_, i) => {
-      const date = new Date()
-      date.setDate(date.getDate() - (daysToShow - 1 - i))
-      const dayTransactions = transactions.filter(t => 
+      const date = new Date(chartStartDate);
+      date.setDate(date.getDate() + i);
+      const dayTransactions = filteredForTrends.filter(t => 
         new Date(t.date).toDateString() === date.toDateString()
-      )
+      );
+      
+      const income = dayTransactions.filter(t => t.amount < 0).reduce((sum, t) => sum + Math.abs(t.amount), 0);
+      const spending = dayTransactions.filter(t => t.amount > 0).reduce((sum, t) => sum + t.amount, 0);
       
       return {
-        date: date.toLocaleDateString('en-CA', { month: 'short', day: 'numeric' }),
-        income: dayTransactions.filter(t => t.amount > 0).reduce((sum, t) => sum + t.amount, 0),
-        spending: dayTransactions.filter(t => t.amount < 0).reduce((sum, t) => sum + Math.abs(t.amount), 0),
-        net: dayTransactions.reduce((sum, t) => sum + t.amount, 0)
-      }
-    })
+        date: date.toLocaleDateString('en-CA', { 
+          month: 'short', 
+          day: 'numeric',
+          ...(daysToShow > 7 && { year: 'numeric' })
+        }),
+        income,
+        spending,
+        net: income - spending
+      };
+    });
 
-    // Category breakdown data
-    const categoryTotals = transactions.reduce((acc, t) => {
-      if (t.amount < 0) {
-        acc[t.category] = (acc[t.category] || 0) + Math.abs(t.amount)
-      }
-      return acc
-    }, {} as Record<string, number>)
+    // Category breakdown data - use filtered transactions if categories are selected
+    const filteredForCategories = filters.categories.length > 0 
+      ? transactions.filter(t => filters.categories.includes(t.category))
+      : transactions;
 
-    const totalSpending = Object.values(categoryTotals).reduce((sum, amount) => sum + amount, 0)
-    const colors = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#06b6d4', '#f97316', '#84cc16']
+    const categoryTotals = filteredForCategories.reduce((acc, t) => {
+      if (t.amount > 0) { // Positive amounts are spending
+        acc[t.category] = (acc[t.category] || 0) + t.amount;
+      }
+      return acc;
+    }, {} as Record<string, number>);
+
+    const totalSpending = Object.values(categoryTotals).reduce((sum, amount) => sum + amount, 0);
+    const colors = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#06b6d4', '#f97316', '#84cc16'];
     
-    const categoryData = Object.entries(categoryTotals)
+    let categoryData = Object.entries(categoryTotals)
       .sort(([,a], [,b]) => b - a)
-      .slice(0, 8)
       .map(([category, amount], index) => ({
         category,
         amount,
-        percentage: (amount / totalSpending) * 100,
+        percentage: totalSpending > 0 ? (amount / totalSpending) * 100 : 0,
         color: colors[index % colors.length]
-      }))
+      }));
 
-    return { trendsData, categoryData }
-  }
+    // Show top 8 categories
+    categoryData = categoryData.slice(0, 8);
 
-  const { trendsData, categoryData } = getAnalyticsData()
+    return { trendsData, categoryData, allCategories: Object.keys(categoryTotals).sort() };
+  };
+
+  const { trendsData, categoryData, allCategories } = getAnalyticsData();
   const insights = generateTransactionInsights(transactions, previousPeriodTransactions)
 
   if (loading) {
@@ -262,8 +341,7 @@ const Transactions: React.FC = () => {
               { value: '7', label: '7D' },
               { value: '30', label: '30D' },
               { value: '90', label: '90D' },
-              { value: '180', label: '6M' },
-              { value: '365', label: '1Y' }
+              { value: '180', label: '6M' }
             ].map((range) => (
               <button
                 key={range.value}
@@ -277,11 +355,24 @@ const Transactions: React.FC = () => {
                 {range.label}
               </button>
             ))}
+            <button
+              onClick={() => setShowCustomDatePicker(true)}
+              className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                filters.dateRange === 'custom'
+                  ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+              }`}
+            >
+              Custom
+            </button>
           </div>
           
           <SyncButton 
             variant="button" 
-            onSyncComplete={() => loadTransactions()}
+            onSyncComplete={() => {
+              loadTransactions();
+              loadInitialData();
+            }}
           />
           <button 
             onClick={handleExport}
@@ -293,8 +384,72 @@ const Transactions: React.FC = () => {
         </div>
       </div>
 
+      {/* Custom Date Picker Modal */}
+      {showCustomDatePicker && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+              Select Custom Date Range
+            </h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Start Date
+                </label>
+                <input
+                  type="date"
+                  value={filters.customDateRange.start}
+                  onChange={(e) => setFilters(prev => ({
+                    ...prev,
+                    customDateRange: { ...prev.customDateRange, start: e.target.value }
+                  }))}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  End Date
+                </label>
+                <input
+                  type="date"
+                  value={filters.customDateRange.end}
+                  onChange={(e) => setFilters(prev => ({
+                    ...prev,
+                    customDateRange: { ...prev.customDateRange, end: e.target.value }
+                  }))}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                />
+              </div>
+              <div className="flex justify-end gap-3 mt-6">
+                <button
+                  onClick={() => setShowCustomDatePicker(false)}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-600 rounded-md hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    if (filters.customDateRange.start && filters.customDateRange.end) {
+                      handleCustomDateRangeChange(filters.customDateRange.start, filters.customDateRange.end);
+                    }
+                  }}
+                  disabled={!filters.customDateRange.start || !filters.customDateRange.end}
+                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Apply
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Quick Stats */}
-      <StatsCard transactions={transactions} dateRange={filters.dateRange} />
+      <StatsCard 
+        transactions={transactions} 
+        dateRange={filters.dateRange} 
+        customDateRange={filters.customDateRange}
+      />
 
       {/* Charts and Insights Row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -307,19 +462,39 @@ const Transactions: React.FC = () => {
                filters.dateRange === '30' ? '30-Day' :
                filters.dateRange === '90' ? '90-Day' :
                filters.dateRange === '180' ? '6-Month' :
-               filters.dateRange === '365' ? '1-Year' : 'Transaction'} Trends
+               filters.dateRange === 'custom' ? 'Custom Range' : 'Transaction'} Trends
             </h3>
           </div>
-          <TrendsChart data={trendsData} />
+          <LineChart data={trendsData} />
         </div>
 
         {/* Category Breakdown */}
         <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm">
-          <div className="flex items-center space-x-2 mb-4">
-            <PieChartIcon className="w-5 h-5 text-green-600 dark:text-green-400" />
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Category Breakdown
-            </h3>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center space-x-2">
+              <PieChartIcon className="w-5 h-5 text-green-600 dark:text-green-400" />
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Category Breakdown
+              </h3>
+            </div>
+            <select
+              value={filters.categories.length === 1 ? filters.categories[0] : 'all'}
+              onChange={(e) => {
+                if (e.target.value === 'all') {
+                  handleCategoryFilter([]);
+                } else {
+                  handleCategoryFilter([e.target.value]);
+                }
+              }}
+              className="text-sm border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="all">All Categories</option>
+              {allCategories.map(category => (
+                <option key={category} value={category}>
+                  {category}
+                </option>
+              ))}
+            </select>
           </div>
           {categoryData.length > 0 ? (
             <PieChart data={categoryData} />
@@ -334,15 +509,30 @@ const Transactions: React.FC = () => {
       {/* Insights */}
       <InsightsWidget insights={insights} />
 
+      {/* Data Range Info */}
+      <DataRangeInfo onRefresh={() => {
+        // Trigger historical data fetch
+        fetch('/api/transactions/fetch-historical', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ startDate: '2024-01-01' })
+        }).then(() => {
+          // Refresh transactions after fetch
+          loadTransactions()
+        }).catch(console.error)
+      }} />
+
       {/* Advanced Filters */}
-      <TransactionsFilter
+      <Filter
         categories={categories}
         accounts={accounts}
         selectedDateRange={filters.dateRange}
         selectedCategories={filters.categories}
         selectedAccounts={filters.accounts}
         amountRange={filters.amountRange}
+        customDateRange={filters.customDateRange}
         onDateRangeChange={handleDateRangeChange}
+        onCustomDateRangeChange={handleCustomDateRangeChange}
         onCategoryFilter={handleCategoryFilter}
         onAccountFilter={handleAccountFilter}
         onAmountRangeChange={handleAmountRangeChange}
@@ -351,7 +541,7 @@ const Transactions: React.FC = () => {
       />
 
       {/* Enhanced Transactions Table */}
-      <TransactionsDataTable
+      <DataTable
         transactions={transactions}
         currentPage={pagination.currentPage}
         totalTransactions={totalTransactions}

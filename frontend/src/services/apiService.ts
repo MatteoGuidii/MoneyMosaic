@@ -17,8 +17,11 @@ export interface Account {
   id: string
   name: string
   type: string
+  rawType?: string
+  subtype?: string
   balance: number
   lastUpdated: string
+  institutionName?: string
 }
 
 export interface Investment {
@@ -176,7 +179,8 @@ class ApiService {
     maxAmount?: number,
     sortField?: string,
     sortDirection?: 'asc' | 'desc',
-    limit = 20
+    limit = 1000, // Default to 1000 for open source usage
+    endDate?: string
   ): Promise<{ transactions: Transaction[]; total: number }> {
     const params = new URLSearchParams({
       page: page.toString(),
@@ -186,6 +190,7 @@ class ApiService {
       ...(categories && categories.length > 0 && { categories: categories.join(',') }),
       ...(accounts && accounts.length > 0 && { accounts: accounts.join(',') }),
       ...(startDate && { startDate }),
+      ...(endDate && { endDate }),
       ...(minAmount !== undefined && { minAmount: minAmount.toString() }),
       ...(maxAmount !== undefined && { maxAmount: maxAmount.toString() }),
       ...(sortField && { sortField }),

@@ -65,7 +65,7 @@ router.get('/overview', async (_req, res) => {
       JOIN institutions i ON a.institution_id = i.id 
       WHERE t.date = ? AND i.is_active = 1
     `, [today]);
-    const todayNetFlow = todaysTransactions.reduce((sum, tx) => sum + tx.amount, 0);
+    const todayNetFlow = todaysTransactions.reduce((sum, tx) => sum + (-tx.amount), 0);
     
     res.json({
       totalCashBalance,
@@ -121,7 +121,7 @@ router.get('/earnings', async (_req, res) => {
       JOIN institutions i ON a.institution_id = i.id 
       WHERE t.date = ? AND i.is_active = 1
     `, [today]);
-    const todayNetFlow = todaysTransactions.reduce((sum, tx) => sum + tx.amount, 0);
+    const todayNetFlow = todaysTransactions.reduce((sum, tx) => sum + (-tx.amount), 0);
     
     // Get month-to-date (only from active institutions)
     const monthStart = new Date();
@@ -134,7 +134,7 @@ router.get('/earnings', async (_req, res) => {
       JOIN institutions i ON a.institution_id = i.id 
       WHERE t.date >= ? AND i.is_active = 1
     `, [monthStartStr]);
-    const monthToDateNetFlow = monthTransactions.reduce((sum, tx) => sum + tx.amount, 0);
+    const monthToDateNetFlow = monthTransactions.reduce((sum, tx) => sum + (-tx.amount), 0);
     
     // Get 7-day average (only from active institutions)
     const sevenDaysAgo = new Date();
@@ -147,7 +147,7 @@ router.get('/earnings', async (_req, res) => {
       JOIN institutions i ON a.institution_id = i.id 
       WHERE t.date >= ? AND i.is_active = 1
     `, [sevenDaysAgoStr]);
-    const sevenDayTotal = recentTransactions.reduce((sum, tx) => sum + tx.amount, 0);
+    const sevenDayTotal = recentTransactions.reduce((sum, tx) => sum + (-tx.amount), 0);
     const sevenDayAverage = sevenDayTotal / 7;
     
     res.json({
@@ -229,12 +229,12 @@ router.get('/spending-data', async (req, res) => {
         dateGroups[tx.date] = { spending: 0, income: 0 };
       }
       
-      if (tx.amount > 0) {
-        // Positive amounts are income (money coming in)
-        dateGroups[tx.date].income += tx.amount;
+      if (tx.amount < 0) {
+        // Negative amounts are income (money coming in) - based on your data structure
+        dateGroups[tx.date].income += Math.abs(tx.amount);
       } else {
-        // Negative amounts are spending (money going out)
-        dateGroups[tx.date].spending += Math.abs(tx.amount);
+        // Positive amounts are spending (money going out) - based on your data structure
+        dateGroups[tx.date].spending += tx.amount;
       }
     });
     
@@ -264,7 +264,7 @@ router.get('/category-data', async (req, res) => {
       SELECT t.* FROM transactions t 
       JOIN accounts a ON t.account_id = a.account_id 
       JOIN institutions i ON a.institution_id = i.id 
-      WHERE t.date >= ? AND t.amount < 0 AND i.is_active = 1
+      WHERE t.date >= ? AND t.amount > 0 AND i.is_active = 1
     `, [startDate]);
     
     // Group by category
@@ -273,7 +273,7 @@ router.get('/category-data', async (req, res) => {
     
     transactions.forEach(tx => {
       const category = tx.category_primary || 'Other';
-      const amount = Math.abs(tx.amount);
+      const amount = tx.amount; // Don't use abs() since positive amounts are spending
       
       if (!categoryGroups[category]) {
         categoryGroups[category] = 0;
@@ -303,7 +303,7 @@ router.get('/categories', async (_req, res) => {
       SELECT DISTINCT t.category_primary FROM transactions t 
       JOIN accounts a ON t.account_id = a.account_id 
       JOIN institutions i ON a.institution_id = i.id 
-      WHERE t.category_primary IS NOT NULL AND i.is_active = 1
+      WHERE t.category_primary IS NOT NULL AND t.category_primary != '' AND i.is_active = 1
     `);
     const categoryList = categories.map(row => row.category_primary);
     res.json(categoryList);
@@ -1058,20 +1058,39 @@ router.get('/transactions', async (req, res) => {
       categories = '', 
       search = '', 
       page = '1', 
-      limit = '10' 
+      limit = '1000', // Default to 1000 for open source usage
+      sortField = 'date',
+      sortDirection = 'desc',
+      startDate,
+      endDate
     } = req.query;
     
-    const daysAgo = new Date();
-    daysAgo.setDate(daysAgo.getDate() - parseInt(range as string));
-    const startDate = daysAgo.toISOString().split('T')[0];
+    let dateFilter = '';
+    let dateParams: any[] = [];
+    
+    // Handle custom date range
+    if (startDate && endDate) {
+      dateFilter = 't.date >= ? AND t.date <= ?';
+      dateParams = [startDate, endDate];
+    } else if (startDate) {
+      dateFilter = 't.date >= ?';
+      dateParams = [startDate];
+    } else {
+      // Default range behavior
+      const daysAgo = new Date();
+      daysAgo.setDate(daysAgo.getDate() - parseInt(range as string));
+      const calculatedStartDate = daysAgo.toISOString().split('T')[0];
+      dateFilter = 't.date >= ?';
+      dateParams = [calculatedStartDate];
+    }
     
     let query = `
       SELECT t.*, a.name as account_name FROM transactions t 
       JOIN accounts a ON t.account_id = a.account_id 
       JOIN institutions i ON a.institution_id = i.id 
-      WHERE t.date >= ? AND i.is_active = 1
+      WHERE ${dateFilter} AND i.is_active = 1
     `;
-    let params: any[] = [startDate];
+    let params: any[] = [...dateParams];
     
     // Add category filter
     if (categories && categories !== '') {
@@ -1097,7 +1116,13 @@ router.get('/transactions', async (req, res) => {
     const limitNum = parseInt(limit as string);
     const offset = (pageNum - 1) * limitNum;
     
-    query += ` ORDER BY t.date DESC, t.created_at DESC LIMIT ? OFFSET ?`;
+    // Add sorting
+    const allowedSortFields = ['date', 'amount', 'name', 'category'];
+    const sortFieldMapped = allowedSortFields.includes(sortField as string) ? 
+      (sortField === 'category' ? 'category_primary' : `t.${sortField}`) : 't.date';
+    const sortDir = sortDirection === 'asc' ? 'ASC' : 'DESC';
+    
+    query += ` ORDER BY ${sortFieldMapped} ${sortDir}, t.created_at DESC LIMIT ? OFFSET ?`;
     params.push(limitNum, offset);
     
     const transactions = await database.all(query, params);
@@ -1111,7 +1136,7 @@ router.get('/transactions', async (req, res) => {
       date: tx.date,
       name: tx.name,
       merchant_name: tx.merchant_name,
-      category: tx.category_primary || tx.category_detailed || 'Uncategorized',
+      category: tx.category_primary || tx.category_detailed || 'Other',
       category_detailed: tx.category_detailed,
       type: tx.type,
       pending: tx.pending,
@@ -1182,13 +1207,106 @@ router.get('/accounts', async (_req, res) => {
       ORDER BY a.updated_at DESC
     `);
     
-    const formattedAccounts = accounts.map(account => ({
-      id: account.account_id,
-      name: account.name,
-      type: account.type,
-      balance: account.current_balance || 0,
-      lastUpdated: account.updated_at
-    }));
+    const formattedAccounts = accounts.map(account => {
+      // Map account types to more user-friendly names
+      const getAccountTypeName = (type: string, subtype?: string) => {
+        if (subtype) {
+          const subtypeMap: { [key: string]: string } = {
+            'checking': 'Checking Account',
+            'savings': 'Savings Account',
+            'hsa': 'Health Savings Account',
+            'cd': 'Certificate of Deposit',
+            'money market': 'Money Market Account',
+            'credit card': 'Credit Card',
+            'paypal': 'PayPal',
+            'prepaid': 'Prepaid Card',
+            'cash management': 'Cash Management',
+            'ebt': 'EBT Card',
+            'business': 'Business Account',
+            'rewards': 'Rewards Account',
+            'safe deposit': 'Safe Deposit Box',
+            'auto': 'Auto Loan',
+            'business loan': 'Business Loan',
+            'commercial': 'Commercial Loan',
+            'construction': 'Construction Loan',
+            'consumer': 'Consumer Loan',
+            'home equity': 'Home Equity',
+            'loan': 'Loan',
+            'mortgage': 'Mortgage',
+            'overdraft': 'Overdraft',
+            'line of credit': 'Line of Credit',
+            'student': 'Student Loan',
+            'cash isa': 'Cash ISA',
+            'crypto exchange': 'Crypto Exchange',
+            'education savings account': 'Education Savings',
+            'gic': 'GIC',
+            'health reimbursement arrangement': 'Health Reimbursement',
+            'investment': 'Investment Account',
+            'ira': 'IRA',
+            'isa': 'ISA',
+            'keogh': 'Keogh',
+            'lif': 'LIF',
+            'life insurance': 'Life Insurance',
+            'lira': 'LIRA',
+            'lrif': 'LRIF',
+            'lrsp': 'LRSP',
+            'non-custodial wallet': 'Non-Custodial Wallet',
+            'non-taxable brokerage account': 'Non-Taxable Brokerage',
+            'other': 'Other Investment',
+            'prif': 'PRIF',
+            'rdsp': 'RDSP',
+            'resp': 'RESP',
+            'rlif': 'RLIF',
+            'rrif': 'RRIF',
+            'pension': 'Pension',
+            'profit sharing plan': 'Profit Sharing Plan',
+            'retirement': 'Retirement Account',
+            'roth': 'Roth IRA',
+            'roth 401k': 'Roth 401k',
+            'rrsp': 'RRSP',
+            'sep ira': 'SEP IRA',
+            'simple ira': 'Simple IRA',
+            'sipp': 'SIPP',
+            'stock plan': 'Stock Plan',
+            'tfsa': 'TFSA',
+            'thrift savings plan': 'Thrift Savings Plan',
+            'traditional': 'Traditional IRA',
+            'trust': 'Trust',
+            'ugma': 'UGMA',
+            'utma': 'UTMA',
+            'variable annuity': 'Variable Annuity',
+            'wallet': 'Wallet',
+            '401a': '401a',
+            '401k': '401k',
+            '403b': '403b',
+            '457b': '457b',
+            '529': '529 Plan'
+          }
+          return subtypeMap[subtype.toLowerCase()] || subtype
+        }
+        
+        const typeMap: { [key: string]: string } = {
+          'depository': 'Bank Account',
+          'credit': 'Credit Account',
+          'loan': 'Loan',
+          'investment': 'Investment Account',
+          'insurance': 'Insurance',
+          'other': 'Other'
+        }
+        return typeMap[type.toLowerCase()] || type
+      }
+      
+      return {
+        id: account.account_id,
+        name: account.name,
+        type: getAccountTypeName(account.type, account.subtype),
+        rawType: account.type,
+        subtype: account.subtype,
+        balance: account.current_balance || 0,
+        lastUpdated: account.updated_at,
+        institutionName: account.institution_name
+      }
+    });
     
     res.json(formattedAccounts);
   } catch (error) {

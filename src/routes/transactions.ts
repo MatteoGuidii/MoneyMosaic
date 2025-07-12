@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { bankService } from '../services/bank.service';
 import { schedulerService } from '../services/scheduler.service';
+import { database } from '../database';
 
 const router = Router();
 
@@ -226,6 +227,177 @@ router.get('/scheduler_status', (_req, res) => {
   } catch (err) {
     console.error('schedulerStatus error:', err);
     res.status(500).json({ error: 'Failed to get scheduler status' });
+  }
+});
+
+/**
+ * @swagger
+ * /api/transactions/fetch-historical:
+ *   post:
+ *     summary: Fetch historical transactions from a specific start date
+ *     description: Fetches historical transactions using the legacy Plaid endpoint to get older data
+ *     tags: [Transactions]
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               startDate:
+ *                 type: string
+ *                 format: date
+ *                 default: '2024-01-01'
+ *                 description: Start date for historical transaction fetch (YYYY-MM-DD)
+ *     responses:
+ *       200:
+ *         description: Historical transactions fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 transactionCount:
+ *                   type: integer
+ *       500:
+ *         description: Server error
+ */
+// Fetch historical transactions from a specific start date
+router.post('/fetch-historical', async (req, res) => {
+  try {
+    const { startDate = '2024-01-01' } = req.body;
+    console.log(`🔄 Starting historical transaction fetch from ${startDate}...`);
+    
+    // Get all active institutions
+    const institutions = await database.getInstitutions();
+    
+    if (institutions.length === 0) {
+      return res.json({
+        success: true,
+        message: 'No institutions connected',
+        transactionCount: 0
+      });
+    }
+
+    let totalTransactions = 0;
+    
+    for (const institution of institutions) {
+      try {
+        const transactions = await bankService.fetchHistoricalTransactions(
+          institution.access_token,
+          institution.id,
+          startDate
+        );
+        totalTransactions += transactions.length;
+        console.log(`✅ Fetched ${transactions.length} historical transactions for ${institution.name}`);
+      } catch (error) {
+        console.error(`❌ Error fetching historical transactions for ${institution.name}:`, error);
+      }
+    }
+
+    return res.json({
+      success: true,
+      message: `Historical transaction fetch completed. Fetched ${totalTransactions} transactions from ${startDate}`,
+      transactionCount: totalTransactions
+    });
+  } catch (error) {
+    console.error('Error fetching historical transactions:', error);
+    return res.status(500).json({ error: 'Failed to fetch historical transactions' });
+  }
+});
+
+/**
+ * @swagger
+ * /api/transactions/date-range:
+ *   get:
+ *     summary: Check available transaction date ranges
+ *     description: Checks the available transaction date ranges for all connected bank institutions
+ *     tags: [Bank Management]
+ *     responses:
+ *       200:
+ *         description: Available transaction date ranges
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 institutions:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       institutionId:
+ *                         type: integer
+ *                       institutionName:
+ *                         type: string
+ *                       earliestDate:
+ *                         type: string
+ *                         format: date
+ *                       latestDate:
+ *                         type: string
+ *                         format: date
+ *                       availableTransactionCount:
+ *                         type: integer
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+// Check available transaction date range for all institutions
+router.get('/date-range', async (_req, res) => {
+  try {
+    const institutions = await database.getInstitutions();
+    
+    if (institutions.length === 0) {
+      return res.json({
+        success: true,
+        message: 'No institutions connected',
+        institutions: []
+      });
+    }
+
+    const results = [];
+    
+    for (const institution of institutions) {
+      try {
+        const dateRange = await bankService.checkTransactionDateRange(
+          institution.access_token,
+          institution.id
+        );
+        
+        results.push({
+          institutionId: institution.id,
+          institutionName: institution.name,
+          ...dateRange
+        });
+      } catch (error) {
+        console.error(`Error checking date range for ${institution.name}:`, error);
+        results.push({
+          institutionId: institution.id,
+          institutionName: institution.name,
+          earliestDate: null,
+          latestDate: null,
+          availableTransactionCount: 0,
+          error: 'Failed to check date range'
+        });
+      }
+    }
+
+    return res.json({
+      success: true,
+      institutions: results
+    });
+  } catch (error) {
+    console.error('Error checking transaction date ranges:', error);
+    return res.status(500).json({ error: 'Failed to check transaction date ranges' });
   }
 });
 

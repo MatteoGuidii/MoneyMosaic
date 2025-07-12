@@ -60,7 +60,10 @@ router.post('/link/token/create', async (req, res) => {
       },
       products: [Products.Transactions],
       country_codes: [CountryCode.Ca], 
-      language: 'en'
+      language: 'en',
+      transactions: {
+        days_requested: 730 // Request 24 months (730 days) of transaction history
+      }
     };
 
     // Add optional fields only if they're configured

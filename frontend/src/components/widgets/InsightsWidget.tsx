@@ -115,12 +115,13 @@ export const generateTransactionInsights = (
   if (transactions.length === 0) return insights
 
   // Calculate current period stats
-  const totalSpending = transactions.filter(t => t.amount < 0).reduce((sum, t) => sum + Math.abs(t.amount), 0)
-  const totalIncome = transactions.filter(t => t.amount > 0).reduce((sum, t) => sum + t.amount, 0)
-  const avgTransactionAmount = totalSpending / transactions.filter(t => t.amount < 0).length
+  // In Plaid: negative amounts = income/deposits, positive amounts = spending/withdrawals
+  const totalSpending = transactions.filter(t => t.amount > 0).reduce((sum, t) => sum + t.amount, 0)
+  const totalIncome = transactions.filter(t => t.amount < 0).reduce((sum, t) => sum + Math.abs(t.amount), 0)
+  const avgTransactionAmount = totalSpending / transactions.filter(t => t.amount > 0).length
 
   // Calculate previous period stats for comparison
-  const prevTotalSpending = previousPeriodTransactions.filter(t => t.amount < 0).reduce((sum, t) => sum + Math.abs(t.amount), 0)
+  const prevTotalSpending = previousPeriodTransactions.filter(t => t.amount > 0).reduce((sum, t) => sum + t.amount, 0)
   
   // Spending trend insight
   if (previousPeriodTransactions.length > 0) {
