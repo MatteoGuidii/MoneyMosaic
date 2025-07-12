@@ -8,7 +8,9 @@ interface TransactionsFilterProps {
   selectedCategories: string[]
   selectedAccounts: string[]
   amountRange: { min: number; max: number }
+  customDateRange?: { start: string; end: string }
   onDateRangeChange: (range: string) => void
+  onCustomDateRangeChange?: (startDate: string, endDate: string) => void
   onCategoryFilter: (categories: string[]) => void
   onAccountFilter: (accounts: string[]) => void
   onAmountRangeChange: (range: { min: number; max: number }) => void
@@ -23,7 +25,9 @@ const TransactionsFilter: React.FC<TransactionsFilterProps> = ({
   selectedCategories,
   selectedAccounts,
   amountRange,
+  customDateRange,
   onDateRangeChange,
+  onCustomDateRangeChange,
   onCategoryFilter,
   onAccountFilter,
   onAmountRangeChange,
@@ -34,13 +38,30 @@ const TransactionsFilter: React.FC<TransactionsFilterProps> = ({
   const [isFilterOpen, setIsFilterOpen] = useState(false)
   const [showCategories, setShowCategories] = useState(false)
   const [showAccounts, setShowAccounts] = useState(false)
+  const [showCustomDatePicker, setShowCustomDatePicker] = useState(false)
+  const [tempStartDate, setTempStartDate] = useState(customDateRange?.start || '')
+  const [tempEndDate, setTempEndDate] = useState(customDateRange?.end || '')
+
+  const handleDateRangeClick = (range: string) => {
+    if (range === 'custom') {
+      setShowCustomDatePicker(true)
+    } else {
+      onDateRangeChange(range)
+    }
+  }
+
+  const handleCustomDateSubmit = () => {
+    if (tempStartDate && tempEndDate && onCustomDateRangeChange) {
+      onCustomDateRangeChange(tempStartDate, tempEndDate)
+      setShowCustomDatePicker(false)
+    }
+  }
 
   const dateRanges = [
     { value: '7', label: 'Last 7 days' },
     { value: '30', label: 'Last 30 days' },
     { value: '90', label: 'Last 90 days' },
     { value: '180', label: 'Last 6 months' },
-    { value: '365', label: 'Last year' },
     { value: 'custom', label: 'Custom range' }
   ]
 
@@ -130,7 +151,7 @@ const TransactionsFilter: React.FC<TransactionsFilterProps> = ({
           {dateRanges.map((range) => (
             <button
               key={range.value}
-              onClick={() => onDateRangeChange(range.value)}
+              onClick={() => handleDateRangeClick(range.value)}
               className={`inline-flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
                 selectedDateRange === range.value
                   ? 'bg-blue-600 text-white'
@@ -142,6 +163,56 @@ const TransactionsFilter: React.FC<TransactionsFilterProps> = ({
             </button>
           ))}
         </div>
+        
+        {/* Custom Date Range Modal */}
+        {showCustomDatePicker && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
+                Select Custom Date Range
+              </h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Start Date
+                  </label>
+                  <input
+                    type="date"
+                    value={tempStartDate}
+                    onChange={(e) => setTempStartDate(e.target.value)}
+                    className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    End Date
+                  </label>
+                  <input
+                    type="date"
+                    value={tempEndDate}
+                    onChange={(e) => setTempEndDate(e.target.value)}
+                    className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+                <div className="flex justify-end space-x-3">
+                  <button
+                    onClick={() => setShowCustomDatePicker(false)}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleCustomDateSubmit}
+                    disabled={!tempStartDate || !tempEndDate}
+                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Apply
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Advanced Filters */}

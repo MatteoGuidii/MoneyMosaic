@@ -10,7 +10,8 @@ import {
   Target,
   Sun,
   Moon,
-  Sparkles
+  Sparkles,
+  BarChart3
 } from 'lucide-react'
 import { useTheme } from '../../contexts/ThemeContext'
 import { useState } from 'react'
@@ -27,6 +28,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const navigation = [
     { name: 'Overview', href: '/', icon: LayoutDashboard },
     { name: 'Transactions', href: '/transactions', icon: Receipt },
+    { name: 'Analytics', href: '/analytics', icon: BarChart3 },
     { name: 'Budget', href: '/budget', icon: Target },
     { name: 'Accounts', href: '/accounts', icon: Building2 },
     { name: 'Investments', href: '/investments', icon: TrendingUp },

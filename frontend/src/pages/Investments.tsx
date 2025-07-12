@@ -26,18 +26,8 @@ import {
 } from 'recharts'
 import { apiService, Investment as ApiInvestment } from '../services/apiService'
 import LoadingSpinner from '../components/ui/LoadingSpinner'
+import LazyChart from '../components/LazyChart'
 import SyncButton from '../components/SyncButton'
-
-interface Transaction {
-  id: string
-  date: string
-  type: 'Buy' | 'Sell' | 'Dividend' | 'Split'
-  symbol: string
-  quantity?: number
-  price?: number
-  amount: number
-  notes?: string
-}
 
 interface PortfolioData {
   date: string
@@ -57,6 +47,8 @@ const Investments: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1)
   const [loading, setLoading] = useState(true)
   const [investments, setInvestments] = useState<ApiInvestment[]>([])
+  const [investmentSummary, setInvestmentSummary] = useState<any>(null)
+  const [investmentAccounts, setInvestmentAccounts] = useState<any>(null)
   const [selectedInvestment, setSelectedInvestment] = useState<ApiInvestment | null>(null)
   const [showInvestmentModal, setShowInvestmentModal] = useState(false)
   const itemsPerPage = 10
@@ -70,99 +62,93 @@ const Investments: React.FC = () => {
     setCurrentPage(1)
   }, [searchTerm, filterSector])
 
-  const loadInvestments = async () => {
+  const loadInvestments = useCallback(async () => {
     try {
       setLoading(true)
-      const investmentsData = await apiService.fetchInvestments()
-      setInvestments(investmentsData)
+      // Use the optimized single API call instead of two separate calls
+      const { investments: investmentData, accounts: accountData, summary: summaryData } = await apiService.fetchInvestmentData()
+      
+      // Set all data at once to minimize re-renders
+      setInvestments(investmentData)
+      setInvestmentAccounts(accountData)
+      setInvestmentSummary(summaryData)
     } catch (error) {
       console.error('Error loading investments:', error)
+      // Set default values on error
+      setInvestments([])
+      setInvestmentAccounts({})
+      setInvestmentSummary({})
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
   // Mock data - in a real app, this would come from an API
   const dateRanges: DateRange[] = [
     { label: 'Last 7 Days', days: 7 },
     { label: 'Last 30 Days', days: 30 },
     { label: 'Last 90 Days', days: 90 },
-    { label: 'Last Year', days: 365 }
+    { label: 'Last 6 Months', days: 180 }
   ]
 
-  // Calculate portfolio summary from real data
-  const portfolioSummary = {
-    totalValue: investments.reduce((sum, inv) => sum + inv.marketValue, 0),
-    totalCostBasis: investments.reduce((sum, inv) => sum + (inv.quantity * inv.marketPrice * 0.9), 0), // Estimate cost basis
-    unrealizedPL: investments.reduce((sum, inv) => sum + inv.dayChange * inv.quantity, 0),
-    unrealizedPLPercent: 0,
-    todayReturn: investments.reduce((sum, inv) => sum + inv.dayChange * inv.quantity, 0),
-    todayReturnPercent: 0,
-    cashBalance: 5430.25 // This would come from cash accounts
-  }
+  // Memoize expensive calculations to prevent recalculation on every render
+  const portfolioSummary = useMemo(() => {
+    const summary = {
+      totalValue: investmentSummary?.totalValue || investmentAccounts?.totalValue || investments.reduce((sum, inv) => sum + inv.marketValue, 0),
+      totalCostBasis: investmentSummary?.totalCostBasis || investments.reduce((sum, inv) => sum + (inv.costBasis || inv.quantity * inv.marketPrice * 0.9), 0),
+      unrealizedPL: investmentSummary?.totalDayChange || investments.reduce((sum, inv) => sum + inv.dayChange * inv.quantity, 0),
+      unrealizedPLPercent: 0,
+      todayReturn: investmentSummary?.totalDayChange || investments.reduce((sum, inv) => sum + inv.dayChange * inv.quantity, 0),
+      todayReturnPercent: investmentSummary?.totalDayChangePercent || 0,
+      cashBalance: 5430.25 // This would come from cash accounts
+    }
 
-  // Calculate percentages
-  portfolioSummary.unrealizedPL = portfolioSummary.totalValue - portfolioSummary.totalCostBasis
-  portfolioSummary.unrealizedPLPercent = portfolioSummary.totalCostBasis > 0 ? 
-    (portfolioSummary.unrealizedPL / portfolioSummary.totalCostBasis) * 100 : 0
-  portfolioSummary.todayReturnPercent = portfolioSummary.totalValue > 0 ? 
-    (portfolioSummary.todayReturn / portfolioSummary.totalValue) * 100 : 0
+    // Calculate percentages
+    summary.unrealizedPL = summary.totalValue - summary.totalCostBasis
+    summary.unrealizedPLPercent = summary.totalCostBasis > 0 ? 
+      (summary.unrealizedPL / summary.totalCostBasis) * 100 : 0
+    summary.todayReturnPercent = summary.totalValue > 0 ? 
+      (summary.todayReturn / summary.totalValue) * 100 : 0
 
-  const portfolioData: PortfolioData[] = [
-    { date: '2024-12-01', value: portfolioSummary.totalValue * 0.9, costBasis: portfolioSummary.totalCostBasis },
-    { date: '2024-12-05', value: portfolioSummary.totalValue * 0.92, costBasis: portfolioSummary.totalCostBasis },
-    { date: '2024-12-10', value: portfolioSummary.totalValue * 0.88, costBasis: portfolioSummary.totalCostBasis },
-    { date: '2024-12-15', value: portfolioSummary.totalValue * 0.95, costBasis: portfolioSummary.totalCostBasis },
-    { date: '2024-12-20', value: portfolioSummary.totalValue * 0.93, costBasis: portfolioSummary.totalCostBasis },
-    { date: '2024-12-25', value: portfolioSummary.totalValue, costBasis: portfolioSummary.totalCostBasis },
-  ]
+    return summary
+  }, [investments, investmentSummary, investmentAccounts])
 
-  const dailyReturns = [
-    { date: '2024-12-20', return: portfolioSummary.todayReturn * 0.7 },
-    { date: '2024-12-21', return: portfolioSummary.todayReturn * -0.3 },
-    { date: '2024-12-22', return: portfolioSummary.todayReturn * 1.2 },
-    { date: '2024-12-23', return: portfolioSummary.todayReturn * 0.5 },
-    { date: '2024-12-24', return: portfolioSummary.todayReturn * -0.2 },
-    { date: '2024-12-25', return: portfolioSummary.todayReturn },
-  ]
+  // Memoize chart data to prevent recalculation
+  const chartData = useMemo(() => {
+    const portfolioData: PortfolioData[] = [
+      { date: '2024-12-01', value: portfolioSummary.totalValue * 0.9, costBasis: portfolioSummary.totalCostBasis },
+      { date: '2024-12-05', value: portfolioSummary.totalValue * 0.92, costBasis: portfolioSummary.totalCostBasis },
+      { date: '2024-12-10', value: portfolioSummary.totalValue * 0.88, costBasis: portfolioSummary.totalCostBasis },
+      { date: '2024-12-15', value: portfolioSummary.totalValue * 0.95, costBasis: portfolioSummary.totalCostBasis },
+      { date: '2024-12-20', value: portfolioSummary.totalValue * 0.93, costBasis: portfolioSummary.totalCostBasis },
+      { date: '2024-12-25', value: portfolioSummary.totalValue, costBasis: portfolioSummary.totalCostBasis },
+    ]
 
-  // Generate asset allocation from investments
-  const assetAllocation = [
+    const dailyReturns = [
+      { date: '2024-12-20', return: portfolioSummary.todayReturn * 0.7 },
+      { date: '2024-12-21', return: portfolioSummary.todayReturn * -0.3 },
+      { date: '2024-12-22', return: portfolioSummary.todayReturn * 1.2 },
+      { date: '2024-12-23', return: portfolioSummary.todayReturn * 0.5 },
+      { date: '2024-12-24', return: portfolioSummary.todayReturn * -0.2 },
+      { date: '2024-12-25', return: portfolioSummary.todayReturn },
+    ]
+
+    return { portfolioData, dailyReturns }
+  }, [portfolioSummary])
+
+  // Memoize asset allocation data
+  const assetAllocation = useMemo(() => [
     { name: 'Equities', value: portfolioSummary.totalValue * 0.7, percentage: 70 },
     { name: 'Bonds', value: portfolioSummary.totalValue * 0.2, percentage: 20 },
     { name: 'ETFs', value: portfolioSummary.totalValue * 0.1, percentage: 10 },
-  ]
+  ], [portfolioSummary.totalValue])
 
-  // Generate sector allocation from investments
-  const sectorAllocation = investments.reduce((acc, inv) => {
-    const sector = inv.companyName.includes('Apple') ? 'Technology' :
-                  inv.companyName.includes('Google') || inv.companyName.includes('Microsoft') ? 'Technology' :
-                  inv.companyName.includes('Tesla') ? 'Automotive' :
-                  inv.companyName.includes('Amazon') ? 'E-commerce' :
-                  inv.companyName.includes('Meta') ? 'Technology' :
-                  inv.companyName.includes('Netflix') ? 'Entertainment' :
-                  inv.companyName.includes('NVIDIA') ? 'Technology' : 'Other'
-    
-    const existing = acc.find(item => item.name === sector)
-    if (existing) {
-      existing.value += inv.marketValue
-    } else {
-      acc.push({ name: sector, value: inv.marketValue, percentage: 0 })
-    }
-    return acc
-  }, [] as { name: string; value: number; percentage: number }[])
-
-  // Calculate percentages
-  sectorAllocation.forEach(sector => {
-    sector.percentage = portfolioSummary.totalValue > 0 ? 
-      (sector.value / portfolioSummary.totalValue) * 100 : 0
-  })
-
-  const portfolioTransactions: Transaction[] = [
+  // Memoize mock transaction data only when needed
+  const portfolioTransactions = useMemo(() => [
     {
       id: '1',
       date: '2024-12-25',
-      type: 'Buy',
+      type: 'Buy' as const,
       symbol: investments[0]?.symbol || 'AAPL',
       quantity: 10,
       price: investments[0]?.marketPrice || 175.50,
@@ -172,12 +158,12 @@ const Investments: React.FC = () => {
     {
       id: '2',
       date: '2024-12-20',
-      type: 'Dividend',
+      type: 'Dividend' as const,
       symbol: investments[1]?.symbol || 'MSFT',
       amount: 125.50,
       notes: 'Quarterly Dividend'
     },
-  ]
+  ], [investments])
 
   const COLORS = ['#8b5cf6', '#06b6d4', '#10b981', '#f59e0b', '#ef4444', '#ec4899', '#6366f1']
 
@@ -197,7 +183,11 @@ const Investments: React.FC = () => {
     return new Date(dateString).toLocaleDateString('en-CA', { month: 'short', day: 'numeric' })
   }
 
-  const getSector = useCallback((companyName: string) => {
+  const getSector = useCallback((companyName: string, sector?: string) => {
+    // Use real sector data if available
+    if (sector) return sector
+    
+    // Fallback to name-based classification
     if (companyName.includes('Apple') || companyName.includes('Google') || 
         companyName.includes('Microsoft') || companyName.includes('Meta') || 
         companyName.includes('NVIDIA')) return 'Technology'
@@ -207,15 +197,44 @@ const Investments: React.FC = () => {
     return 'Other'
   }, [])
 
+  // Memoize sector allocation from real data - moved after getSector definition
+  const sectorAllocation = useMemo(() => {
+    const sectors = investmentSummary?.sectorAllocation?.map((item: any) => ({
+      name: item.sector,
+      value: item.value,
+      percentage: item.percentage
+    })) || 
+    investments.reduce((acc: { name: string; value: number; percentage: number }[], inv) => {
+      const sector = inv.sector || getSector(inv.companyName)
+      
+      const existing = acc.find(item => item.name === sector)
+      if (existing) {
+        existing.value += inv.marketValue
+      } else {
+        acc.push({ name: sector, value: inv.marketValue, percentage: 0 })
+      }
+      return acc
+    }, [])
+
+    // Calculate percentages for sector allocation
+    if (Array.isArray(sectors) && portfolioSummary.totalValue > 0) {
+      sectors.forEach(sector => {
+        sector.percentage = (sector.value / portfolioSummary.totalValue) * 100
+      })
+    }
+
+    return sectors
+  }, [investments, investmentSummary, portfolioSummary.totalValue, getSector])
+
   const sectors = useMemo(() => {
-    return ['All', ...Array.from(new Set(investments.map(inv => getSector(inv.companyName))))]
+    return ['All', ...Array.from(new Set(investments.map(inv => getSector(inv.companyName, inv.sector))))]
   }, [investments, getSector])
 
   const filteredInvestments = useMemo(() => {
     return investments.filter(investment => {
       const matchesSearch = investment.symbol.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            investment.companyName.toLowerCase().includes(searchTerm.toLowerCase())
-      const matchesSector = filterSector === 'All' || getSector(investment.companyName) === filterSector
+      const matchesSector = filterSector === 'All' || getSector(investment.companyName, investment.sector) === filterSector
       return matchesSearch && matchesSector
     })
   }, [investments, searchTerm, filterSector, getSector])
@@ -231,6 +250,178 @@ const Investments: React.FC = () => {
     return (
       <div className="flex items-center justify-center min-h-96">
         <LoadingSpinner size="large" />
+      </div>
+    )
+  }
+
+  // Show a helpful message if no investments or investment accounts are available
+  if (investments.length === 0 && !investmentAccounts?.hasInvestmentAccounts) {
+    return (
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Investments</h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Track your portfolio performance and holdings
+            </p>
+          </div>
+          
+          <div className="flex items-center gap-3 mt-4 sm:mt-0">
+            {/* Sync Button */}
+            <SyncButton 
+              variant="button" 
+              onSyncComplete={loadInvestments}
+              investmentOnly={true}
+            />
+          </div>
+        </div>
+
+        {/* Empty State or Account Balances Only */}
+        {investmentAccounts?.hasInvestmentAccounts && !investmentAccounts?.supportsDetailedData ? (
+          <div className="space-y-6">
+            {/* Summary KPIs */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 lg:p-6">
+                <div className="flex items-center justify-between">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm text-gray-500 dark:text-gray-400 truncate">Total Portfolio Value</p>
+                    <p className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">
+                      {formatCurrency(portfolioSummary.totalValue)}
+                    </p>
+                  </div>
+                  <div className="ml-2 flex-shrink-0">
+                    <TrendingUp className="h-8 w-8 text-green-500" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 lg:p-6">
+                <div className="flex items-center justify-between">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm text-gray-500 dark:text-gray-400 truncate">Investment Accounts</p>
+                    <p className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">
+                      {investmentAccounts?.accounts?.length || 0}
+                    </p>
+                  </div>
+                  <div className="ml-2 flex-shrink-0">
+                    <Wallet className="h-8 w-8 text-blue-500" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Investment Accounts Table */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white">Investment Accounts</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Account balances are available, but detailed holdings data is not supported by your institution.
+                </p>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                  <thead className="bg-gray-50 dark:bg-gray-900">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        Account
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        Type
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        Balance
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        Institution
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                    {investmentAccounts?.accounts?.map((account: any, index: number) => (
+                      <tr key={`${account.accountId}-${index}`} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900 dark:text-white">
+                            {account.accountName}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-500 dark:text-gray-400 capitalize">
+                            {account.accountType}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900 dark:text-white">
+                            {formatCurrency(account.balance)}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-500 dark:text-gray-400">
+                            {account.institutionName}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Information Banner */}
+            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+              <div className="flex">
+                <div className="flex-shrink-0">
+                  <Target className="h-5 w-5 text-blue-400" />
+                </div>
+                <div className="ml-3">
+                  <h3 className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                    Limited Investment Data Available
+                  </h3>
+                  <div className="mt-2 text-sm text-blue-700 dark:text-blue-300">
+                    <p>
+                      Your institution has investment accounts but doesn't support detailed holdings data through the API. 
+                      You can see account balances, but detailed holdings, performance metrics, and sector allocation are not available.
+                    </p>
+                    <p className="mt-2">
+                      For full investment features in sandbox mode, try connecting to TD Bank (ins_109508), Wells Fargo (ins_109509), 
+                      or Bank of America (ins_109510) with the "investments" product enabled.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-8 text-center">
+            <div className="max-w-md mx-auto">
+              <Wallet className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" />
+              <h3 className="mt-4 text-lg font-medium text-gray-900 dark:text-white">
+                No Investment Data Available
+              </h3>
+              <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                This could be because:
+              </p>
+              <ul className="mt-4 text-sm text-gray-500 dark:text-gray-400 text-left space-y-1">
+                <li>• Your connected bank has investment accounts but doesn't support the investments API</li>
+                <li>• The institution doesn't have investment data available in sandbox mode</li>
+                <li>• You don't have any investment accounts linked</li>
+                <li>• The accounts haven't been synced yet</li>
+              </ul>
+              <div className="mt-6 space-y-2">
+                <p className="text-sm font-medium text-gray-900 dark:text-white">
+                  For testing with Plaid sandbox:
+                </p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Use institutions like TD Bank (ins_109508), Wells Fargo (ins_109509), or Bank of America (ins_109510) 
+                  with the "investments" product enabled.
+                </p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Note: TD Canada Trust (ins_42) has investment accounts but doesn't support the investments API.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     )
   }
@@ -251,6 +442,7 @@ const Investments: React.FC = () => {
           <SyncButton 
             variant="button" 
             onSyncComplete={loadInvestments}
+            investmentOnly={true}
           />
           
           {/* Date Range Selector */}
@@ -347,46 +539,48 @@ const Investments: React.FC = () => {
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
             Portfolio Value Over Time
           </h3>
-          <div className="h-64 lg:h-80 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={portfolioData}>
-                <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                <XAxis 
-                  dataKey="date" 
-                  tickFormatter={formatDate}
-                  className="text-sm"
-                  interval="preserveStartEnd"
-                />
-                <YAxis 
-                  tickFormatter={formatCurrency}
-                  className="text-sm"
-                  width={60}
-                />
-                <Tooltip 
-                  formatter={(value: number) => [formatCurrency(value), '']}
-                  labelFormatter={(label: string) => formatDate(label)}
-                />
-                <Legend />
-                <Line 
-                  type="monotone" 
-                  dataKey="value" 
-                  stroke="#10b981" 
-                  strokeWidth={2}
-                  name="Portfolio Value"
-                  dot={{ fill: '#10b981', strokeWidth: 2, r: 4 }}
-                />
-                <Line 
-                  type="monotone" 
-                  dataKey="costBasis" 
-                  stroke="#6b7280" 
-                  strokeWidth={2}
-                  strokeDasharray="5 5"
-                  name="Cost Basis"
-                  dot={{ fill: '#6b7280', strokeWidth: 2, r: 4 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
+          <LazyChart height={320}>
+            <div className="h-64 lg:h-80 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={chartData.portfolioData}>
+                  <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                  <XAxis 
+                    dataKey="date" 
+                    tickFormatter={formatDate}
+                    className="text-sm"
+                    interval="preserveStartEnd"
+                  />
+                  <YAxis 
+                    tickFormatter={formatCurrency}
+                    className="text-sm"
+                    width={60}
+                  />
+                  <Tooltip 
+                    formatter={(value: number) => [formatCurrency(value), '']}
+                    labelFormatter={(label: string) => formatDate(label)}
+                  />
+                  <Legend />
+                  <Line 
+                    type="monotone" 
+                    dataKey="value" 
+                    stroke="#10b981" 
+                    strokeWidth={2}
+                    name="Portfolio Value"
+                    dot={{ fill: '#10b981', strokeWidth: 2, r: 4 }}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="costBasis" 
+                    stroke="#6b7280" 
+                    strokeWidth={2}
+                    strokeDasharray="5 5"
+                    name="Cost Basis"
+                    dot={{ fill: '#6b7280', strokeWidth: 2, r: 4 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </LazyChart>
         </div>
 
         {/* Daily Returns */}
@@ -394,37 +588,39 @@ const Investments: React.FC = () => {
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
             Daily Returns
           </h3>
-          <div className="h-64 lg:h-80 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={dailyReturns}>
-                <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                <XAxis 
-                  dataKey="date" 
-                  tickFormatter={formatDate}
-                  className="text-sm"
-                  interval="preserveStartEnd"
-                />
-                <YAxis 
-                  tickFormatter={formatCurrency}
-                  className="text-sm"
-                  width={60}
-                />
-                <Tooltip 
-                  formatter={(value: number) => [formatCurrency(value), 'Return']}
-                  labelFormatter={(label: string) => formatDate(label)}
-                />
-                <Bar 
-                  dataKey="return" 
-                  fill="#10b981"
-                  name="Daily Return"
-                >
-                  {dailyReturns.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.return >= 0 ? '#10b981' : '#ef4444'} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+          <LazyChart height={320}>
+            <div className="h-64 lg:h-80 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData.dailyReturns}>
+                  <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                  <XAxis 
+                    dataKey="date" 
+                    tickFormatter={formatDate}
+                    className="text-sm"
+                    interval="preserveStartEnd"
+                  />
+                  <YAxis 
+                    tickFormatter={formatCurrency}
+                    className="text-sm"
+                    width={60}
+                  />
+                  <Tooltip 
+                    formatter={(value: number) => [formatCurrency(value), 'Return']}
+                    labelFormatter={(label: string) => formatDate(label)}
+                  />
+                  <Bar 
+                    dataKey="return" 
+                    fill="#10b981"
+                    name="Daily Return"
+                  >
+                    {chartData.dailyReturns.map((entry: any, index: number) => (
+                      <Cell key={`cell-${index}`} fill={entry.return >= 0 ? '#10b981' : '#ef4444'} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </LazyChart>
         </div>
       </div>
 
@@ -436,7 +632,7 @@ const Investments: React.FC = () => {
             Asset Allocation
           </h3>
           <div className="flex flex-col lg:flex-row lg:items-center gap-6">
-            <div className="h-48 lg:h-64 w-full lg:w-64 flex-shrink-0">
+            <LazyChart height={256} className="h-48 lg:h-64 w-full lg:w-64 flex-shrink-0">
               <ResponsiveContainer width="100%" height="100%">
                 <RechartsPieChart>
                   <Pie
@@ -448,14 +644,14 @@ const Investments: React.FC = () => {
                     paddingAngle={2}
                     dataKey="value"
                   >
-                    {assetAllocation.map((_, index) => (
+                    {assetAllocation.map((_, index: number) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
                   <Tooltip formatter={(value: number) => formatCurrency(value)} />
                 </RechartsPieChart>
               </ResponsiveContainer>
-            </div>
+            </LazyChart>
             <div className="flex-1 space-y-3">
               {assetAllocation.map((item, index) => (
                 <div key={item.name} className="flex items-center justify-between">
@@ -486,7 +682,7 @@ const Investments: React.FC = () => {
             Sector Allocation
           </h3>
           <div className="flex flex-col lg:flex-row lg:items-center gap-6">
-            <div className="h-48 lg:h-64 w-full lg:w-64 flex-shrink-0">
+            <LazyChart height={256} className="h-48 lg:h-64 w-full lg:w-64 flex-shrink-0">
               <ResponsiveContainer width="100%" height="100%">
                 <RechartsPieChart>
                   <Pie
@@ -498,16 +694,16 @@ const Investments: React.FC = () => {
                     paddingAngle={2}
                     dataKey="value"
                   >
-                    {sectorAllocation.map((_, index) => (
+                    {sectorAllocation.map((_: any, index: number) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
                   <Tooltip formatter={(value: number) => formatCurrency(value)} />
                 </RechartsPieChart>
               </ResponsiveContainer>
-            </div>
+            </LazyChart>
             <div className="flex-1 space-y-2 max-h-64 overflow-y-auto">
-              {sectorAllocation.map((item, index) => (
+              {sectorAllocation.map((item: any, index: number) => (
                 <div key={item.name} className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
                     <div 
@@ -619,11 +815,11 @@ const Investments: React.FC = () => {
                 </tr>
               ) : (
                 paginatedInvestments.map((investment, index) => {
-                const avgCost = investment.marketPrice * 0.9 // Estimate
-                const costBasis = investment.quantity * avgCost
+                const avgCost = investment.costBasis ? investment.costBasis / investment.quantity : investment.marketPrice * 0.9 // Use actual cost basis if available
+                const costBasis = investment.costBasis || investment.quantity * avgCost
                 const unrealizedPL = investment.marketValue - costBasis
                 const unrealizedPLPercent = costBasis > 0 ? (unrealizedPL / costBasis) * 100 : 0
-                const sector = getSector(investment.companyName)
+                const sector = getSector(investment.companyName, investment.sector)
                 
                 return (
                   <tr key={`${investment.symbol}-${index}`} className="hover:bg-gray-50 dark:hover:bg-gray-700">
@@ -759,7 +955,6 @@ const Investments: React.FC = () => {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`px-2 py-1 text-xs rounded-full ${
                       transaction.type === 'Buy' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300' :
-                      transaction.type === 'Sell' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300' :
                       transaction.type === 'Dividend' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' :
                       'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
                     }`}>
@@ -851,7 +1046,7 @@ const Investments: React.FC = () => {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-sm text-gray-500 dark:text-gray-400">Sector:</span>
-                      <span className="text-sm font-medium text-gray-900 dark:text-white">{getSector(selectedInvestment.companyName)}</span>
+                      <span className="text-sm font-medium text-gray-900 dark:text-white">{getSector(selectedInvestment.companyName, selectedInvestment.sector)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-sm text-gray-500 dark:text-gray-400">Quantity:</span>
@@ -886,8 +1081,8 @@ const Investments: React.FC = () => {
                 <h4 className="text-lg font-medium text-gray-900 dark:text-white">Performance</h4>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {(() => {
-                    const avgCost = selectedInvestment.marketPrice * 0.9 // Estimate
-                    const costBasis = selectedInvestment.quantity * avgCost
+                    const avgCost = selectedInvestment.costBasis ? selectedInvestment.costBasis / selectedInvestment.quantity : selectedInvestment.marketPrice * 0.9
+                    const costBasis = selectedInvestment.costBasis || selectedInvestment.quantity * avgCost
                     const unrealizedPL = selectedInvestment.marketValue - costBasis
                     const unrealizedPLPercent = costBasis > 0 ? (unrealizedPL / costBasis) * 100 : 0
                     
@@ -922,8 +1117,10 @@ const Investments: React.FC = () => {
                 <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
                   <p className="text-sm text-blue-800 dark:text-blue-200">
                     <strong>Note:</strong> This is a detailed view of your {selectedInvestment.symbol} holdings. 
-                    Cost basis is estimated at 90% of current market price for demonstration purposes. 
-                    In a real application, this would show historical purchase data and actual cost basis.
+                    {selectedInvestment.costBasis 
+                      ? 'Cost basis is based on actual purchase data from your brokerage account.' 
+                      : 'Cost basis is estimated for demonstration purposes. Connect your brokerage account for accurate cost basis tracking.'
+                    }
                   </p>
                 </div>
               </div>

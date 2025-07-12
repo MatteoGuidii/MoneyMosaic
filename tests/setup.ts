@@ -7,47 +7,36 @@ process.env.PLAID_CLIENT_ID = 'test_client_id';
 process.env.PLAID_SECRET = 'test_secret';
 process.env.PLAID_ENV = 'sandbox';
 
-// Suppress console logs during tests for cleaner output
 // Store original console methods
 const originalLog = console.log;
 const originalError = console.error;
 
-// Mock console methods to reduce noise in tests
+// Conditionally silence console output during tests based on environment
+const isVerbose = process.env.VERBOSE_LOGS === 'true';
 console.log = (...args) => {
-  const logText = args.join(' ');
-  
-  // Skip scheduler service logs (they use emojis and are noisy in tests)
-  if (logText.includes('🕒') || logText.includes('🏥') || logText.includes('🚀') || 
-      logText.includes('⏹️') || logText.includes('✅') || logText.includes('💰') || 
-      logText.includes('💵') || logText.includes('🔄') || logText.includes('Starting scheduled') ||
-      logText.includes('Synced') || logText.includes('Total Spending') || logText.includes('Total Income') ||
-      logText.includes('All background jobs') || logText.includes('Stopped job') || 
-      logText.includes('scheduled every') || logText.includes('Manual sync completed') ||
-      logText.includes('Starting connection health check') || logText.includes('Healthy connections') ||
-      logText.includes('Manually triggering')) {
-    return; // Skip these logs
-  }
-  
-  // Only show logs that contain 'ERROR' or 'FAIL' for important debugging
-  if (args.some(arg => String(arg).includes('ERROR') || String(arg).includes('FAIL'))) {
+  if (isVerbose) {
     originalLog(...args);
-  }
-};
-
-// Keep console.error for actual error debugging
-console.error = (...args) => {
-  const errorText = args.join(' ');
-  
-  // Skip expected test errors
-  if (errorText.includes('test error') || 
-      errorText.includes('Plaid API Error') || 
-      errorText.includes('Missing public_token') ||
-      errorText.includes('exchangePublicToken error')) {
     return;
   }
-  
-  // Show other errors
-  originalError(...args);
+  // Only show logs that are explicitly marked as critical/important
+  const logText = args.join(' ');
+  if (logText.includes('CRITICAL') || logText.includes('FATAL') || logText.includes('IMPORTANT')) {
+    originalLog(...args);
+  }
+  // Otherwise, suppress all logs for clean test output
+};
+
+console.error = (...args) => {
+  if (isVerbose) {
+    originalError(...args);
+    return;
+  }
+  // Only show truly unexpected errors
+  const errorText = args.join(' ');
+  if (errorText.includes('CRITICAL') || errorText.includes('FATAL') || errorText.includes('UNEXPECTED')) {
+    originalError(...args);
+  }
+  // Suppress all expected test errors for clean output
 };
 
 // Create a unique test database path for each test run

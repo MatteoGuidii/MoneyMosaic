@@ -498,6 +498,102 @@
         }
       }
     },
+    "/api/budget": {
+      "post": {
+        "summary": "Create or update a budget",
+        "description": "Creates or updates a budget for a specific category and month",
+        "tags": [
+          "Budget"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "category": {
+                    "type": "string",
+                    "description": "Budget category name"
+                  },
+                  "amount": {
+                    "type": "number",
+                    "description": "Budget amount"
+                  },
+                  "month": {
+                    "type": "string",
+                    "description": "Month (01-12)"
+                  },
+                  "year": {
+                    "type": "number",
+                    "description": "Year"
+                  }
+                },
+                "required": [
+                  "category",
+                  "amount"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Budget created/updated successfully"
+          },
+          "400": {
+            "description": "Invalid input data"
+          },
+          "500": {
+            "description": "Server error"
+          }
+        }
+      }
+    },
+    "/api/budget/{category}": {
+      "delete": {
+        "summary": "Delete a budget",
+        "description": "Deletes a budget for a specific category and month",
+        "tags": [
+          "Budget"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "category",
+            "required": true,
+            "description": "Budget category to delete",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "month",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Month (01-12), defaults to current month"
+          },
+          {
+            "in": "query",
+            "name": "year",
+            "schema": {
+              "type": "number"
+            },
+            "description": "Year, defaults to current year"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Budget deleted successfully"
+          },
+          "500": {
+            "description": "Server error"
+          }
+        }
+      }
+    },
     "/api/investments": {
       "get": {
         "summary": "Get investment data",
@@ -559,6 +655,278 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/investments/summary": {
+      "get": {
+        "summary": "Get investment portfolio summary",
+        "description": "Returns portfolio summary including total value, performance, and sector allocation",
+        "tags": [
+          "Investments"
+        ],
+        "responses": {
+          "200": {
+            "description": "Investment portfolio summary",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "totalValue": {
+                      "type": "number",
+                      "format": "float"
+                    },
+                    "totalCostBasis": {
+                      "type": "number",
+                      "format": "float"
+                    },
+                    "totalDayChange": {
+                      "type": "number",
+                      "format": "float"
+                    },
+                    "totalDayChangePercent": {
+                      "type": "number",
+                      "format": "float"
+                    },
+                    "holdingsCount": {
+                      "type": "integer"
+                    },
+                    "accountsCount": {
+                      "type": "integer"
+                    },
+                    "topHoldings": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    },
+                    "sectorAllocation": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "sector": {
+                            "type": "string"
+                          },
+                          "value": {
+                            "type": "number"
+                          },
+                          "percentage": {
+                            "type": "number"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error"
+          }
+        }
+      }
+    },
+    "/api/investments/transactions": {
+      "get": {
+        "summary": "Get investment transactions",
+        "description": "Returns investment transactions with optional filtering",
+        "tags": [
+          "Investments"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "account_id",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Filter by account ID"
+          },
+          {
+            "in": "query",
+            "name": "start_date",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "description": "Start date for filtering (YYYY-MM-DD)"
+          },
+          {
+            "in": "query",
+            "name": "end_date",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "description": "End date for filtering (YYYY-MM-DD)"
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            },
+            "description": "Number of transactions to return"
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0
+            },
+            "description": "Number of transactions to skip"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Investment transactions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "investment_transaction_id": {
+                        "type": "string"
+                      },
+                      "account_id": {
+                        "type": "string"
+                      },
+                      "security_id": {
+                        "type": "string"
+                      },
+                      "type": {
+                        "type": "string"
+                      },
+                      "subtype": {
+                        "type": "string"
+                      },
+                      "quantity": {
+                        "type": "number"
+                      },
+                      "price": {
+                        "type": "number"
+                      },
+                      "amount": {
+                        "type": "number"
+                      },
+                      "date": {
+                        "type": "string"
+                      },
+                      "symbol": {
+                        "type": "string"
+                      },
+                      "security_name": {
+                        "type": "string"
+                      },
+                      "account_name": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error"
+          }
+        }
+      }
+    },
+    "/api/investments/sync": {
+      "post": {
+        "summary": "Manually trigger investment data sync",
+        "description": "Triggers a manual sync of investment data from all connected institutions",
+        "tags": [
+          "Investments"
+        ],
+        "responses": {
+          "200": {
+            "description": "Sync initiated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error"
+          }
+        }
+      }
+    },
+    "/api/investments/support-status": {
+      "get": {
+        "summary": "Get investment support status for all institutions",
+        "description": "Returns which institutions support investments and which don't",
+        "tags": [
+          "Investments"
+        ],
+        "responses": {
+          "200": {
+            "description": "Investment support status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "supportedInstitutions": {
+                      "type": "number"
+                    },
+                    "unsupportedInstitutions": {
+                      "type": "number"
+                    },
+                    "totalInstitutions": {
+                      "type": "number"
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "institutionId": {
+                            "type": "number"
+                          },
+                          "institutionName": {
+                            "type": "string"
+                          },
+                          "supportsInvestments": {
+                            "type": "boolean"
+                          },
+                          "hasInvestmentAccounts": {
+                            "type": "boolean"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error"
           }
         }
       }
@@ -724,6 +1092,133 @@
         }
       }
     },
+    "/api/investments/all": {
+      "get": {
+        "summary": "Get all investment data (optimized)",
+        "description": "Returns combined investment accounts and summary data in a single optimized call",
+        "tags": [
+          "Investments"
+        ],
+        "responses": {
+          "200": {
+            "description": "Combined investment data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "investments": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    },
+                    "accounts": {
+                      "type": "object"
+                    },
+                    "summary": {
+                      "type": "object",
+                      "properties": {
+                        "totalValue": {
+                          "type": "number"
+                        },
+                        "totalCostBasis": {
+                          "type": "number"
+                        },
+                        "totalDayChange": {
+                          "type": "number"
+                        },
+                        "totalDayChangePercent": {
+                          "type": "number"
+                        },
+                        "holdingsCount": {
+                          "type": "integer"
+                        },
+                        "accountsCount": {
+                          "type": "integer"
+                        },
+                        "topHoldings": {
+                          "type": "array"
+                        },
+                        "sectorAllocation": {
+                          "type": "array"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error"
+          }
+        }
+      }
+    },
+    "/api/net-worth": {
+      "get": {
+        "summary": "Get net worth data",
+        "description": "Returns historical net worth data including cash, investments, and total net worth over a specified time range",
+        "tags": [
+          "Dashboard"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "range",
+            "schema": {
+              "type": "string",
+              "default": "7d"
+            },
+            "description": "Time range for net worth data (e.g., '7d', '30d', '90d')"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Net worth data retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "date": {
+                        "type": "string",
+                        "format": "date"
+                      },
+                      "cash": {
+                        "type": "number",
+                        "format": "float"
+                      },
+                      "investments": {
+                        "type": "number",
+                        "format": "float"
+                      },
+                      "netWorth": {
+                        "type": "number",
+                        "format": "float"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/link/token/create": {
       "post": {
         "summary": "Create Plaid Link token",
@@ -828,6 +1323,69 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/sync/status": {
+      "get": {
+        "summary": "Get sync status",
+        "description": "Returns the last sync time and health status",
+        "tags": [
+          "Sync"
+        ],
+        "responses": {
+          "200": {
+            "description": "Sync status retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "lastSync": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "isHealthy": {
+                      "type": "boolean"
+                    },
+                    "nextAutoSync": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/sync/accounts": {
+      "post": {
+        "summary": "Sync account data",
+        "description": "Manually trigger sync for all connected accounts",
+        "tags": [
+          "Sync"
+        ],
+        "responses": {
+          "200": {
+            "description": "Accounts synced successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
                 }
               }
             }

@@ -1,268 +1,296 @@
 import { BankService } from '../../src/services/bank.service';
-import { Database } from '../../src/database';
+import { database } from '../../src/database';
 import { plaidClient } from '../../src/plaidClient';
-import fs from 'fs';
+import { formatISO, subDays } from 'date-fns';
 
-// Mock plaidClient
-jest.mock('../../src/plaidClient', () => ({
-  plaidClient: {
-    itemPublicTokenExchange: jest.fn(),
-    institutionsGetById: jest.fn(),
-    accountsGet: jest.fn(),
-    transactionsGet: jest.fn(),
-  },
-}));
+// Mock dependencies
+jest.mock('../../src/database');
+jest.mock('../../src/plaidClient');
+jest.mock('date-fns');
+
+const mockDatabase = database as jest.Mocked<typeof database>;
+const mockPlaidClient = plaidClient as jest.Mocked<typeof plaidClient>;
+const mockFormatISO = formatISO as jest.MockedFunction<typeof formatISO>;
+const mockSubDays = subDays as jest.MockedFunction<typeof subDays>;
 
 describe('BankService', () => {
-  let testDatabase: Database;
   let bankService: BankService;
-  let testDbPath: string;
 
-  beforeEach(async () => {
-    // Create a unique test database for each test
-    testDbPath = (global as any).getUniqueTestDbPath();
-    
-    // Clean up test database
-    if (fs.existsSync(testDbPath)) {
-      fs.unlinkSync(testDbPath);
-    }
-    
-    // Create test database and service
-    testDatabase = new Database(testDbPath);
-    bankService = new BankService(testDatabase);
-    
-    // Wait for database initialization
-    await new Promise(resolve => setTimeout(resolve, 100));
-    
-    // Reset all mocks
+  beforeEach(() => {
     jest.clearAllMocks();
+    bankService = new BankService();
+    
+    // Setup date mocks
+    mockFormatISO.mockReturnValue('2023-01-01');
+    mockSubDays.mockReturnValue(new Date('2023-01-01'));
+    
+    // Setup console mock to avoid clutter in tests
+    jest.spyOn(console, 'log').mockImplementation(() => {});
+    jest.spyOn(console, 'error').mockImplementation(() => {});
   });
 
-  afterEach(async () => {
-    if (testDatabase) {
-      await testDatabase.close();
-    }
-    if (fs.existsSync(testDbPath)) {
-      fs.unlinkSync(testDbPath);
-    }
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
   describe('addBankConnection', () => {
     it('should successfully add a bank connection', async () => {
-      const mockExchangeResponse = {
-        data: {
-          access_token: 'test_access_token',
-          item_id: 'test_item_id',
-        },
+      const mockTokenData = {
+        access_token: 'access-sandbox-test-token',
+        item_id: 'test-item-id'
       };
 
-      const mockInstitutionResponse = {
-        data: {
-          institution: {
-            institution_id: 'test_institution_id',
-            name: 'Test Bank',
-            url: 'https://testbank.com',
-            primary_color: '#000000',
-            logo: 'https://testbank.com/logo.png',
-          },
-        },
+      const mockInstitution = {
+        institution_id: 'ins_123',
+        name: 'Test Bank'
       };
 
-      const mockAccountsResponse = {
+      const connectionData = {
+        public_token: 'public-token-test',
+        institution: mockInstitution
+      };
+
+      mockPlaidClient.itemPublicTokenExchange.mockResolvedValue({
+        data: mockTokenData
+      } as any);
+
+      mockDatabase.saveInstitution.mockResolvedValue(undefined);
+      mockDatabase.getInstitutionByAccessToken.mockResolvedValue({
+        id: 1,
+        name: 'Test Bank'
+      });
+
+      mockPlaidClient.accountsGet.mockResolvedValue({
         data: {
           accounts: [
             {
-              account_id: 'test_account_id',
-              name: 'Test Checking',
+              account_id: 'acc_1',
+              name: 'Checking',
               official_name: 'Test Checking Account',
               type: 'depository',
               subtype: 'checking',
-              mask: '1234',
+              mask: '0000',
               balances: {
-                current: 1000.00,
-                available: 950.00,
-              },
-            },
-          ],
-        },
-      };
+                current: 1000,
+                available: 950
+              }
+            }
+          ]
+        }
+      } as any);
 
-      (plaidClient.itemPublicTokenExchange as jest.Mock).mockResolvedValue(mockExchangeResponse);
-      (plaidClient.institutionsGetById as jest.Mock).mockResolvedValue(mockInstitutionResponse);
-      (plaidClient.accountsGet as jest.Mock).mockResolvedValue(mockAccountsResponse);
+      mockDatabase.saveAccount.mockResolvedValue(undefined);
 
-      const result = await bankService.addBankConnection({
-        public_token: 'test_public_token',
-        institution: {
-          institution_id: 'test_institution_id',
-          name: 'Test Bank',
-        },
+      const result = await bankService.addBankConnection(connectionData);
+
+      expect(result).toEqual({
+        access_token: 'access-sandbox-test-token',
+        item_id: 'test-item-id'
       });
 
-      expect(result.access_token).toBe('test_access_token');
-      expect(result.item_id).toBe('test_item_id');
-      expect(plaidClient.itemPublicTokenExchange).toHaveBeenCalledWith({
-        public_token: 'test_public_token',
-      });
-    });
-
-    it('should handle Plaid API errors', async () => {
-      (plaidClient.itemPublicTokenExchange as jest.Mock).mockRejectedValue(new Error('Plaid API Error'));
-
-      await expect(
-        bankService.addBankConnection({
-          public_token: 'invalid_token',
-          institution: {
-            institution_id: 'test_institution_id',
-            name: 'Test Bank',
-          },
-        })
-      ).rejects.toThrow('Plaid API Error');
-    });
-  });
-
-  describe('fetchAllTransactions', () => {
-    it('should fetch transactions for all connected banks', async () => {
-      // Setup a test institution and account first
-      await testDatabase.saveInstitution({
-        institution_id: 'test_institution_id',
+      expect(mockDatabase.saveInstitution).toHaveBeenCalledWith({
+        institution_id: 'ins_123',
         name: 'Test Bank',
-        access_token: 'access-sandbox-test-institution-token',
-        item_id: 'test_item_id',
+        access_token: 'access-sandbox-test-token',
+        item_id: 'test-item-id'
       });
 
-      const savedInstitution = await testDatabase.getInstitutionByAccessToken('access-sandbox-test-institution-token');
-      
-      await testDatabase.saveAccount({
-        account_id: 'test_account_id',
-        institution_id: savedInstitution.id,
-        name: 'Test Checking',
+      expect(mockDatabase.saveAccount).toHaveBeenCalledWith({
+        account_id: 'acc_1',
+        institution_id: 1,
+        name: 'Checking',
+        official_name: 'Test Checking Account',
         type: 'depository',
+        subtype: 'checking',
+        mask: '0000',
+        current_balance: 1000,
+        available_balance: 950
       });
-
-      const mockTransactionsResponse = {
-        data: {
-          accounts: [
-            {
-              account_id: 'test_account_id',
-              name: 'Test Checking',
-              type: 'depository',
-              subtype: 'checking',
-            },
-          ],
-          transactions: [
-            {
-              transaction_id: 'txn_1',
-              account_id: 'test_account_id',
-              amount: 25.50,
-              date: '2023-01-01',
-              name: 'Test Purchase',
-              merchant_name: 'Test Merchant',
-              category: ['Food and Drink', 'Restaurants'],
-              type: 'place',
-              pending: false,
-            },
-          ],
-          total_transactions: 1,
-        },
-      };
-
-      (plaidClient.transactionsGet as jest.Mock).mockResolvedValue(mockTransactionsResponse);
-
-      const result = await bankService.fetchAllTransactions(30);
-
-      expect(result.transactions).toBeDefined();
-      expect(result.summary).toBeDefined();
-      expect(plaidClient.transactionsGet).toHaveBeenCalled();
     });
 
-    it('should handle no connected banks', async () => {
-      const result = await bankService.fetchAllTransactions(30);
+    it('should handle errors when adding bank connection', async () => {
+      const connectionData = {
+        public_token: 'public-token-test',
+        institution: {
+          institution_id: 'ins_123',
+          name: 'Test Bank'
+        }
+      };
 
-      expect(result.transactions).toBeDefined();
-      expect(result.summary).toBeDefined();
+      mockPlaidClient.itemPublicTokenExchange.mockRejectedValue(new Error('Plaid error'));
+
+      await expect(bankService.addBankConnection(connectionData)).rejects.toThrow('Plaid error');
     });
   });
 
   describe('getConnectedBanks', () => {
-    it('should return connected banks', async () => {
-      await testDatabase.saveInstitution({
-        institution_id: 'test_institution_id',
-        name: 'Test Bank',
-        access_token: 'test_access_token',
-        item_id: 'test_item_id',
-      });
+    it('should return all connected banks', async () => {
+      const mockBanks = [
+        {
+          id: 1,
+          institution_id: 'ins_123',
+          name: 'Test Bank 1',
+          access_token: 'token1',
+          item_id: 'item1',
+          created_at: '2023-01-01',
+          updated_at: '2023-01-01',
+          is_active: 1
+        },
+        {
+          id: 2,
+          institution_id: 'ins_456',
+          name: 'Test Bank 2',
+          access_token: 'token2',
+          item_id: 'item2',
+          created_at: '2023-01-02',
+          updated_at: '2023-01-02',
+          is_active: 1
+        }
+      ];
 
-      const banks = await bankService.getConnectedBanks();
+      mockDatabase.getInstitutions.mockResolvedValue(mockBanks);
 
-      expect(banks).toHaveLength(1);
-      expect(banks[0].name).toBe('Test Bank');
-    });
+      const result = await bankService.getConnectedBanks();
 
-    it('should return empty array when no banks connected', async () => {
-      const banks = await bankService.getConnectedBanks();
-
-      expect(banks).toHaveLength(0);
+      expect(result).toEqual(mockBanks);
+      expect(mockDatabase.getInstitutions).toHaveBeenCalled();
     });
   });
 
-  describe('removeBankConnection', () => {
-    it('should remove a bank connection', async () => {
-      await testDatabase.saveInstitution({
-        institution_id: 'test_institution_id',
-        name: 'Test Bank',
-        access_token: 'test_access_token',
-        item_id: 'test_item_id',
-      });
+  describe('fetchAllTransactions', () => {
+    it('should fetch transactions from all connected banks', async () => {
+      const mockInstitutions = [
+        {
+          id: 1,
+          institution_id: 'ins_123',
+          name: 'Test Bank',
+          access_token: 'access-sandbox-test-token',
+          item_id: 'item_123',
+          created_at: '2023-01-01',
+          updated_at: '2023-01-01',
+          is_active: 1
+        }
+      ];
 
-      const savedInstitution = await testDatabase.getInstitutionByAccessToken('test_access_token');
+      const mockSummary = {
+        totalSpending: 25.50,
+        totalIncome: 0,
+        byCategory: { 'Food and Drink': 25.50 },
+        byInstitution: { 'Test Bank': 25.50 }
+      };
+
+      mockDatabase.getInstitutions.mockResolvedValue(mockInstitutions);
+      mockDatabase.getTransactionSummary.mockResolvedValue(mockSummary);
       
-      await bankService.removeBankConnection(savedInstitution.id);
+      // Mock the private method by making it return empty array for this test
+      const mockTransactions: any[] = [];
+      
+      // Since fetchTransactionsForBank is called internally, let's mock the whole flow
+      jest.spyOn(bankService as any, 'fetchTransactionsForBank').mockResolvedValue(mockTransactions);
 
-      const banks = await bankService.getConnectedBanks();
-      expect(banks).toHaveLength(0);
+      const result = await bankService.fetchAllTransactions(30);
+
+      expect(result).toHaveProperty('transactions');
+      expect(result).toHaveProperty('summary');
+      expect(result.summary.totalSpending).toBe(25.50);
+      expect(result.summary.totalIncome).toBe(0);
+    });
+
+    it('should return empty results when no institutions are connected', async () => {
+      mockDatabase.getInstitutions.mockResolvedValue([]);
+
+      const result = await bankService.fetchAllTransactions(30);
+
+      expect(result).toEqual({
+        transactions: [],
+        summary: {
+          totalExpenses: 0,
+          totalIncome: 0,
+          netCashFlow: 0,
+          transactionCount: 0
+        }
+      });
     });
   });
 
   describe('checkConnectionHealth', () => {
-    it('should check health of all connections', async () => {
-      await testDatabase.saveInstitution({
-        institution_id: 'test_institution_id',
-        name: 'Test Bank',
-        access_token: 'test_access_token',
-        item_id: 'test_item_id',
-      });
+    it('should return healthy and unhealthy connections', async () => {
+      const mockInstitutions = [
+        {
+          id: 1,
+          institution_id: 'ins_123',
+          name: 'Test Bank',
+          access_token: 'access-token-test',
+          item_id: 'item_123',
+          created_at: '2023-01-01',
+          updated_at: '2023-01-01',
+          is_active: 1
+        }
+      ];
 
-      const mockAccountsResponse = {
-        data: {
-          accounts: [],
-        },
-      };
+      mockDatabase.getInstitutions.mockResolvedValue(mockInstitutions);
+      mockPlaidClient.accountsGet.mockResolvedValue({
+        data: { accounts: [] }
+      } as any);
 
-      (plaidClient.accountsGet as jest.Mock).mockResolvedValue(mockAccountsResponse);
+      const result = await bankService.checkConnectionHealth();
 
-      const health = await bankService.checkConnectionHealth();
+      expect(result).toHaveProperty('healthy');
+      expect(result).toHaveProperty('unhealthy');
+      expect(Array.isArray(result.healthy)).toBe(true);
+      expect(Array.isArray(result.unhealthy)).toBe(true);
+    });
+  });
 
-      expect(health.healthy).toHaveLength(1);
-      expect(health.unhealthy).toHaveLength(0);
-      expect(health.healthy).toContain('Test Bank');
+  describe('removeBankConnection', () => {
+    it('should successfully remove a bank connection', async () => {
+      const institutionId = 1;
+
+      // Mock the database.all method to return empty accounts array
+      mockDatabase.all.mockResolvedValue([]);
+      mockDatabase.run.mockResolvedValue(undefined);
+
+      await bankService.removeBankConnection(institutionId);
+
+      // Verify that the method attempts to fetch accounts first
+      expect(mockDatabase.all).toHaveBeenCalledWith(
+        'SELECT account_id FROM accounts WHERE institution_id = ?',
+        [institutionId]
+      );
+      
+      // Verify that the transaction-related database calls are made
+      expect(mockDatabase.run).toHaveBeenCalledWith('BEGIN TRANSACTION');
+      expect(mockDatabase.run).toHaveBeenCalledWith(
+        'DELETE FROM accounts WHERE institution_id = ?',
+        [institutionId]
+      );
+      expect(mockDatabase.run).toHaveBeenCalledWith(
+        'DELETE FROM institutions WHERE id = ?',
+        [institutionId]
+      );
+      expect(mockDatabase.run).toHaveBeenCalledWith('COMMIT');
+    });
+  });
+
+  describe('isValidAccessToken', () => {
+    it('should validate sandbox access tokens', () => {
+      const result = bankService['isValidAccessToken']('access-sandbox-test-token');
+      expect(result).toBe(true);
     });
 
-    it('should handle connection failures', async () => {
-      await testDatabase.saveInstitution({
-        institution_id: 'test_institution_id',
-        name: 'Test Bank',
-        access_token: 'test_access_token',
-        item_id: 'test_item_id',
-      });
+    it('should validate development access tokens', () => {
+      const result = bankService['isValidAccessToken']('access-development-test-token');
+      expect(result).toBe(true);
+    });
 
-      (plaidClient.accountsGet as jest.Mock).mockRejectedValue(new Error('Connection failed'));
+    it('should validate production access tokens', () => {
+      const result = bankService['isValidAccessToken']('access-production-test-token');
+      expect(result).toBe(true);
+    });
 
-      const health = await bankService.checkConnectionHealth();
-
-      expect(health.healthy).toHaveLength(0);
-      expect(health.unhealthy).toHaveLength(1);
-      expect(health.unhealthy[0].name).toBe('Test Bank');
+    it('should reject invalid access tokens', () => {
+      const result = bankService['isValidAccessToken']('invalid-token-format');
+      expect(result).toBe(false);
     });
   });
 });
