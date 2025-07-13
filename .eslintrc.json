@@ -32,7 +32,8 @@
     "no-var": "error",
     "camelcase": "error",
     "eqeqeq": "error",
-    "no-console": "warn"
+    "no-console": "warn",
+    "max-lines": ["error", { "max": 300, "skipBlankLines": true, "skipComments": true }]
   },
   "overrides": [
     {

@@ -8,11 +8,11 @@ import createLinkToken from './routes/link-token';
 import exchangeToken from './routes/token-exchange';
 import sandboxRoutes from './routes/sandbox';
 import transactionsRoutes from './routes/transactions';
-import dashboardRoutes from './routes/dashboard';
+import { dashboardRouter } from './routes/dashboard';
 import syncRoutes from './routes/sync';
 import { database } from './database';
 import { schedulerService } from './services/scheduler.service';
-import { swaggerSpec, swaggerUi, swaggerUiOptions } from './swagger';
+import { swaggerSpec, swaggerUi } from './swagger';
 
 const app = express();
 
@@ -36,7 +36,7 @@ app.use('/dist', express.static(path.join(__dirname, '../public/dist')));
 app.use('/assets', express.static(path.join(__dirname, '../public/dist/assets')));
 
 // Swagger API Documentation
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, swaggerUiOptions));
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 /**
  * @swagger
@@ -66,7 +66,7 @@ app.get('/health', (_req, res) => {
 app.use('/api', createLinkToken);
 app.use('/api', exchangeToken);
 app.use('/api', sandboxRoutes);
-app.use('/api', dashboardRoutes);
+app.use('/api', dashboardRouter);
 app.use('/api/transactions', transactionsRoutes);
 app.use('/api/sync', syncRoutes);
 
