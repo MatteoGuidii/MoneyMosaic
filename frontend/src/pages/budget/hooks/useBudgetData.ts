@@ -3,6 +3,7 @@ import { apiService } from '../../../services/apiService'
 import { BudgetData } from '../../../services/types'
 import { BudgetFormData } from '../types'
 import { useToast } from '../../../hooks/useToast'
+import { useAppEvent, APP_EVENTS } from '../../../utils/app-events'
 
 export const useBudgetData = () => {
   const [budgets, setBudgets] = useState<BudgetData[]>([])
@@ -64,6 +65,16 @@ export const useBudgetData = () => {
   useEffect(() => {
     loadBudgets()
     loadCategories()
+  }, [])
+
+  // Listen for bank connection changes and refresh data
+  useAppEvent(APP_EVENTS.BANK_CONNECTION_CHANGED, () => {
+    loadBudgets()
+    loadCategories()
+  }, [])
+
+  useAppEvent(APP_EVENTS.DATA_SYNC_COMPLETED, () => {
+    loadBudgets()
   }, [])
 
   return {

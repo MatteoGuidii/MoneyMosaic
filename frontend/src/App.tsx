@@ -12,6 +12,7 @@ const Analytics = lazy(() => import('./pages/Analytics'))
 const Accounts = lazy(() => import('./pages/Accounts'))
 const Investments = lazy(() => import('./pages/Investments'))
 const Budget = lazy(() => import('./pages/Budget'))
+const PlaidTest = lazy(() => import('./pages/PlaidTest'))
 
 function App() {
   return (
@@ -34,6 +35,7 @@ function App() {
                 <Route path="/accounts" element={<Accounts />} />
                 <Route path="/investments" element={<Investments />} />
                 <Route path="/budget" element={<Budget />} />
+                <Route path="/plaid-test" element={<PlaidTest />} />
               </Routes>
             </Suspense>
           </Layout>

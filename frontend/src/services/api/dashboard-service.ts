@@ -3,11 +3,11 @@ import { OverviewData, EarningsData, BudgetData, SavingsGoal, CashFlowForecast, 
 
 export class DashboardService {
   async fetchOverviewData(): Promise<OverviewData> {
-    return httpClient.get<OverviewData>('/api/dashboard/overview')
+    return httpClient.get<OverviewData>('/api/overview')
   }
 
   async fetchEarningsData(): Promise<EarningsData> {
-    return httpClient.get<EarningsData>('/api/dashboard/earnings')
+    return httpClient.get<EarningsData>('/api/earnings')
   }
 
   async fetchBudgetData(month?: string, year?: number): Promise<BudgetData[]> {
@@ -22,35 +22,51 @@ export class DashboardService {
   }
 
   async fetchSavingsGoals(): Promise<SavingsGoal[]> {
-    return httpClient.get<SavingsGoal[]>('/api/savings-goals')
+    // Note: This endpoint doesn't exist on backend yet, returning empty array
+    return Promise.resolve([])
+    // return httpClient.get<SavingsGoal[]>('/api/savings-goals')
   }
 
-  async createSavingsGoal(goal: Omit<SavingsGoal, 'id' | 'isCompleted'>): Promise<{ success: boolean; goal: SavingsGoal }> {
-    return httpClient.post('/api/savings-goals', goal)
+  async createSavingsGoal(_goal: Omit<SavingsGoal, 'id' | 'isCompleted'>): Promise<{ success: boolean; goal: SavingsGoal }> {
+    // Note: This endpoint doesn't exist on backend yet, returning mock response
+    return Promise.resolve({ success: false, goal: {} as SavingsGoal })
+    // return httpClient.post('/api/savings-goals', goal)
   }
 
-  async updateSavingsGoal(id: string, updates: Partial<SavingsGoal>): Promise<{ success: boolean }> {
-    return httpClient.put(`/api/savings-goals/${id}`, updates)
+  async updateSavingsGoal(_id: string, _updates: Partial<SavingsGoal>): Promise<{ success: boolean }> {
+    // Note: This endpoint doesn't exist on backend yet, returning mock response
+    return Promise.resolve({ success: false })
+    // return httpClient.put(`/api/savings-goals/${id}`, updates)
   }
 
-  async deleteSavingsGoal(id: string): Promise<{ success: boolean }> {
-    return httpClient.delete(`/api/savings-goals/${id}`)
+  async deleteSavingsGoal(_id: string): Promise<{ success: boolean }> {
+    // Note: This endpoint doesn't exist on backend yet, returning mock response
+    return Promise.resolve({ success: false })
+    // return httpClient.delete(`/api/savings-goals/${id}`)
   }
 
   async fetchCashFlowForecast(): Promise<CashFlowForecast[]> {
-    return httpClient.get<CashFlowForecast[]>('/api/cash-flow/forecast')
+    // Note: This endpoint doesn't exist on backend yet, returning empty array
+    return Promise.resolve([])
+    // return httpClient.get<CashFlowForecast[]>('/api/cash-flow/forecast')
   }
 
   async fetchAlerts(): Promise<Alert[]> {
-    return httpClient.get<Alert[]>('/api/alerts')
+    // Note: This endpoint doesn't exist on backend yet, returning empty array
+    return Promise.resolve([])
+    // return httpClient.get<Alert[]>('/api/alerts')
   }
 
-  async markAlertAsRead(alertId: string): Promise<{ success: boolean }> {
-    return httpClient.put(`/api/alerts/${alertId}/read`)
+  async markAlertAsRead(_alertId: string): Promise<{ success: boolean }> {
+    // Note: This endpoint doesn't exist on backend yet, returning mock response
+    return Promise.resolve({ success: false })
+    // return httpClient.put(`/api/alerts/${alertId}/read`)
   }
 
-  async dismissAlert(alertId: string): Promise<{ success: boolean }> {
-    return httpClient.delete(`/api/alerts/${alertId}`)
+  async dismissAlert(_alertId: string): Promise<{ success: boolean }> {
+    // Note: This endpoint doesn't exist on backend yet, returning mock response
+    return Promise.resolve({ success: false })
+    // return httpClient.delete(`/api/alerts/${alertId}`)
   }
 }
 

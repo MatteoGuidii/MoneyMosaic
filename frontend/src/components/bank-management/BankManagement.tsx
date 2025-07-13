@@ -13,31 +13,44 @@ const BankManagement: React.FC<BankManagementProps> = ({
 }) => {
   const {
     banks,
+    healthStatuses,
     loading,
     syncing,
     checkingHealth,
     connectingBank,
     error,
     successMessage,
-    connectNewBank,
-    syncAll,
-    checkHealth,
-    removeBank,
-    getHealthStatus,
-    clearError,
-    clearSuccessMessage
+    handleConnectBank,
+    handleSync,
+    handleHealthCheck,
+    handleDisconnectBank,
+    clearNotifications
   } = useBankManagement()
 
-  const handleConnectNewBank = () => {
-    connectNewBank({ onBankConnectionChange, onSyncComplete })
+  const handleConnectNewBank = async () => {
+    try {
+      await handleConnectBank()
+      onBankConnectionChange?.()
+    } catch (error) {
+      // Error handling is done in handleConnectBank
+      console.error('Error connecting bank:', error)
+    }
   }
 
   const handleSyncAll = () => {
-    syncAll({ onBankConnectionChange, onSyncComplete })
+    handleSync().then(() => {
+      onSyncComplete?.()
+    })
   }
 
-  const handleRemoveBank = (bankId: number) => {
-    removeBank(bankId, { onBankConnectionChange, onSyncComplete })
+  const handleRemoveBank = (institutionId: string) => {
+    handleDisconnectBank(institutionId).then(() => {
+      onBankConnectionChange?.()
+    })
+  }
+
+  const getHealthStatus = (institutionId: string) => {
+    return healthStatuses.find(status => status.institution_id === institutionId)?.status || 'unknown'
   }
 
   if (loading) {
@@ -53,7 +66,7 @@ const BankManagement: React.FC<BankManagementProps> = ({
       <BankManagementHeader
         onConnectNewBank={handleConnectNewBank}
         onSyncAll={handleSyncAll}
-        onHealthCheck={checkHealth}
+        onHealthCheck={handleHealthCheck}
         connectingBank={connectingBank}
         syncing={syncing}
         checkingHealth={checkingHealth}
@@ -62,8 +75,8 @@ const BankManagement: React.FC<BankManagementProps> = ({
       <BankManagementAlerts
         error={error}
         successMessage={successMessage}
-        onClearError={clearError}
-        onClearSuccess={clearSuccessMessage}
+        onClearError={clearNotifications}
+        onClearSuccess={clearNotifications}
       />
 
       {banks.length === 0 ? (
@@ -77,8 +90,8 @@ const BankManagement: React.FC<BankManagementProps> = ({
             <BankCard
               key={bank.id}
               bank={bank}
-              healthStatus={getHealthStatus(bank.name)}
-              onRemove={handleRemoveBank}
+              healthStatus={getHealthStatus(bank.name) as any}
+              onRemove={(bankId: number) => handleRemoveBank(String(bankId))}
             />
           ))}
         </div>

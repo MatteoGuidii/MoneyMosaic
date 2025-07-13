@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { apiService, Investment as ApiInvestment } from '../../../services/apiService'
 import { PortfolioSummary, SectorAllocation, InvestmentFilters } from '../types/investment-types'
 import { getSector } from '../utils/investment-utils'
+import { useAppEvent, APP_EVENTS } from '../../../utils/app-events'
 
 export const useInvestmentData = () => {
   const [investments, setInvestments] = useState<ApiInvestment[]>([])
@@ -30,6 +31,15 @@ export const useInvestmentData = () => {
   useEffect(() => {
     loadInvestments()
   }, [loadInvestments])
+
+  // Listen for bank connection changes and refresh data
+  useAppEvent(APP_EVENTS.BANK_CONNECTION_CHANGED, () => {
+    loadInvestments()
+  }, [])
+
+  useAppEvent(APP_EVENTS.DATA_SYNC_COMPLETED, () => {
+    loadInvestments()
+  }, [])
 
   const portfolioSummary = useMemo((): PortfolioSummary => {
     const summary = {

@@ -28,7 +28,8 @@ export class TransactionService {
     totalCount: number
     hasMore: boolean
   }> {
-    return httpClient.get('/api/transactions/filtered', filters)
+    // Use the main transactions endpoint with filters as query parameters
+    return httpClient.get('/api/transactions', filters)
   }
 
   async fetchCategories(): Promise<string[]> {
@@ -36,24 +37,33 @@ export class TransactionService {
   }
 
   async fetchSpendingData(dateRange: string): Promise<SpendingData[]> {
-    return httpClient.get<SpendingData[]>('/api/spending', { dateRange })
+    return httpClient.get<SpendingData[]>('/api/spending-data', { dateRange })
   }
 
   async fetchCategoryData(dateRange: string): Promise<CategoryData[]> {
-    return httpClient.get<CategoryData[]>('/api/categories/spending', { dateRange })
+    return httpClient.get<CategoryData[]>('/api/category-data', { dateRange })
   }
 
-  async fetchTopMerchants(dateRange: string): Promise<MerchantData[]> {
-    return httpClient.get<MerchantData[]>('/api/merchants/top', { dateRange })
+  async fetchTopMerchants(_dateRange: string): Promise<MerchantData[]> {
+    // Note: This endpoint doesn't exist on backend yet, returning empty array
+    return Promise.resolve([])
+    // return httpClient.get<MerchantData[]>('/api/merchants/top', { dateRange })
   }
 
-  async fetchSpendingTrends(days: number = 90): Promise<{
+  async fetchSpendingTrends(_days: number = 90): Promise<{
     daily: Array<{ date: string; amount: number }>
     weekly: Array<{ week: string; amount: number }>
     monthly: Array<{ month: string; amount: number }>
     categoryTrends: Array<{ category: string; trend: number; amount: number }>
   }> {
-    return httpClient.get('/api/spending/trends', { days })
+    // Note: This endpoint doesn't exist on backend yet, returning empty structure
+    return Promise.resolve({
+      daily: [],
+      weekly: [],
+      monthly: [],
+      categoryTrends: []
+    })
+    // return httpClient.get('/api/spending/trends', { days })
   }
 
   async syncTransactions(): Promise<{ success: boolean; message?: string }> {

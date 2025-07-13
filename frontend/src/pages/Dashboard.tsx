@@ -11,6 +11,7 @@ import SyncButton from '../components/SyncButton'
 import { apiService, OverviewData, SpendingData, CategoryData, EarningsData } from '../services/apiService'
 import { Receipt, Building2, TrendingUp, Sparkles } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { useAppEvent, APP_EVENTS } from '../utils/app-events'
 
 const Dashboard: React.FC = () => {
   const [loading, setLoading] = useState(true)
@@ -44,6 +45,15 @@ const Dashboard: React.FC = () => {
       setLoading(false)
     }
   }
+
+  // Listen for bank connection changes and refresh data
+  useAppEvent(APP_EVENTS.BANK_CONNECTION_CHANGED, () => {
+    loadDashboardData()
+  }, [])
+
+  useAppEvent(APP_EVENTS.DATA_SYNC_COMPLETED, () => {
+    loadDashboardData()
+  }, [])
 
   const handleCategorySelect = (category: string) => {
     // Navigate to transactions page with category filter

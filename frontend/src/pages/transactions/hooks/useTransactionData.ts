@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { apiService } from '../../../services/apiService'
 import { TransactionFilters, TransactionPagination, TransactionSorting, UseTransactionDataReturn } from '../types'
+import { useAppEvent, APP_EVENTS } from '../../../utils/app-events'
 
 export const useTransactionData = (
   filters: TransactionFilters,
@@ -16,7 +17,6 @@ export const useTransactionData = (
 
   const loadInitialData = useCallback(async () => {
     try {
-      setLoading(true)
       const categoriesData = await apiService.fetchCategories()
       setCategories(categoriesData)
       
@@ -25,17 +25,17 @@ export const useTransactionData = (
         const accountsData = await apiService.fetchAccounts()
         setAccounts(accountsData.map((acc: any) => acc.name || acc.id))
       } catch (error) {
-        console.log('Accounts endpoint not available')
+        // Accounts endpoint not available - this is expected in some configurations
       }
     } catch (error) {
       console.error('Error loading initial data:', error)
-    } finally {
-      setLoading(false)
     }
   }, [])
 
   const loadTransactions = useCallback(async () => {
     try {
+      setLoading(true)
+      
       // Determine date parameters based on filter type
       let dateRange: string | undefined = filters.dateRange;
       let startDate: string | undefined;
@@ -61,6 +61,7 @@ export const useTransactionData = (
         1000, // Default to 1000 for open source usage
         endDate
       )
+      
       setTransactions(transactionsResponse.transactions)
       setTotalTransactions(transactionsResponse.total)
 
@@ -90,10 +91,12 @@ export const useTransactionData = (
         )
         setPreviousPeriodTransactions(prevPeriodResponse.transactions)
       } catch (error) {
-        console.log('Could not load previous period data')
+        // Previous period data not available - not critical
       }
     } catch (error) {
       console.error('Error loading transactions:', error)
+    } finally {
+      setLoading(false)
     }
   }, [filters, pagination.currentPage, sorting])
 
@@ -104,6 +107,16 @@ export const useTransactionData = (
   useEffect(() => {
     loadTransactions()
   }, [loadTransactions])
+
+  // Listen for bank connection changes and refresh data
+  useAppEvent(APP_EVENTS.BANK_CONNECTION_CHANGED, () => {
+    loadInitialData()
+    loadTransactions()
+  }, [])
+
+  useAppEvent(APP_EVENTS.DATA_SYNC_COMPLETED, () => {
+    loadTransactions()
+  }, [])
 
   return {
     transactions,

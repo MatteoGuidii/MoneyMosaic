@@ -92,7 +92,7 @@ class ApiService {
       ...(sortDirection && { sortDirection })
     })
     
-    const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8080'}/api/transactions?${params}`)
+    const response = await fetch(`/api/transactions?${params}`)
     if (!response.ok) throw new Error('Failed to fetch transactions')
     return await response.json()
   }
@@ -204,7 +204,7 @@ class ApiService {
 
   // Sync methods for data refresh
   async syncAllData(): Promise<{ success: boolean; message: string; transactionCount?: number }> {
-    const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8080'}/api/transactions/fetch`, {
+    const response = await fetch('/api/transactions/fetch', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -216,14 +216,14 @@ class ApiService {
   }
 
   async getSyncStatus(): Promise<{ lastSync: string; isHealthy: boolean; nextAutoSync: string }> {
-    const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8080'}/api/sync/status`)
+    const response = await fetch('/api/sync/status')
     if (!response.ok) throw new Error('Failed to get sync status')
     return await response.json()
   }
 
   // Budget methods
   async createOrUpdateBudget(category: string, amount: number, month?: string, year?: number): Promise<void> {
-    const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8080'}/api/budget`, {
+    const response = await fetch('/api/budget', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -238,7 +238,7 @@ class ApiService {
     if (month) params.append('month', month)
     if (year) params.append('year', year.toString())
     
-    const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8080'}/api/budget/${category}?${params}`, {
+    const response = await fetch(`/api/budget/${category}?${params}`, {
       method: 'DELETE'
     })
     if (!response.ok) throw new Error('Failed to delete budget')
@@ -246,27 +246,27 @@ class ApiService {
 
   // Analytics methods
   async fetchBudgetInsights(): Promise<any> {
-    const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8080'}/api/insights/budget`)
+    const response = await fetch('/api/insights/budget')
     if (!response.ok) throw new Error('Failed to fetch budget insights')
     return await response.json()
   }
 
   async fetchSpendingAlerts(): Promise<any> {
-    const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8080'}/api/alerts/spending`)
+    const response = await fetch('/api/alerts/spending')
     if (!response.ok) throw new Error('Failed to fetch spending alerts')
     return await response.json()
   }
 
   async fetchTransactionSummary(period: string, includeInsights: boolean = false): Promise<any> {
     const params = new URLSearchParams({ period, includeInsights: includeInsights.toString() })
-    const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8080'}/api/transactions/summary?${params}`)
+    const response = await fetch(`/api/transactions/summary?${params}`)
     if (!response.ok) throw new Error('Failed to fetch transaction summary')
     return await response.json()
   }
 
   async fetchCategoryAnalysis(category: string, days: number): Promise<any> {
     const params = new URLSearchParams({ category, days: days.toString() })
-    const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8080'}/api/categories/analysis?${params}`)
+    const response = await fetch(`/api/categories/analysis?${params}`)
     if (!response.ok) throw new Error('Failed to fetch category analysis')
     return await response.json()
   }

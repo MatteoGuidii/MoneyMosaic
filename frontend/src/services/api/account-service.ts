@@ -7,7 +7,7 @@ export class AccountService {
   }
 
   async fetchNetWorthData(dateRange: string): Promise<NetWorthData[]> {
-    return httpClient.get<NetWorthData[]>('/api/accounts/net-worth', { dateRange })
+    return httpClient.get<NetWorthData[]>('/api/net-worth', { dateRange })
   }
 
   async updateAccountNickname(accountId: string, nickname: string): Promise<{ success: boolean }> {
