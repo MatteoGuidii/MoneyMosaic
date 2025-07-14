@@ -35,7 +35,9 @@ export const CHART_COLORS = [
  * Generate category options for dropdown
  */
 export const generateCategoryOptions = (categoryData: { category: string }[]) => {
-  const uniqueCategories = [...new Set(categoryData.map(item => item.category))]
+  // Ensure categoryData is always an array
+  const safeData = Array.isArray(categoryData) ? categoryData : []
+  const uniqueCategories = [...new Set(safeData.map(item => item.category))]
   return [
     { value: 'all', label: 'All Categories' },
     ...uniqueCategories.map(category => ({
@@ -52,8 +54,10 @@ export const filterCategoryData = <T extends { category: string }>(
   data: T[], 
   selectedCategory: string
 ): T[] => {
+  // Ensure data is always an array
+  const safeData = Array.isArray(data) ? data : []
   if (selectedCategory === 'all') {
-    return data
+    return safeData
   }
-  return data.filter(item => item.category === selectedCategory)
+  return safeData.filter(item => item.category === selectedCategory)
 }

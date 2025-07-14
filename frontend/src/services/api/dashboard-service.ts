@@ -3,58 +3,67 @@ import { OverviewData, EarningsData, BudgetData, SavingsGoal, CashFlowForecast, 
 
 export class DashboardService {
   async fetchOverviewData(): Promise<OverviewData> {
-    return httpClient.get<OverviewData>('/api/overview')
+    return httpClient.get<OverviewData>('/api/dashboard/overview')
   }
 
   async fetchEarningsData(): Promise<EarningsData> {
-    return httpClient.get<EarningsData>('/api/earnings')
+    // This should map to financial health or another endpoint
+    return httpClient.get<EarningsData>('/api/dashboard/financial-health')
   }
 
   async fetchBudgetData(month?: string, year?: number): Promise<BudgetData[]> {
     const params: any = {}
     if (month) params.month = month
     if (year) params.year = year
-    return httpClient.get<BudgetData[]>('/api/budget', params)
+    
+    try {
+      // Note: Backend doesn't have budget endpoint yet, using spending data
+      // but we need to return empty array for now to prevent errors
+      await httpClient.get<BudgetData[]>('/api/dashboard/spending-data', params)
+      // The spending-data endpoint returns a different format, so return empty array
+      return []
+    } catch (error) {
+      console.error('Error fetching budget data:', error)
+      return []
+    }
   }
 
-  async updateBudget(budgetData: Array<{ category: string; amount: number }>): Promise<{ success: boolean }> {
-    return httpClient.post('/api/budget', { budgets: budgetData })
+  async updateBudget(_budgetData: Array<{ category: string; amount: number }>): Promise<{ success: boolean }> {
+    // Note: Backend doesn't have budget update endpoint yet
+    return Promise.resolve({ success: false })
+    // return httpClient.post('/api/dashboard/budget', { budgets: budgetData })
   }
 
   async fetchSavingsGoals(): Promise<SavingsGoal[]> {
     // Note: This endpoint doesn't exist on backend yet, returning empty array
     return Promise.resolve([])
-    // return httpClient.get<SavingsGoal[]>('/api/savings-goals')
+    // return httpClient.get<SavingsGoal[]>('/api/dashboard/savings-goals')
   }
 
   async createSavingsGoal(_goal: Omit<SavingsGoal, 'id' | 'isCompleted'>): Promise<{ success: boolean; goal: SavingsGoal }> {
     // Note: This endpoint doesn't exist on backend yet, returning mock response
     return Promise.resolve({ success: false, goal: {} as SavingsGoal })
-    // return httpClient.post('/api/savings-goals', goal)
+    // return httpClient.post('/api/dashboard/savings-goals', goal)
   }
 
   async updateSavingsGoal(_id: string, _updates: Partial<SavingsGoal>): Promise<{ success: boolean }> {
     // Note: This endpoint doesn't exist on backend yet, returning mock response
     return Promise.resolve({ success: false })
-    // return httpClient.put(`/api/savings-goals/${id}`, updates)
+    // return httpClient.put(`/api/dashboard/savings-goals/${id}`, updates)
   }
 
   async deleteSavingsGoal(_id: string): Promise<{ success: boolean }> {
     // Note: This endpoint doesn't exist on backend yet, returning mock response
     return Promise.resolve({ success: false })
-    // return httpClient.delete(`/api/savings-goals/${id}`)
+    // return httpClient.delete(`/api/dashboard/savings-goals/${id}`)
   }
 
   async fetchCashFlowForecast(): Promise<CashFlowForecast[]> {
-    // Note: This endpoint doesn't exist on backend yet, returning empty array
-    return Promise.resolve([])
-    // return httpClient.get<CashFlowForecast[]>('/api/cash-flow/forecast')
+    return httpClient.get<CashFlowForecast[]>('/api/dashboard/cash-flow-analysis')
   }
 
   async fetchAlerts(): Promise<Alert[]> {
-    // Note: This endpoint doesn't exist on backend yet, returning empty array
-    return Promise.resolve([])
-    // return httpClient.get<Alert[]>('/api/alerts')
+    return httpClient.get<Alert[]>('/api/transactions/alerts')
   }
 
   async markAlertAsRead(_alertId: string): Promise<{ success: boolean }> {

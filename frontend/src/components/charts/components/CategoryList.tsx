@@ -12,7 +12,10 @@ const CategoryList: React.FC<CategoryListProps> = ({
   onCategorySelect,
   colors
 }) => {
-  if (categoryData.length === 0) {
+  // Ensure categoryData is always an array
+  const safeCategories = Array.isArray(categoryData) ? categoryData : []
+  
+  if (safeCategories.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-8 text-gray-500 dark:text-gray-400">
         <PieChartIcon className="w-8 h-8 mb-3 opacity-30" />
@@ -33,7 +36,7 @@ const CategoryList: React.FC<CategoryListProps> = ({
         </div>
       )}
       <div className="space-y-3 max-h-64 overflow-y-auto">
-        {categoryData.slice(0, 8).map((item, index) => (
+        {safeCategories.slice(0, 8).map((item, index) => (
           <div 
             key={item.category}
             className="group flex items-center justify-between p-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl transition-colors"

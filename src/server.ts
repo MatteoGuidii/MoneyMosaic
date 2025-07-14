@@ -10,6 +10,8 @@ import sandboxRoutes from './routes/sandbox';
 import transactionsRoutes from './routes/transactions';
 import { dashboardRouter } from './routes/dashboard';
 import syncRoutes from './routes/sync';
+import accountsRoutes from './routes/accounts';
+import investmentRoutes from './routes/investments';
 import { database } from './database';
 import { schedulerService } from './services/scheduler.service';
 import { swaggerSpec, swaggerUi } from './swagger';
@@ -28,12 +30,12 @@ app.use((_req, res, next) => {
   next();
 });
 
-// Serve static files from public directory
-app.use(express.static(path.join(__dirname, '../public')));
+// Serve static files from the build directory
+app.use(express.static(path.join(__dirname, '../public/dist')));
 
-// Serve React app build files with correct paths
-app.use('/dist', express.static(path.join(__dirname, '../public/dist')));
+// Additional asset paths for compatibility
 app.use('/assets', express.static(path.join(__dirname, '../public/dist/assets')));
+app.use('/dist', express.static(path.join(__dirname, '../public/dist')));
 
 // Swagger API Documentation
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
@@ -66,8 +68,10 @@ app.get('/health', (_req, res) => {
 app.use('/api', createLinkToken);
 app.use('/api', exchangeToken);
 app.use('/api', sandboxRoutes);
-app.use('/api', dashboardRouter);
+app.use('/api/dashboard', dashboardRouter);
 app.use('/api/transactions', transactionsRoutes);
+app.use('/api/accounts', accountsRoutes);
+app.use('/api/investments', investmentRoutes);
 app.use('/api/sync', syncRoutes);
 
 // Error handling middleware
@@ -75,7 +79,7 @@ app.use(errorHandler);
 
 // Catch-all handler: send back React's index.html file for any non-API routes
 app.get('*', (_req, res) => {
-  res.sendFile(path.join(__dirname, '../public/index.html'));
+  res.sendFile(path.join(__dirname, '../public/dist/index.html'));
 });
 
 const PORT = config.server.port;

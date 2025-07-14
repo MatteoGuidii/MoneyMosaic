@@ -6,8 +6,11 @@ export class AccountService {
     return httpClient.get<Account[]>('/api/accounts')
   }
 
-  async fetchNetWorthData(dateRange: string): Promise<NetWorthData[]> {
-    return httpClient.get<NetWorthData[]>('/api/net-worth', { dateRange })
+  async fetchNetWorthData(_dateRange: string): Promise<NetWorthData[]> {
+    // Net worth data would be calculated from account balances over time
+    // For now, this endpoint doesn't exist, so we'll return empty array
+    return Promise.resolve([])
+    // return httpClient.get<NetWorthData[]>('/api/accounts/net-worth', { dateRange })
   }
 
   async updateAccountNickname(accountId: string, nickname: string): Promise<{ success: boolean }> {

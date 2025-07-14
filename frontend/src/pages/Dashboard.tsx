@@ -28,19 +28,50 @@ const Dashboard: React.FC = () => {
   const loadDashboardData = async () => {
     try {
       setLoading(true)
-      const [overview, spending, categories, earnings] = await Promise.all([
+      
+      // Load data with individual error handling to prevent one failure from breaking everything
+      const [overview, spending, categories, earnings] = await Promise.allSettled([
         apiService.fetchOverviewData(),
         apiService.fetchSpendingData('30'),
         apiService.fetchCategoryData(categoryPeriod),
         apiService.fetchEarningsData()
       ])
       
-      setOverviewData(overview)
-      setSpendingData(spending)
-      setCategoryData(categories)
-      setEarningsData(earnings)
+      // Handle successful results
+      if (overview.status === 'fulfilled') {
+        setOverviewData(overview.value)
+      } else {
+        console.error('Error loading overview data:', overview.reason)
+        setOverviewData(null)
+      }
+      
+      if (spending.status === 'fulfilled') {
+        setSpendingData(spending.value)
+      } else {
+        console.error('Error loading spending data:', spending.reason)
+        setSpendingData([])
+      }
+      
+      if (categories.status === 'fulfilled') {
+        setCategoryData(categories.value)
+      } else {
+        console.error('Error loading category data:', categories.reason)
+        setCategoryData([])
+      }
+      
+      if (earnings.status === 'fulfilled') {
+        setEarningsData(earnings.value)
+      } else {
+        console.error('Error loading earnings data:', earnings.reason)
+        setEarningsData(null)
+      }
     } catch (error) {
       console.error('Error loading dashboard data:', error)
+      // Set default values to prevent crashes
+      setOverviewData(null)
+      setSpendingData([])
+      setCategoryData([])
+      setEarningsData(null)
     } finally {
       setLoading(false)
     }
@@ -68,6 +99,7 @@ const Dashboard: React.FC = () => {
       setCategoryData(categories)
     } catch (error) {
       console.error('Error loading category data:', error)
+      setCategoryData([]) // Set empty array on error
     }
   }
 

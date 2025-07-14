@@ -15,9 +15,12 @@ const BudgetSummaryWidget: React.FC = () => {
   const loadBudgets = async () => {
     try {
       const budgetData = await apiService.fetchBudgetData()
-      setBudgets(budgetData)
+      // Ensure budgetData is always an array
+      setBudgets(Array.isArray(budgetData) ? budgetData : [])
     } catch (error) {
       console.error('Error loading budgets:', error)
+      // Set empty array on error
+      setBudgets([])
     } finally {
       setLoading(false)
     }
@@ -41,8 +44,9 @@ const BudgetSummaryWidget: React.FC = () => {
     )
   }
 
-  const totalBudgeted = budgets.reduce((sum, budget) => sum + budget.budgeted, 0)
-  const totalSpent = budgets.reduce((sum, budget) => sum + budget.spent, 0)
+  // Add array safety checks for budgets.reduce
+  const totalBudgeted = Array.isArray(budgets) ? budgets.reduce((sum, budget) => sum + budget.budgeted, 0) : 0
+  const totalSpent = Array.isArray(budgets) ? budgets.reduce((sum, budget) => sum + budget.spent, 0) : 0
   const remainingBudget = totalBudgeted - totalSpent
   const spentPercentage = totalBudgeted > 0 ? (totalSpent / totalBudgeted) * 100 : 0
 
@@ -99,44 +103,39 @@ const BudgetSummaryWidget: React.FC = () => {
       <div className="mb-6">
         <div className="flex items-center justify-between mb-2">
           <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Overall Progress</span>
-          <span className="text-sm font-medium text-gray-900 dark:text-white">
-            {spentPercentage.toFixed(1)}%
+          <span className="text-sm text-gray-500 dark:text-gray-400">
+            {spentPercentage.toFixed(0)}%
           </span>
         </div>
-        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
-          <div
-            className={`h-3 rounded-full transition-all duration-300 ${
-              spentPercentage > 100 ? 'bg-red-500' : spentPercentage > 80 ? 'bg-yellow-500' : 'bg-emerald-500'
+        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+          <div 
+            className={`h-2 rounded-full transition-all duration-300 ${
+              spentPercentage > 90 ? 'bg-red-500' : spentPercentage > 70 ? 'bg-yellow-500' : 'bg-emerald-500'
             }`}
             style={{ width: `${Math.min(spentPercentage, 100)}%` }}
           />
         </div>
       </div>
 
-      {/* Top 3 Budget Categories */}
+      {/* Budget Categories */}
       <div className="space-y-3">
-        <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Top Categories</h4>
-        {budgets.length === 0 ? (
-          <div className="text-center py-4">
-            <div className="w-12 h-12 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-2">
-              <Target className="w-6 h-6 text-gray-400" />
-            </div>
-            <p className="text-sm text-gray-500 dark:text-gray-400">No budgets set</p>
-          </div>
-        ) : (
-          budgets.slice(0, 3).map((budget) => (
-            <div key={budget.category} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-xl">
+        <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">Categories</h4>
+        {Array.isArray(budgets) && budgets.length > 0 ? (
+          budgets.slice(0, 3).map((budget, index) => (
+            <div key={index} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
               <div className="flex-1">
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-sm font-medium text-gray-900 dark:text-white">{budget.category}</span>
+                  <span className="text-sm font-medium text-gray-900 dark:text-white">
+                    {budget.category}
+                  </span>
                   <span className="text-sm text-gray-500 dark:text-gray-400">
-                    {formatCurrency(budget.spent)}/{formatCurrency(budget.budgeted)}
+                    {formatCurrency(budget.spent)} / {formatCurrency(budget.budgeted)}
                   </span>
                 </div>
-                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                  <div
-                    className={`h-2 rounded-full transition-all duration-300 ${
-                      budget.percentage > 100 ? 'bg-red-500' : budget.percentage > 80 ? 'bg-yellow-500' : 'bg-emerald-500'
+                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
+                  <div 
+                    className={`h-1.5 rounded-full transition-all duration-300 ${
+                      budget.percentage > 90 ? 'bg-red-500' : budget.percentage > 70 ? 'bg-yellow-500' : 'bg-emerald-500'
                     }`}
                     style={{ width: `${Math.min(budget.percentage, 100)}%` }}
                   />
@@ -144,8 +143,25 @@ const BudgetSummaryWidget: React.FC = () => {
               </div>
             </div>
           ))
+        ) : (
+          <div className="text-center py-4 text-gray-500 dark:text-gray-400">
+            <p>No budget data available</p>
+            <p className="text-xs mt-1">Set up your budgets to track spending</p>
+          </div>
         )}
       </div>
+
+      {/* View All Link */}
+      {Array.isArray(budgets) && budgets.length > 3 && (
+        <div className="mt-4 text-center">
+          <Link 
+            to="/budget"
+            className="text-sm font-medium text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors"
+          >
+            View all {budgets.length} categories
+          </Link>
+        </div>
+      )}
     </div>
   )
 }

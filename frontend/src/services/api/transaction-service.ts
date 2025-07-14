@@ -33,37 +33,30 @@ export class TransactionService {
   }
 
   async fetchCategories(): Promise<string[]> {
-    return httpClient.get<string[]>('/api/categories')
+    // Extract categories from transactions data
+    const response = await httpClient.get<{ categories: string[] }>('/api/transactions/summary')
+    return response.categories || []
   }
 
   async fetchSpendingData(dateRange: string): Promise<SpendingData[]> {
-    return httpClient.get<SpendingData[]>('/api/spending-data', { dateRange })
+    return httpClient.get<SpendingData[]>('/api/dashboard/spending-data', { dateRange })
   }
 
   async fetchCategoryData(dateRange: string): Promise<CategoryData[]> {
-    return httpClient.get<CategoryData[]>('/api/category-data', { dateRange })
+    return httpClient.get<CategoryData[]>('/api/dashboard/spending-by-category', { dateRange })
   }
 
-  async fetchTopMerchants(_dateRange: string): Promise<MerchantData[]> {
-    // Note: This endpoint doesn't exist on backend yet, returning empty array
-    return Promise.resolve([])
-    // return httpClient.get<MerchantData[]>('/api/merchants/top', { dateRange })
+  async fetchTopMerchants(dateRange: string): Promise<MerchantData[]> {
+    return httpClient.get<MerchantData[]>('/api/dashboard/top-merchants', { dateRange })
   }
 
-  async fetchSpendingTrends(_days: number = 90): Promise<{
+  async fetchSpendingTrends(days: number = 90): Promise<{
     daily: Array<{ date: string; amount: number }>
     weekly: Array<{ week: string; amount: number }>
     monthly: Array<{ month: string; amount: number }>
     categoryTrends: Array<{ category: string; trend: number; amount: number }>
   }> {
-    // Note: This endpoint doesn't exist on backend yet, returning empty structure
-    return Promise.resolve({
-      daily: [],
-      weekly: [],
-      monthly: [],
-      categoryTrends: []
-    })
-    // return httpClient.get('/api/spending/trends', { days })
+    return httpClient.get('/api/dashboard/spending-trends', { days })
   }
 
   async syncTransactions(): Promise<{ success: boolean; message?: string }> {

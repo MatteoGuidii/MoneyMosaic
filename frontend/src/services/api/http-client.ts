@@ -13,18 +13,23 @@ export class HttpClient {
     
     const fullUrl = `${this.baseURL}${url}${searchParams.toString() ? `?${searchParams.toString()}` : ''}`
     
-    const response = await fetch(fullUrl, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    })
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
+    try {
+      const response = await fetch(fullUrl, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`)
+      }
+      
+      return response.json()
+    } catch (error) {
+      console.error(`GET request failed for ${fullUrl}:`, error)
+      throw error
     }
-    
-    return response.json()
   }
 
   async post<T>(url: string, data?: any): Promise<T> {
