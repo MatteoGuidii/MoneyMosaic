@@ -98,6 +98,10 @@ export class BankService {
       throw error;
     }
   }
+
+  async syncAccountBalances(): Promise<void> {
+    return this.connection.syncAccountBalances();
+  }
 }
 
 // Export individual services

@@ -235,9 +235,10 @@ export class InvestmentDataService {
   async getAllHoldingSymbols(): Promise<string[]> {
     try {
       const symbols = await database.all(`
-        SELECT DISTINCT symbol 
-        FROM holdings 
-        WHERE symbol IS NOT NULL AND symbol != ''
+        SELECT DISTINCT s.symbol 
+        FROM holdings h
+        JOIN securities s ON h.security_id = s.security_id
+        WHERE s.symbol IS NOT NULL AND s.symbol != ''
       `);
       
       return symbols.map(row => row.symbol);

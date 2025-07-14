@@ -156,4 +156,58 @@ export class BankConnectionService {
       throw error;
     }
   }
+
+  // Sync account balances for all connected institutions
+  async syncAccountBalances(): Promise<void> {
+    try {
+      console.log('🔄 Syncing account balances...');
+      
+      const institutions = await this.database.getInstitutions();
+      
+      for (const institution of institutions) {
+        try {
+          await this.syncAccountBalancesForInstitution(institution.access_token, institution.id);
+          console.log(`✅ Synced balances for institution ${institution.id}`);
+        } catch (error) {
+          console.error(`❌ Failed to sync balances for institution ${institution.id}:`, error);
+        }
+      }
+      
+      console.log('✅ Account balance sync completed');
+    } catch (error) {
+      console.error('Error syncing account balances:', error);
+      throw error;
+    }
+  }
+
+  // Sync account balances for a specific institution
+  private async syncAccountBalancesForInstitution(access_token: string, institution_id: number): Promise<void> {
+    try {
+      const { data: { accounts } } = await plaidClient.accountsGet({ access_token });
+      
+      for (const account of accounts) {
+        // Update account balance and timestamp
+        await this.database.run(`
+          UPDATE accounts 
+          SET current_balance = ?, available_balance = ?, updated_at = CURRENT_TIMESTAMP
+          WHERE account_id = ?
+        `, [
+          account.balances.current || 0,
+          account.balances.available || account.balances.current || 0,
+          account.account_id
+        ]);
+      }
+      
+      // Update institution's last sync time
+      await this.database.run(`
+        UPDATE institutions 
+        SET updated_at = CURRENT_TIMESTAMP 
+        WHERE id = ?
+      `, [institution_id]);
+      
+    } catch (error) {
+      console.error('Error syncing account balances for institution:', error);
+      throw error;
+    }
+  }
 }

@@ -117,12 +117,33 @@ export class SchedulerService {
     logger.info('🏥 Health check scheduled daily at midnight');
   }
 
+  // Start account balance sync job
+  startAccountBalanceSync(intervalHours: number = 2): void {
+    const cronPattern = `30 */${intervalHours} * * *`; // Every X hours, offset by 30 minutes
+    
+    const job = cron.schedule(cronPattern, async () => {
+      logger.info(`Starting scheduled account balance sync...`);
+      
+      try {
+        await bankService.syncAccountBalances();
+        logger.info('✅ Account balances synced successfully');
+      } catch (error) {
+        logger.error('❌ Scheduled account balance sync failed:', error);
+      }
+    });
+
+    this.jobs.set('account-balance-sync', job);
+    
+    logger.info(`💰 Account balance sync scheduled every ${intervalHours} hours`);
+  }
+
   // Start all jobs
   startAll(transactionSyncHours: number = 6): void {
     this.startTransactionSync(transactionSyncHours);
     this.startInvestmentSync(transactionSyncHours);
     this.startMarketDataRefresh();
     this.startHealthCheck();
+    this.startAccountBalanceSync();
     
     logger.info('🚀 All background jobs started');
   }

@@ -53,7 +53,7 @@ export const getConnectedBanks = async (_req: Request, res: Response) => {
       })
     );
     
-    res.json({ connectedBanks });
+    res.json({ banks: connectedBanks });
   } catch (error) {
     console.error('Error fetching connected banks:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -135,24 +135,53 @@ export const deleteBankConnection = async (req: Request, res: Response) => {
 export const getHealthCheck = async (_req: Request, res: Response) => {
   try {
     // Check database connectivity
-    const dbCheck = await database.get('SELECT 1 as test');
+    await database.get('SELECT 1 as test');
     
-    // Check active institutions
+    // Get all institutions with their health status
     const institutions = await database.all(`
-      SELECT COUNT(*) as count FROM institutions WHERE is_active = 1
+      SELECT 
+        id,
+        name,
+        is_active,
+        updated_at,
+        created_at
+      FROM institutions 
+      WHERE is_active = 1
     `);
     
-    // Check recent transactions
-    const recentTransactions = await database.all(`
-      SELECT COUNT(*) as count FROM transactions 
-      WHERE date >= datetime('now', '-1 days')
-    `);
+    const healthy: string[] = [];
+    const unhealthy: string[] = [];
+    
+    institutions.forEach(institution => {
+      const lastUpdate = new Date(institution.updated_at);
+      const now = new Date();
+      const diffInHours = (now.getTime() - lastUpdate.getTime()) / (1000 * 60 * 60);
+      
+      if (diffInHours < 24) {
+        healthy.push(institution.name);
+      } else {
+        unhealthy.push(institution.name);
+      }
+    });
+    
+    const overallHealth = unhealthy.length === 0 ? 'healthy' : 
+                         healthy.length === 0 ? 'error' : 'warning';
     
     res.json({
-      status: 'healthy',
-      database: dbCheck ? 'connected' : 'disconnected',
-      activeInstitutions: institutions[0].count,
-      recentTransactions: recentTransactions[0].count,
+      overallHealth,
+      healthy,
+      unhealthy,
+      institutions: institutions.map(inst => ({
+        id: inst.id,
+        name: inst.name,
+        status: (() => {
+          const lastUpdate = new Date(inst.updated_at);
+          const now = new Date();
+          const diffInHours = (now.getTime() - lastUpdate.getTime()) / (1000 * 60 * 60);
+          return diffInHours < 24 ? 'healthy' : 'unhealthy';
+        })(),
+        lastSync: inst.updated_at
+      })),
       timestamp: new Date().toISOString()
     });
   } catch (error) {

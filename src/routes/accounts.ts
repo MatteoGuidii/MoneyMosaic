@@ -32,10 +32,32 @@ router.get('/', async (_req, res) => {
         i.institution_id
       FROM accounts a
       JOIN institutions i ON a.institution_id = i.id
+      WHERE i.is_active = 1
       ORDER BY i.name, a.name
     `);
 
-    res.json(accounts);
+    // Map database fields to frontend expectations
+    const mappedAccounts = accounts.map(account => ({
+      id: account.account_id,
+      name: account.name,
+      type: account.type,
+      rawType: account.type,
+      subtype: account.subtype,
+      balance: account.current_balance || 0,
+      lastUpdated: account.updated_at,
+      institutionName: account.institution_name,
+      // Additional fields for backward compatibility
+      account_id: account.account_id,
+      institution_id: account.institution_id,
+      official_name: account.official_name,
+      mask: account.mask,
+      current_balance: account.current_balance,
+      available_balance: account.available_balance,
+      created_at: account.created_at,
+      updated_at: account.updated_at
+    }));
+
+    res.json(mappedAccounts);
   } catch (error) {
     logger.error('Error fetching accounts:', error);
     res.status(500).json({ error: 'Failed to fetch accounts' });

@@ -110,4 +110,40 @@ router.post('/accounts', async (_req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/sync/balances:
+ *   post:
+ *     summary: Sync account balances
+ *     description: Manually trigger account balance sync for all connected institutions
+ *     tags: [Sync]
+ *     responses:
+ *       200:
+ *         description: Balances synced successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ */
+router.post('/balances', async (_req, res) => {
+  try {
+    // Import here to avoid circular dependency
+    const { bankService } = require('../services/bank.service');
+    await bankService.syncAccountBalances();
+    
+    res.json({
+      success: true,
+      message: 'Account balances synced successfully'
+    });
+  } catch (error) {
+    console.error('Error syncing account balances:', error);
+    res.status(500).json({ error: 'Failed to sync account balances' });
+  }
+});
+
 export default router;

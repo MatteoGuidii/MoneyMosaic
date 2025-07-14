@@ -131,7 +131,7 @@ export const getTransactions = async (req: Request, res: Response) => {
     const params: any[] = [];
 
     if (category) {
-      whereClause += ' AND category = ?';
+      whereClause += ' AND category_primary = ?';
       params.push(category);
     }
 
@@ -154,11 +154,12 @@ export const getTransactions = async (req: Request, res: Response) => {
     const transactions = await database.all(`
       SELECT 
         t.*,
+        t.category_primary as category,
         a.name as account_name,
         a.type as account_type,
         i.name as institution_name
       FROM transactions t
-      JOIN accounts a ON t.account_id = a.id
+      JOIN accounts a ON t.account_id = a.account_id
       JOIN institutions i ON a.institution_id = i.id
       ${whereClause}
       ORDER BY date DESC
@@ -245,12 +246,12 @@ export const getTransactionSummary = async (req: Request, res: Response) => {
     // Get top categories
     const topCategories = await database.all(`
       SELECT 
-        category,
+        category_primary as category,
         SUM(CASE WHEN amount < 0 THEN -amount ELSE 0 END) as totalSpent,
         COUNT(*) as transactionCount
       FROM transactions
       WHERE date >= ? AND amount < 0
-      GROUP BY category
+      GROUP BY category_primary
       ORDER BY totalSpent DESC
       LIMIT 10
     `, [startDate.toISOString().split('T')[0]]);

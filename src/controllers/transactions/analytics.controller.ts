@@ -61,13 +61,13 @@ export const getTrends = async (req: Request, res: Response) => {
     // Get category trends
     const categoryTrends = await database.all(`
       SELECT 
-        category,
+        category_primary as category,
         SUM(CASE WHEN amount < 0 THEN -amount ELSE 0 END) as totalSpent,
         COUNT(*) as transactionCount,
         AVG(CASE WHEN amount < 0 THEN -amount ELSE 0 END) as averageAmount
       FROM transactions
       WHERE date >= ? AND amount < 0
-      GROUP BY category
+      GROUP BY category_primary
       ORDER BY totalSpent DESC
     `, [startDate.toISOString().split('T')[0]]);
     
@@ -192,15 +192,15 @@ export const getCategoryAnalysis = async (req: Request, res: Response) => {
     // Get category summary
     const summary = await database.get(`
       SELECT 
-        category,
+        category_primary as category,
         SUM(CASE WHEN amount < 0 THEN -amount ELSE 0 END) as totalSpent,
         COUNT(*) as transactionCount,
         AVG(CASE WHEN amount < 0 THEN -amount ELSE 0 END) as averageAmount,
         MIN(date) as firstTransaction,
         MAX(date) as lastTransaction
       FROM transactions
-      WHERE category = ? AND date >= ? AND amount < 0
-      GROUP BY category
+      WHERE category_primary = ? AND date >= ? AND amount < 0
+      GROUP BY category_primary
     `, [category, startDate.toISOString().split('T')[0]]);
     
     if (!summary) {
@@ -214,7 +214,7 @@ export const getCategoryAnalysis = async (req: Request, res: Response) => {
         SUM(CASE WHEN amount < 0 THEN -amount ELSE 0 END) as dailySpent,
         COUNT(*) as transactionCount
       FROM transactions
-      WHERE category = ? AND date >= ?
+      WHERE category_primary = ? AND date >= ?
       GROUP BY date
       ORDER BY date ASC
     `, [category, startDate.toISOString().split('T')[0]]);
@@ -227,7 +227,7 @@ export const getCategoryAnalysis = async (req: Request, res: Response) => {
         COUNT(*) as transactionCount,
         AVG(CASE WHEN amount < 0 THEN -amount ELSE 0 END) as averageAmount
       FROM transactions
-      WHERE category = ? AND date >= ? AND amount < 0
+      WHERE category_primary = ? AND date >= ? AND amount < 0
       GROUP BY merchant_name
       ORDER BY totalSpent DESC
       LIMIT 10
