@@ -265,15 +265,11 @@ export class BankService {
 
       console.log(`✅ Total transactions processed: ${allTransactions.length}`);
 
-      // Return transactions from database within the requested date range
-      const endDate = formatISO(new Date(), { representation: 'date' });
-      const startDate = formatISO(subDays(new Date(), days), { representation: 'date' });
-      
-      return this.database.getTransactions({
-        institution_id,
-        start_date: startDate,
-        end_date: endDate
-      });
+      // Return the transactions that were just processed instead of
+      // querying the database again. This avoids an extra DB round trip
+      // and guarantees the response contains exactly the newly fetched
+      // records.
+      return allTransactions;
     } catch (error) {
       console.error(`Error fetching transactions for institution ${institution_id}:`, error);
       throw error;
