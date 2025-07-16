@@ -20,6 +20,10 @@ export class AccountService {
   async toggleAccountVisibility(accountId: string, isVisible: boolean): Promise<{ success: boolean }> {
     return httpClient.put(`/api/accounts/${accountId}/visibility`, { isVisible })
   }
+
+  async deleteAccount(accountId: string): Promise<{ success: boolean }> {
+    return httpClient.delete(`/api/accounts/${accountId}`)
+  }
 }
 
 export const accountService = new AccountService()

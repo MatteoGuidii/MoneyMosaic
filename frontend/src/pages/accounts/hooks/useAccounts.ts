@@ -11,16 +11,16 @@ export const useAccounts = (
   const [accounts, setAccounts] = useState<Account[]>([])
   const [loading, setLoading] = useState(true)
 
-  const loadAccounts = async () => {
+  const loadAccounts = async (showLoading = false) => {
     try {
-      setLoading(true)
+      if (showLoading) setLoading(true)
       const accountsData = await apiService.fetchAccounts()
       setAccounts(accountsData)
     } catch (error) {
       console.error('Error loading accounts:', error)
       onError('Failed to load accounts')
     } finally {
-      setLoading(false)
+      if (showLoading) setLoading(false)
     }
   }
 
@@ -50,6 +50,7 @@ export const useAccounts = (
   const handleDeleteAccount = async (accountId: string) => {
     try {
       console.log('Disconnecting account:', accountId)
+      await apiService.deleteAccount(accountId)
       onSuccess('Account disconnected successfully')
       await loadAccounts()
     } catch (error) {
@@ -68,7 +69,7 @@ export const useAccounts = (
   }
 
   useEffect(() => {
-    loadAccounts()
+    loadAccounts(true)
   }, [])
 
   return {

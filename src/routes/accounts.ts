@@ -150,4 +150,36 @@ router.put('/:accountId/visibility', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/accounts/{accountId}:
+ *   delete:
+ *     summary: Delete an account
+ *     description: Remove a single account and its transactions
+ *     tags: [Accounts]
+ *     parameters:
+ *       - in: path
+ *         name: accountId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The account ID to delete
+ *     responses:
+ *       200:
+ *         description: Account deleted successfully
+ */
+router.delete('/:accountId', async (req, res) => {
+  try {
+    const { accountId } = req.params;
+
+    await database.run('DELETE FROM transactions WHERE account_id = ?', [accountId]);
+    await database.run('DELETE FROM accounts WHERE account_id = ?', [accountId]);
+
+    res.json({ success: true, message: 'Account deleted successfully' });
+  } catch (error) {
+    logger.error('Error deleting account:', error);
+    res.status(500).json({ error: 'Failed to delete account' });
+  }
+});
+
 export default router;
