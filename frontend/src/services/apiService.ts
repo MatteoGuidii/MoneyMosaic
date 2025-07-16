@@ -152,6 +152,10 @@ class ApiService {
     return accountService.toggleAccountVisibility(accountId, isVisible)
   }
 
+  async deleteAccount(accountId: string) {
+    return accountService.deleteAccount(accountId)
+  }
+
   // Investment methods
   async fetchInvestments() {
     return investmentService.fetchInvestments()
