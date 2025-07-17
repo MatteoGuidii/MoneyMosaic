@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { database } from '../../database';
+import { logger } from '../../utils/logger';
 
 /**
  * @swagger
@@ -83,7 +84,7 @@ export const getSpendingData = async (req: Request, res: Response) => {
       totalSpending
     });
   } catch (error) {
-    console.error('Error fetching spending data:', error);
+    logger.error('Error fetching spending data:', error);
     res.status(500).json({ error: 'Failed to fetch spending data' });
   }
 };
@@ -167,7 +168,7 @@ export const getSpendingByCategory = async (req: Request, res: Response) => {
       totalSpending
     });
   } catch (error) {
-    console.error('Error fetching spending by category:', error);
+    logger.error('Error fetching spending by category:', error);
     res.status(500).json({ error: 'Failed to fetch spending by category' });
   }
 };
@@ -246,7 +247,7 @@ export const getMonthlySpendingComparison = async (_req: Request, res: Response)
       percentageChange
     });
   } catch (error) {
-    console.error('Error fetching monthly spending comparison:', error);
+    logger.error('Error fetching monthly spending comparison:', error);
     res.status(500).json({ error: 'Failed to fetch monthly spending comparison' });
   }
 };
@@ -331,7 +332,7 @@ export const getTopMerchants = async (req: Request, res: Response) => {
       }))
     });
   } catch (error) {
-    console.error('Error fetching top merchants:', error);
+    logger.error('Error fetching top merchants:', error);
     res.status(500).json({ error: 'Failed to fetch top merchants' });
   }
 };

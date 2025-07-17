@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { database } from '../../database';
+import { logger } from '../../utils/logger';
 
 /**
  * @swagger
@@ -115,7 +116,7 @@ export const getFinancialHealth = async (_req: Request, res: Response) => {
       score
     });
   } catch (error) {
-    console.error('Error fetching financial health:', error);
+    logger.error('Error fetching financial health:', error);
     res.status(500).json({ error: 'Failed to fetch financial health data' });
   }
 };
@@ -231,7 +232,7 @@ export const getCashFlowAnalysis = async (req: Request, res: Response) => {
       trend
     });
   } catch (error) {
-    console.error('Error fetching cash flow analysis:', error);
+    logger.error('Error fetching cash flow analysis:', error);
     res.status(500).json({ error: 'Failed to fetch cash flow analysis' });
   }
 };
@@ -342,7 +343,7 @@ export const getSpendingTrends = async (req: Request, res: Response) => {
       percentageChange
     });
   } catch (error) {
-    console.error('Error fetching spending trends:', error);
+    logger.error('Error fetching spending trends:', error);
     res.status(500).json({ error: 'Failed to fetch spending trends' });
   }
 };

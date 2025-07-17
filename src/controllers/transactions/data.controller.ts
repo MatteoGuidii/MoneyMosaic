@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { database } from '../../database';
+import { logger } from '../../utils/logger';
 
 /**
  * @swagger
@@ -44,7 +45,7 @@ export const getDateRange = async (_req: Request, res: Response) => {
       totalTransactions: result.totalTransactions
     });
   } catch (error) {
-    console.error('Error getting date range:', error);
+    logger.error('Error getting date range:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 };
@@ -179,7 +180,7 @@ export const getTransactions = async (req: Request, res: Response) => {
       }
     });
   } catch (error) {
-    console.error('Error getting transactions:', error);
+    logger.error('Error getting transactions:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 };
@@ -272,7 +273,7 @@ export const getTransactionSummary = async (req: Request, res: Response) => {
       }
     });
   } catch (error) {
-    console.error('Error getting transaction summary:', error);
+    logger.error('Error getting transaction summary:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 };

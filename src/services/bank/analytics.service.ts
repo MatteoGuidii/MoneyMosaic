@@ -1,5 +1,6 @@
 import { database, Database } from '../../database';
 import { subDays, formatISO } from 'date-fns';
+import { logger } from '../../utils/logger';
 
 export class AnalyticsService {
   private database: Database;
@@ -15,7 +16,8 @@ export class AnalyticsService {
     savingsOpportunities: { category: string; potentialSavings: number; suggestion: string }[];
   }> {
     try {
-      console.log('📊 Analyzing budget insights...');
+      // Use centralized logger instead of console.log for consistency
+      logger.info('📊 Analyzing budget insights...');
 
       const last30Days = formatISO(subDays(new Date(), 30), { representation: 'date' });
       const last90Days = formatISO(subDays(new Date(), 90), { representation: 'date' });
@@ -52,7 +54,7 @@ export class AnalyticsService {
         savingsOpportunities
       };
     } catch (error) {
-      console.error('Error analyzing budget insights:', error);
+      logger.error('Error analyzing budget insights:', error);
       throw error;
     }
   }
@@ -191,7 +193,7 @@ export class AnalyticsService {
     };
   }> {
     try {
-      console.log(`📊 Generating advanced transaction summary for ${period}...`);
+      logger.info(`📊 Generating advanced transaction summary for ${period}...`);
 
       // Calculate date ranges based on period
       const { startDate, endDate, prevStartDate, prevEndDate } = this.calculatePeriodDates(period);
@@ -223,7 +225,7 @@ export class AnalyticsService {
         comparison
       };
     } catch (error) {
-      console.error('Error generating advanced transaction summary:', error);
+      logger.error('Error generating advanced transaction summary:', error);
       throw error;
     }
   }
@@ -387,7 +389,7 @@ export class AnalyticsService {
         avgDailySpending
       };
     } catch (error) {
-      console.error('Error getting spending trends:', error);
+      logger.error('Error getting spending trends:', error);
       throw error;
     }
   }

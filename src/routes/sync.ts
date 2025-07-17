@@ -1,5 +1,6 @@
 import express from 'express';
 import { database } from '../database';
+import { logger } from '../utils/logger';
 
 const router = express.Router();
 
@@ -62,7 +63,7 @@ router.get('/status', async (_req, res) => {
       nextAutoSync
     });
   } catch (error) {
-    console.error('Error getting sync status:', error);
+    logger.error('Error getting sync status:', error);
     res.status(500).json({ error: 'Failed to get sync status' });
   }
 });
@@ -102,7 +103,7 @@ router.post('/accounts', async (_req, res) => {
       message: 'Account sync completed successfully'
     });
   } catch (error) {
-    console.error('Error syncing accounts:', error);
+    logger.error('Error syncing accounts:', error);
     res.status(500).json({ 
       success: false,
       error: 'Failed to sync accounts' 
@@ -141,7 +142,7 @@ router.post('/balances', async (_req, res) => {
       message: 'Account balances synced successfully'
     });
   } catch (error) {
-    console.error('Error syncing account balances:', error);
+    logger.error('Error syncing account balances:', error);
     res.status(500).json({ error: 'Failed to sync account balances' });
   }
 });

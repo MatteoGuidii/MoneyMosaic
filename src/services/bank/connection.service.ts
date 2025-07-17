@@ -1,5 +1,6 @@
 import { database, Database } from '../../database';
 import { plaidClient } from '../../plaidClient';
+import { logger } from '../../utils/logger';
 
 export class BankConnectionService {
   private database: Database;
@@ -42,7 +43,7 @@ export class BankConnectionService {
         item_id: tokenData.item_id
       };
     } catch (error) {
-      console.error('Error adding bank connection:', error);
+      logger.error('Error adding bank connection:', error);
       throw error;
     }
   }
@@ -67,7 +68,7 @@ export class BankConnectionService {
         });
       }
     } catch (error) {
-      console.error('Error fetching accounts:', error);
+      logger.error('Error fetching accounts:', error);
       throw error;
     }
   }
@@ -77,7 +78,7 @@ export class BankConnectionService {
     try {
       return await this.database.getInstitutions();
     } catch (error) {
-      console.error('Error fetching connected banks:', error);
+      logger.error('Error fetching connected banks:', error);
       throw error;
     }
   }
@@ -85,7 +86,7 @@ export class BankConnectionService {
   // Remove a bank connection
   async removeBankConnection(institutionId: number): Promise<void> {
     try {
-      console.log(`🗑️  Removing bank connection for institution ${institutionId}...`);
+      logger.info(`🗑️  Removing bank connection for institution ${institutionId}...`);
 
       // Get institution to validate it exists
       const institution = await this.database.institutions.getInstitutionById(institutionId);
@@ -98,9 +99,9 @@ export class BankConnectionService {
         await plaidClient.itemRemove({
           access_token: institution.access_token
         });
-        console.log(`✅ Successfully removed item from Plaid`);
+        logger.info(`✅ Successfully removed item from Plaid`);
       } catch (plaidError) {
-        console.error('Error removing item from Plaid:', plaidError);
+        logger.error('Error removing item from Plaid:', plaidError);
         // Continue with database cleanup even if Plaid removal fails
       }
 
@@ -110,9 +111,9 @@ export class BankConnectionService {
       await this.database.investment.deleteInvestmentDataByInstitution(institutionId);
       await this.database.institutions.deleteInstitution(institutionId);
 
-      console.log(`✅ Successfully removed bank connection and all associated data`);
+      logger.info(`✅ Successfully removed bank connection and all associated data`);
     } catch (error) {
-      console.error('Error removing bank connection:', error);
+      logger.error('Error removing bank connection:', error);
       throw error;
     }
   }
@@ -142,7 +143,7 @@ export class BankConnectionService {
 
       await this.fetchAndSaveAccounts(institution.access_token);
     } catch (error) {
-      console.error('Error refreshing accounts:', error);
+      logger.error('Error refreshing accounts:', error);
       throw error;
     }
   }
@@ -152,7 +153,7 @@ export class BankConnectionService {
     try {
       return await this.database.accounts.getAccountsByInstitution(institutionId);
     } catch (error) {
-      console.error('Error fetching accounts for institution:', error);
+      logger.error('Error fetching accounts for institution:', error);
       throw error;
     }
   }
@@ -160,22 +161,22 @@ export class BankConnectionService {
   // Sync account balances for all connected institutions
   async syncAccountBalances(): Promise<void> {
     try {
-      console.log('🔄 Syncing account balances...');
+      logger.info('🔄 Syncing account balances...');
       
       const institutions = await this.database.getInstitutions();
       
       for (const institution of institutions) {
         try {
           await this.syncAccountBalancesForInstitution(institution.access_token, institution.id);
-          console.log(`✅ Synced balances for institution ${institution.id}`);
+          logger.debug(`✅ Synced balances for institution ${institution.id}`);
         } catch (error) {
-          console.error(`❌ Failed to sync balances for institution ${institution.id}:`, error);
+          logger.error(`❌ Failed to sync balances for institution ${institution.id}:`, error);
         }
       }
       
-      console.log('✅ Account balance sync completed');
+      logger.info('✅ Account balance sync completed');
     } catch (error) {
-      console.error('Error syncing account balances:', error);
+      logger.error('Error syncing account balances:', error);
       throw error;
     }
   }
@@ -206,7 +207,7 @@ export class BankConnectionService {
       `, [institution_id]);
       
     } catch (error) {
-      console.error('Error syncing account balances for institution:', error);
+      logger.error('Error syncing account balances for institution:', error);
       throw error;
     }
   }

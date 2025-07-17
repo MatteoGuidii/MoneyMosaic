@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { bankService } from '../../services/bank.service';
 import { database } from '../../database';
+import { logger } from '../../utils/logger';
 
 /**
  * @swagger
@@ -69,7 +70,7 @@ export const fetchTransactions = async (req: Request, res: Response) => {
           });
         }
       } catch (error) {
-        console.error(`Error fetching transactions for ${institution.name}:`, error);
+        logger.error(`Error fetching transactions for ${institution.name}:`, error);
         results.push({
           institution: institution.name,
           error: (error as Error).message
@@ -84,7 +85,7 @@ export const fetchTransactions = async (req: Request, res: Response) => {
       results
     });
   } catch (error) {
-    console.error('Error fetching transactions:', error);
+    logger.error('Error fetching transactions:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 };
@@ -174,7 +175,7 @@ export const fetchHistoricalTransactions = async (req: Request, res: Response) =
           transactionCount: result.transactions.length
         });
       } catch (error) {
-        console.error(`Error fetching historical transactions for account ${account.name}:`, error);
+        logger.error(`Error fetching historical transactions for account ${account.name}:`, error);
         results.push({
           accountId: account.id,
           accountName: account.name,
@@ -192,7 +193,7 @@ export const fetchHistoricalTransactions = async (req: Request, res: Response) =
       results
     });
   } catch (error) {
-    console.error('Error fetching historical transactions:', error);
+    logger.error('Error fetching historical transactions:', error);
     return res.status(500).json({ error: 'Internal server error' });
   }
 };

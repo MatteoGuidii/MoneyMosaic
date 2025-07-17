@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { plaidClient } from '../plaidClient';
 import { database } from '../database';
+import { logger } from '../utils/logger';
 
 const router = Router();
 
@@ -63,7 +64,7 @@ router.post('/sandbox/public_token/create', async (req, res) => {
     });
     res.json({ public_token: data.public_token });
   } catch (err) {
-    console.error('sandboxPublicTokenCreate error:', err);
+    logger.error('sandboxPublicTokenCreate error:', err);
     res.status(500).json({ error: 'Sandbox public_token failed' });
   }
 });
@@ -98,7 +99,7 @@ router.post('/database/clean', async (_req, res) => {
     await database.cleanAllData();
     res.json({ message: 'Database cleaned successfully - all data removed' });
   } catch (err) {
-    console.error('Database cleanup error:', err);
+    logger.error('Database cleanup error:', err);
     res.status(500).json({ error: 'Failed to clean database' });
   }
 });
