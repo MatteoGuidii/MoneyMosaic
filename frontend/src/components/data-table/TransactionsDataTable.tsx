@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react'
+import React, { useRef } from 'react'
 import { TransactionsDataTableProps, SortField } from './types'
 import { useTableSort, useTableSelection } from './hooks'
 import { calculatePaginationInfo } from './utils'
@@ -39,9 +39,11 @@ const TransactionsDataTable: React.FC<TransactionsDataTableProps> = ({
     { key: 'category' as SortField, label: 'Category', sortable: true }
   ]
 
-  useEffect(() => {
-    containerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  }, [currentPage, sortField, sortDirection])
+  // Disable automatic scrolling when the table updates to prevent
+  // jarring jump behaviour on filter or sort changes
+  // useEffect(() => {
+  //   containerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  // }, [currentPage, sortField, sortDirection])
 
   return (
     <div ref={containerRef} className="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden">
