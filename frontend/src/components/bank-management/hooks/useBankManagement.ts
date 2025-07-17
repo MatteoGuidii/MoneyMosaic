@@ -91,18 +91,26 @@ export const useBankManagement = () => {
       console.log('Token exchange completed, reloading banks...')
       
       await loadBanks()
-      
+
+      // Sync transactions for the newly connected bank
+      try {
+        await syncData()
+        dispatchAppEvent(APP_EVENTS.DATA_SYNC_COMPLETED)
+      } catch (syncError) {
+        console.error('Post-connect sync failed:', syncError)
+      }
+
       // Dispatch global event to notify other components
       dispatchAppEvent(APP_EVENTS.BANK_CONNECTION_CHANGED, {
         institution: metadata.institution
       })
-      
+
       showSuccess('Bank connected successfully')
     } catch (error: any) {
       console.error('Bank connection error:', error)
       showError(error.message || 'Failed to connect bank')
     }
-  }, [connectBank, initializePlaid, exchangeToken, loadBanks, showError, showSuccess, clearNotifications])
+  }, [connectBank, initializePlaid, exchangeToken, loadBanks, syncData, showError, showSuccess, clearNotifications])
 
   // Disconnect bank operation
   const handleDisconnectBank = useCallback(async (institutionId: string) => {
