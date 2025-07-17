@@ -8,7 +8,7 @@ export const useBankOperations = () => {
   const syncData = useCallback(async () => {
     setSyncing(true)
     try {
-      const response = await fetch('/api/sync/manual', { method: 'POST' })
+      const response = await fetch('/api/transactions/sync', { method: 'POST' })
       const data = await response.json()
       
       if (!response.ok) {
