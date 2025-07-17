@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useRef, useEffect } from 'react'
 import { TransactionsDataTableProps, SortField } from './types'
 import { useTableSort, useTableSelection } from './hooks'
 import { calculatePaginationInfo } from './utils'
@@ -20,6 +20,7 @@ const TransactionsDataTable: React.FC<TransactionsDataTableProps> = ({
   onSort,
   onExport
 }) => {
+  const containerRef = useRef<HTMLDivElement>(null)
   const { sortField, sortDirection, handleSort } = useTableSort('date', 'desc', onSort)
   const { 
     selectedTransactions, 
@@ -38,8 +39,12 @@ const TransactionsDataTable: React.FC<TransactionsDataTableProps> = ({
     { key: 'category' as SortField, label: 'Category', sortable: true }
   ]
 
+  useEffect(() => {
+    containerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [currentPage, sortField, sortDirection])
+
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden">
+    <div ref={containerRef} className="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden">
       <TableHeader 
         selectedCount={selectedTransactions.size}
         onExport={onExport}
