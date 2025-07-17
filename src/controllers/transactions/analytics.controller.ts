@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { bankService } from '../../services/bank.service';
 import { database } from '../../database';
+import { logger } from '../../utils/logger';
 
 /**
  * @swagger
@@ -92,7 +93,7 @@ export const getTrends = async (req: Request, res: Response) => {
       }
     });
   } catch (error) {
-    console.error('Error getting trends:', error);
+    logger.error('Error getting trends:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 };
@@ -128,7 +129,7 @@ export const getInsights = async (_req: Request, res: Response) => {
     const result = await bankService.getBudgetInsights();
     res.json(result);
   } catch (error) {
-    console.error('Error getting insights:', error);
+    logger.error('Error getting insights:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 };
@@ -249,7 +250,7 @@ export const getCategoryAnalysis = async (req: Request, res: Response) => {
       topMerchants: topMerchants || []
     });
   } catch (error) {
-    console.error('Error getting category analysis:', error);
+    logger.error('Error getting category analysis:', error);
     return res.status(500).json({ error: 'Internal server error' });
   }
 };
@@ -356,7 +357,7 @@ export const getAlerts = async (_req: Request, res: Response) => {
       }
     });
   } catch (error) {
-    console.error('Error getting alerts:', error);
+    logger.error('Error getting alerts:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 };

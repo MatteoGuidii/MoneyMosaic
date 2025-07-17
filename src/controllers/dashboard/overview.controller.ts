@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { database } from '../../database';
+import { logger } from '../../utils/logger';
 
 /**
  * @swagger
@@ -70,7 +71,7 @@ export const getOverview = async (_req: Request, res: Response) => {
       todayNetFlow
     });
   } catch (error) {
-    console.error('Error fetching overview:', error);
+    logger.error('Error fetching overview:', error);
     res.status(500).json({ error: 'Failed to fetch overview data' });
   }
 };
@@ -151,7 +152,7 @@ export const getEarnings = async (_req: Request, res: Response) => {
       sevenDayAverage
     });
   } catch (error) {
-    console.error('Error fetching earnings:', error);
+    logger.error('Error fetching earnings:', error);
     res.status(500).json({ error: 'Failed to fetch earnings data' });
   }
 };

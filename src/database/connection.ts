@@ -1,6 +1,7 @@
 import sqlite3 from 'sqlite3';
 import path from 'path';
 import fs from 'fs';
+import { logger } from '../utils/logger';
 
 // Enable verbose mode for better debugging
 const sqlite = sqlite3.verbose();
@@ -37,7 +38,7 @@ export class DatabaseConnection {
         throw error;
       }
     } catch (error) {
-      console.error('Database initialization failed:', error);
+      logger.error('Database initialization failed:', error);
       throw error;
     }
   }
@@ -50,7 +51,7 @@ export class DatabaseConnection {
   }
 
   private async createBasicTables(): Promise<void> {
-    console.log('Creating institutions table...');
+    logger.info('Creating institutions table...');
     await this.runDirect(`
       CREATE TABLE IF NOT EXISTS institutions (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -64,7 +65,7 @@ export class DatabaseConnection {
       )
     `);
 
-    console.log('Creating accounts table...');
+    logger.info('Creating accounts table...');
     await this.runDirect(`
       CREATE TABLE IF NOT EXISTS accounts (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -83,7 +84,7 @@ export class DatabaseConnection {
       )
     `);
 
-    console.log('Creating transactions table...');
+    logger.info('Creating transactions table...');
     await this.runDirect(`
       CREATE TABLE IF NOT EXISTS transactions (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -104,7 +105,7 @@ export class DatabaseConnection {
       )
     `);
 
-    console.log('Creating budgets table...');
+    logger.info('Creating budgets table...');
     await this.runDirect(`
       CREATE TABLE IF NOT EXISTS budgets (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -120,7 +121,7 @@ export class DatabaseConnection {
   }
 
   private async createInvestmentTables(): Promise<void> {
-    console.log('Creating securities table...');
+    logger.info('Creating securities table...');
     await this.runDirect(`
       CREATE TABLE IF NOT EXISTS securities (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -138,7 +139,7 @@ export class DatabaseConnection {
       )
     `);
 
-    console.log('Creating holdings table...');
+    logger.info('Creating holdings table...');
     await this.runDirect(`
       CREATE TABLE IF NOT EXISTS holdings (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -157,7 +158,7 @@ export class DatabaseConnection {
       )
     `);
 
-    console.log('Creating investment_transactions table...');
+    logger.info('Creating investment_transactions table...');
     await this.runDirect(`
       CREATE TABLE IF NOT EXISTS investment_transactions (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -180,7 +181,7 @@ export class DatabaseConnection {
       )
     `);
 
-    console.log('Creating market_data table...');
+    logger.info('Creating market_data table...');
     await this.runDirect(`
       CREATE TABLE IF NOT EXISTS market_data (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -249,7 +250,7 @@ export class DatabaseConnection {
     await this.ensureInitialized();
     
     try {
-      console.log('Cleaning all data from database...');
+      logger.info('Cleaning all data from database...');
       
       // Delete in reverse order of dependencies to avoid foreign key constraints
       await this.run('DELETE FROM market_data');
@@ -264,9 +265,9 @@ export class DatabaseConnection {
       // Reset auto-increment counters
       await this.run("UPDATE sqlite_sequence SET seq = 0 WHERE name IN ('institutions', 'accounts', 'transactions', 'budgets', 'securities', 'holdings', 'investment_transactions', 'market_data')");
       
-      console.log('Database cleaned successfully - all data removed');
+      logger.info('Database cleaned successfully - all data removed');
     } catch (error) {
-      console.error('Error cleaning database:', error);
+      logger.error('Error cleaning database:', error);
       throw error;
     }
   }

@@ -1,6 +1,7 @@
 import { database, Database } from '../../database';
 import { plaidClient } from '../../plaidClient';
 import { subDays, formatISO } from 'date-fns';
+import { logger } from '../../utils/logger';
 
 export class TransactionService {
   private database: Database;
@@ -19,7 +20,7 @@ export class TransactionService {
       
       // If no institutions are connected, return empty results
       if (institutions.length === 0) {
-        console.log('📭 No banks connected. Returning empty transaction data.');
+        logger.info('📭 No banks connected. Returning empty transaction data.');
         return {
           transactions: [],
           summary: {
@@ -43,7 +44,7 @@ export class TransactionService {
           );
           allTransactions.push(...transactions);
         } catch (error) {
-          console.error(`Error fetching transactions for institution ${institution.id}:`, error);
+          logger.error(`Error fetching transactions for institution ${institution.id}:`, error);
           // Continue with other institutions
         }
       }
@@ -56,7 +57,7 @@ export class TransactionService {
         summary
       };
     } catch (error) {
-      console.error('Error fetching all transactions:', error);
+      logger.error('Error fetching all transactions:', error);
       throw error;
     }
   }
@@ -68,7 +69,7 @@ export class TransactionService {
     days: number
   ): Promise<any[]> {
     try {
-      console.log(`🔄 Fetching transactions for institution ${institution_id} for ${days} days...`);
+      logger.info(`🔄 Fetching transactions for institution ${institution_id} for ${days} days...`);
 
       const allTransactions: any[] = [];
       let cursor: string | null = null;
@@ -120,7 +121,7 @@ export class TransactionService {
 
             allTransactions.push(tx);
           } catch (error) {
-            console.error(`Error saving transaction ${tx.transaction_id}:`, error);
+            logger.error(`Error saving transaction ${tx.transaction_id}:`, error);
             // Continue processing other transactions
           }
         }
@@ -153,7 +154,7 @@ export class TransactionService {
               pending: tx.pending || false
             });
           } catch (error) {
-            console.error(`Error updating transaction ${tx.transaction_id}:`, error);
+            logger.error(`Error updating transaction ${tx.transaction_id}:`, error);
             // Continue processing other transactions
           }
         }
@@ -163,7 +164,7 @@ export class TransactionService {
           try {
             await this.database.deleteTransaction(removedTx.transaction_id);
           } catch (error) {
-            console.error(`Error removing transaction ${removedTx.transaction_id}:`, error);
+            logger.error(`Error removing transaction ${removedTx.transaction_id}:`, error);
             // Continue processing other transactions
           }
         }
@@ -171,10 +172,10 @@ export class TransactionService {
         cursor = next_cursor;
         hasMore = has_more;
 
-        console.log(`📥 Processed ${added.length} added, ${modified.length} modified, ${removed.length} removed transactions. Has more: ${hasMore}`);
+        logger.debug(`📥 Processed ${added.length} added, ${modified.length} modified, ${removed.length} removed transactions. Has more: ${hasMore}`);
       }
 
-      console.log(`✅ Total transactions processed: ${allTransactions.length}`);
+      logger.info(`✅ Total transactions processed: ${allTransactions.length}`);
 
       // Return transactions from database within the requested date range
       const endDate = formatISO(new Date(), { representation: 'date' });
@@ -186,7 +187,7 @@ export class TransactionService {
         end_date: endDate
       });
     } catch (error) {
-      console.error(`Error fetching transactions for institution ${institution_id}:`, error);
+      logger.error(`Error fetching transactions for institution ${institution_id}:`, error);
       throw error;
     }
   }
@@ -237,7 +238,7 @@ export class TransactionService {
     };
   }> {
     try {
-      console.log(`🔍 Filtering transactions with criteria:`, filters);
+      logger.debug(`🔍 Filtering transactions with criteria:`, filters);
 
       const endDate = formatISO(new Date(), { representation: 'date' });
       const startDate = formatISO(subDays(new Date(), filters.days || 30), { representation: 'date' });
@@ -296,7 +297,7 @@ export class TransactionService {
         summary
       };
     } catch (error) {
-      console.error('Error filtering transactions:', error);
+      logger.error('Error filtering transactions:', error);
       throw error;
     }
   }
@@ -344,7 +345,7 @@ export class TransactionService {
     try {
       return await this.database.transactions.getTransactionsByDateRange(startDate, endDate);
     } catch (error) {
-      console.error('Error getting transactions by date range:', error);
+      logger.error('Error getting transactions by date range:', error);
       throw error;
     }
   }
@@ -354,7 +355,7 @@ export class TransactionService {
     try {
       return await this.database.transactions.getTodaysTransactions();
     } catch (error) {
-      console.error('Error getting today\'s transactions:', error);
+      logger.error('Error getting today\'s transactions:', error);
       throw error;
     }
   }

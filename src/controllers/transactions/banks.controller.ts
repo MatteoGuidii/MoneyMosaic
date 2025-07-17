@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { schedulerService } from '../../services/scheduler.service';
 import { database } from '../../database';
+import { logger } from '../../utils/logger';
 
 /**
  * @swagger
@@ -55,7 +56,7 @@ export const getConnectedBanks = async (_req: Request, res: Response) => {
     
     res.json({ banks: connectedBanks });
   } catch (error) {
-    console.error('Error fetching connected banks:', error);
+    logger.error('Error fetching connected banks:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 };
@@ -116,7 +117,7 @@ export const deleteBankConnection = async (req: Request, res: Response) => {
       throw error;
     }
   } catch (error) {
-    console.error('Error deleting bank connection:', error);
+    logger.error('Error deleting bank connection:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 };
@@ -185,7 +186,7 @@ export const getHealthCheck = async (_req: Request, res: Response) => {
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    console.error('Health check error:', error);
+    logger.error('Health check error:', error);
     res.status(500).json({ 
       status: 'unhealthy', 
       error: (error as Error).message,
@@ -216,7 +217,7 @@ export const syncTransactions = async (_req: Request, res: Response) => {
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    console.error('Error initiating sync:', error);
+    logger.error('Error initiating sync:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 };
@@ -241,7 +242,7 @@ export const getSchedulerStatus = (_req: Request, res: Response) => {
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    console.error('Error getting scheduler status:', error);
+    logger.error('Error getting scheduler status:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 };

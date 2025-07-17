@@ -90,7 +90,7 @@ router.post('/link/token/create', async (req, res) => {
       expiration: response.data.expiration 
     });
   } catch (err: any) {
-    console.error('createLinkToken error:', {
+    logger.error('createLinkToken error:', {
       error: err.message,
       status: err.response?.status,
       data: err.response?.data,
