@@ -107,7 +107,11 @@ class ApiService {
     
     const response = await fetch(`/api/transactions?${params}`)
     if (!response.ok) throw new Error('Failed to fetch transactions')
-    return await response.json()
+    const data = await response.json()
+    return {
+      transactions: data.transactions,
+      total: data.pagination?.total ?? 0
+    }
   }
 
   async fetchTransactionsSimple(

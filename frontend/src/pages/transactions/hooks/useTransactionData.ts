@@ -58,7 +58,7 @@ export const useTransactionData = (
         filters.amountRange.max < 10000 ? filters.amountRange.max : undefined,
         sorting.field,
         sorting.direction,
-        1000, // Default to 1000 for open source usage
+        20,
         endDate
       )
       
