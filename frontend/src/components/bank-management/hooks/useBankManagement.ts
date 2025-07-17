@@ -3,6 +3,7 @@ import { useBankData } from './useBankData'
 import { useBankOperations } from './useBankOperations'
 import { usePlaidLink } from './usePlaidLink'
 import { useNotifications } from './useNotifications'
+import { apiService } from '../../../services/apiService'
 import { dispatchAppEvent, APP_EVENTS } from '../../../utils/app-events'
 
 export const useBankManagement = () => {
@@ -107,20 +108,14 @@ export const useBankManagement = () => {
   const handleDisconnectBank = useCallback(async (institutionId: string) => {
     try {
       clearNotifications()
-      const response = await fetch(`/api/institutions/${institutionId}`, {
-        method: 'DELETE'
-      })
-      
-      if (!response.ok) {
+      const response = await apiService.removeBankConnection(Number(institutionId))
+      if (!response || response.success === false) {
         throw new Error('Failed to disconnect bank')
       }
-      
       await loadBanks()
       await loadHealthStatus()
-      
       // Dispatch global event to notify other components
       dispatchAppEvent(APP_EVENTS.BANK_CONNECTION_CHANGED)
-      
       showSuccess('Bank disconnected successfully')
     } catch (error: any) {
       showError(error.message || 'Failed to disconnect bank')
