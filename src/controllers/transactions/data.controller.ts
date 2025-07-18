@@ -120,7 +120,13 @@ export const getTransactions = async (req: Request, res: Response) => {
       limit = 50,
       category,
       startDate,
-      endDate
+      endDate,
+      search,
+      accounts,
+      minAmount,
+      maxAmount,
+      sortField = 'date',
+      sortDirection = 'desc'
     } = req.query;
 
     const pageNum = parseInt(page as string, 10);
@@ -132,18 +138,46 @@ export const getTransactions = async (req: Request, res: Response) => {
     const params: any[] = [];
 
     if (category) {
-      whereClause += ' AND category_primary = ?';
+      whereClause += ' AND t.category_primary = ?';
       params.push(category);
     }
 
     if (startDate) {
-      whereClause += ' AND date >= ?';
+      whereClause += ' AND t.date >= ?';
       params.push(startDate);
     }
 
     if (endDate) {
-      whereClause += ' AND date <= ?';
+      whereClause += ' AND t.date <= ?';
       params.push(endDate);
+    }
+
+    if (search) {
+      whereClause += ' AND (LOWER(t.name) LIKE ? OR LOWER(t.merchant_name) LIKE ? OR LOWER(t.category_primary) LIKE ?)';
+      const term = `%${(search as string).toLowerCase()}%`;
+      params.push(term, term, term);
+    }
+
+    if (accounts) {
+      const accountList = (accounts as string)
+        .split(',')
+        .map(a => a.trim())
+        .filter(a => a.length > 0);
+      if (accountList.length > 0) {
+        const placeholders = accountList.map(() => '?').join(',');
+        whereClause += ` AND a.name IN (${placeholders})`;
+        params.push(...accountList);
+      }
+    }
+
+    if (minAmount) {
+      whereClause += ' AND ABS(t.amount) >= ?';
+      params.push(parseFloat(minAmount as string));
+    }
+
+    if (maxAmount) {
+      whereClause += ' AND ABS(t.amount) <= ?';
+      params.push(parseFloat(maxAmount as string));
     }
 
     // Get total count
@@ -163,7 +197,15 @@ export const getTransactions = async (req: Request, res: Response) => {
       JOIN accounts a ON t.account_id = a.account_id
       JOIN institutions i ON a.institution_id = i.id
       ${whereClause}
-      ORDER BY date DESC
+      ORDER BY ${
+        sortField === 'name'
+          ? 't.name'
+          : sortField === 'amount'
+          ? 't.amount'
+          : sortField === 'category'
+          ? 't.category_primary'
+          : 't.date'
+      } ${sortDirection === 'asc' ? 'ASC' : 'DESC'}
       LIMIT ? OFFSET ?
     `, [...params, limitNum, offset]);
 

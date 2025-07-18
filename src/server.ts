@@ -84,18 +84,29 @@ app.get('*', (_req, res) => {
 
 const PORT = config.server.port;
 
-app.listen(PORT, () => {
-  logger.info(`🚀 Server listening on http://localhost:${PORT}`);
-  logger.info(`🌍 Environment: ${config.server.environment}`);
-  
-  // Initialize database and start background jobs
-  logger.info('🗄️ Database initialized');
-  
-  // Start background jobs
-  const syncHours = config.scheduler.syncIntervalHours;
-  schedulerService.startAll(syncHours);
-  logger.info(`⏰ Background jobs started (sync every ${syncHours} hours)`);
-});
+const startServer = async () => {
+  try {
+    // Ensure the database has finished initializing before accepting requests
+    await database.all('SELECT 1');
+
+    app.listen(PORT, () => {
+      logger.info(`🚀 Server listening on http://localhost:${PORT}`);
+      logger.info(`🌍 Environment: ${config.server.environment}`);
+
+      logger.info('🗄️ Database initialized');
+
+      // Start background jobs
+      const syncHours = config.scheduler.syncIntervalHours;
+      schedulerService.startAll(syncHours);
+      logger.info(`⏰ Background jobs started (sync every ${syncHours} hours)`);
+    });
+  } catch (error) {
+    logger.error('Failed to start server:', error);
+    process.exit(1);
+  }
+};
+
+startServer();
 
 // Graceful shutdown
 const gracefulShutdown = (signal: string) => {
