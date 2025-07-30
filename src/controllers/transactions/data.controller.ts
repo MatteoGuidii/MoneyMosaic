@@ -180,9 +180,17 @@ export const getTransactions = async (req: Request, res: Response) => {
       params.push(parseFloat(maxAmount as string));
     }
 
-    // Get total count
+
+    // Shared FROM/JOIN for both queries
+    const fromJoin = `FROM transactions t
+      JOIN accounts a ON t.account_id = a.account_id
+      JOIN institutions i ON a.institution_id = i.id`;
+
+    // Get total count (use same FROM/JOIN/aliases as data query)
     const countResult = await database.get(`
-      SELECT COUNT(*) as total FROM transactions ${whereClause}
+      SELECT COUNT(*) as total
+      ${fromJoin}
+      ${whereClause}
     `, params);
 
     // Get transactions
@@ -193,9 +201,7 @@ export const getTransactions = async (req: Request, res: Response) => {
         a.name as account_name,
         a.type as account_type,
         i.name as institution_name
-      FROM transactions t
-      JOIN accounts a ON t.account_id = a.account_id
-      JOIN institutions i ON a.institution_id = i.id
+      ${fromJoin}
       ${whereClause}
       ORDER BY ${
         sortField === 'name'
