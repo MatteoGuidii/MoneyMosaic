@@ -77,15 +77,28 @@ class ApiService {
     limit = 1000, // Default to 1000 for open source usage
     endDate?: string
   ): Promise<{ transactions: any[]; total: number }> {
+    let finalStartDate = startDate
+    let finalEndDate = endDate
+
+    if (!startDate && !endDate && dateRange) {
+      const days = parseInt(dateRange)
+      if (!isNaN(days)) {
+        const end = new Date()
+        const start = new Date()
+        start.setDate(start.getDate() - days)
+        finalStartDate = start.toISOString().split('T')[0]
+        finalEndDate = end.toISOString().split('T')[0]
+      }
+    }
+
     const params = new URLSearchParams({
       page: page.toString(),
       limit: limit.toString(),
-      ...(dateRange && { range: dateRange }),
       ...(search && { search }),
       ...(categories && categories.length > 0 && { categories: categories.join(',') }),
       ...(accounts && accounts.length > 0 && { accounts: accounts.join(',') }),
-      ...(startDate && { startDate }),
-      ...(endDate && { endDate }),
+      ...(finalStartDate && { startDate: finalStartDate }),
+      ...(finalEndDate && { endDate: finalEndDate }),
       ...(minAmount !== undefined && { minAmount: minAmount.toString() }),
       ...(maxAmount !== undefined && { maxAmount: maxAmount.toString() }),
       ...(sortField && { sortField }),
@@ -94,7 +107,11 @@ class ApiService {
     
     const response = await fetch(`/api/transactions?${params}`)
     if (!response.ok) throw new Error('Failed to fetch transactions')
-    return await response.json()
+    const data = await response.json()
+    return {
+      transactions: data.transactions,
+      total: data.pagination?.total ?? 0
+    }
   }
 
   async fetchTransactionsSimple(

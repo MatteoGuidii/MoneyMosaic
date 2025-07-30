@@ -2,12 +2,9 @@ import React, { useState, useEffect } from 'react'
 import { Calendar, Info, AlertCircle } from 'lucide-react'
 
 interface DateRangeInfo {
-  institutionId: number
-  institutionName: string
   earliestDate: string | null
   latestDate: string | null
-  availableTransactionCount: number
-  error?: string
+  totalTransactions: number
 }
 
 interface DataRangeInfoProps {
@@ -17,7 +14,7 @@ interface DataRangeInfoProps {
 }
 
 const DataRangeInfo: React.FC<DataRangeInfoProps> = ({ onRefresh, selectedDateRange, customDateRange }) => {
-  const [dateRanges, setDateRanges] = useState<DateRangeInfo[]>([])
+  const [dateRange, setDateRange] = useState<DateRangeInfo | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -29,12 +26,16 @@ const DataRangeInfo: React.FC<DataRangeInfoProps> = ({ onRefresh, selectedDateRa
     try {
       setLoading(true)
       setError(null)
-      
+
       const response = await fetch('/api/transactions/date-range')
       const data = await response.json()
-      
-      if (data.success) {
-        setDateRanges(data.institutions)
+
+      if (response.ok) {
+        setDateRange({
+          earliestDate: data.earliestDate,
+          latestDate: data.latestDate,
+          totalTransactions: data.totalTransactions
+        })
       } else {
         setError('Failed to fetch date ranges')
       }
@@ -106,42 +107,26 @@ const DataRangeInfo: React.FC<DataRangeInfoProps> = ({ onRefresh, selectedDateRa
             Available Transaction Data
           </h3>
           
-          {dateRanges.length === 0 ? (
+          {!dateRange ? (
             <p className="text-sm text-blue-700 dark:text-blue-300">
-              No institutions connected.
+              No transaction data available.
             </p>
           ) : (
-            <div className="space-y-2">
-              {dateRanges.map((range) => (
-                <div key={range.institutionId} className="text-sm">
-                  <div className="font-medium text-blue-800 dark:text-blue-200">
-                    {range.institutionName}
-                  </div>
-                  <div className="text-blue-700 dark:text-blue-300">
-                    {range.availableTransactionCount > 0 ? (
-                      <>
-                        <span className="font-medium">{range.availableTransactionCount}</span> transactions available
-                        {getSelectedDateRangeDisplay() ? (
-                          <span className="ml-1">
-                            ({getSelectedDateRangeDisplay()})
-                          </span>
-                        ) : range.earliestDate && range.latestDate ? (
-                          <span className="ml-1">
-                            ({formatDate(range.earliestDate)} - {formatDate(range.latestDate)})
-                          </span>
-                        ) : null}
-                      </>
-                    ) : (
-                      <span>No transaction data available</span>
-                    )}
-                  </div>
-                  {range.error && (
-                    <div className="text-red-600 dark:text-red-400 text-xs mt-1">
-                      {range.error}
-                    </div>
-                  )}
-                </div>
-              ))}
+            <div className="text-sm text-blue-700 dark:text-blue-300">
+              {dateRange.totalTransactions > 0 ? (
+                <>
+                  <span className="font-medium">{dateRange.totalTransactions}</span> transactions available
+                  {getSelectedDateRangeDisplay() ? (
+                    <span className="ml-1">({getSelectedDateRangeDisplay()})</span>
+                  ) : dateRange.earliestDate && dateRange.latestDate ? (
+                    <span className="ml-1">
+                      ({formatDate(dateRange.earliestDate)} - {formatDate(dateRange.latestDate)})
+                    </span>
+                  ) : null}
+                </>
+              ) : (
+                <span>No transaction data available</span>
+              )}
             </div>
           )}
           
