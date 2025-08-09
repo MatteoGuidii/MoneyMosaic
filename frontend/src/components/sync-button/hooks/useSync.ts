@@ -25,81 +25,70 @@ export const useSync = ({
     }
   }
 
-  // Auto-sync functionality
-  const handleAutoSync = async () => {
-    try {
-      console.log('🔄 Auto-syncing data...')
-      const result = await apiService.syncAllData()
-      if (result.success) {
-        await fetchSyncStatus()
-        onSyncComplete?.()
-        console.log(`✅ Auto-sync completed: ${result.transactionCount || 0} transactions`)
-      }
-    } catch (error) {
-      console.error('Auto-sync failed:', error)
-    }
+  const optimisticComplete = async (message: string) => {
+    setLastSyncResult(message)
+    await fetchSyncStatus()
+    onSyncComplete?.()
   }
 
-  // Manual sync functionality
+  // Manual sync functionality with timeout safeguard
   const handleManualSync = async () => {
     setIsLoading(true)
     setLastSyncResult(null)
-    
+    let timeoutId: any
+
+    const finish = () => {
+      clearTimeout(timeoutId)
+      setIsLoading(false)
+      setTimeout(() => setLastSyncResult(null), 3000)
+    }
+
     try {
-      let result: any
-      
+      let message = ''
+
       if (investmentOnly) {
-        result = await apiService.syncInvestments()
+        const result = await apiService.syncInvestments()
         if (result.success) {
-          setLastSyncResult(`✅ Investment sync completed`)
-          await fetchSyncStatus()
-          onSyncComplete?.()
+          message = '✅ Investment sync started'
+          await optimisticComplete(message)
         } else {
-          setLastSyncResult('❌ Investment sync failed')
+          setLastSyncResult('❌ Investment sync failed to start')
         }
       } else {
-        result = await apiService.syncAllData()
-        
+        const result = await apiService.syncAllData()
         if (result.success) {
-          let message = `✅ Synced ${result.transactionCount || 0} transactions`
-          
-          if (includeInvestments) {
-            try {
-              const investmentResult = await apiService.syncInvestments()
-              if (investmentResult.success) {
-                message += ` and investments`
-              }
-            } catch (error) {
-              console.error('Investment sync failed:', error)
-            }
-          }
-          
-          setLastSyncResult(message)
-          await fetchSyncStatus()
-          onSyncComplete?.()
+          message = `✅ Sync started`
+          // kick an immediate status refresh and a short poll to reflect progress
+          await optimisticComplete(message)
+          setTimeout(fetchSyncStatus, 2000)
         } else {
-          setLastSyncResult('❌ Sync failed')
+          setLastSyncResult('❌ Sync failed to start')
+        }
+
+        if (includeInvestments) {
+          // fire-and-forget investments; don't block the button
+          apiService.syncInvestments().catch(err => console.error('Investment sync failed:', err))
         }
       }
     } catch (error) {
       console.error('Sync failed:', error)
       setLastSyncResult('❌ Sync failed')
     } finally {
-      setIsLoading(false)
-      
-      // Clear result message after 3 seconds
-      setTimeout(() => setLastSyncResult(null), 3000)
+      // Safety timeout: never let spinner run forever
+      timeoutId = setTimeout(finish, 8000)
+      // If the server responded immediately, finish sooner
+      finish()
     }
   }
 
-  // Set up auto-sync and fetch initial status
+  // Auto-sync and initial status
   useEffect(() => {
     fetchSyncStatus()
-    
+
     const interval = setInterval(() => {
-      handleAutoSync()
+      handleManualSync()
     }, AUTO_SYNC_INTERVAL)
-    
+
     return () => {
       if (interval) clearInterval(interval)
     }

@@ -23,14 +23,21 @@ export const useBankData = () => {
     try {
       const response = await fetch('/api/transactions/health_check')
       const data = await response.json()
+
+      // Build a lookup of bank name -> id from the latest banks list
+      const nameToId = new Map<string, number | string>()
+      for (const b of banks) {
+        nameToId.set(b.name, b.id)
+      }
       
       const healthStatuses: HealthStatus[] = []
       
       // Add healthy banks
-      if (data.healthy && Array.isArray(data.healthy)) {
+      if (Array.isArray(data.healthy)) {
         data.healthy.forEach((bankName: string) => {
+          const institution_id = nameToId.get(bankName) ?? bankName
           healthStatuses.push({
-            institution_id: bankName,
+            institution_id: String(institution_id),
             status: 'healthy',
             last_check: new Date().toISOString()
           })
@@ -38,10 +45,11 @@ export const useBankData = () => {
       }
 
       // Add unhealthy banks
-      if (data.unhealthy && Array.isArray(data.unhealthy)) {
+      if (Array.isArray(data.unhealthy)) {
         data.unhealthy.forEach((bankName: string) => {
+          const institution_id = nameToId.get(bankName) ?? bankName
           healthStatuses.push({
-            institution_id: bankName,
+            institution_id: String(institution_id),
             status: 'unhealthy',
             last_check: new Date().toISOString()
           })
@@ -53,7 +61,7 @@ export const useBankData = () => {
       console.error('Error loading health status:', error)
       throw new Error('Failed to load health status')
     }
-  }, [])
+  }, [banks])
 
   return {
     banks,

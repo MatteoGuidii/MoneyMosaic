@@ -9,16 +9,23 @@ interface CashFlowInsightsProps {
 const CashFlowInsights: React.FC<CashFlowInsightsProps> = ({ data }) => {
   if (!data) return null
 
+  const safeNumber = (value: any, fallback = 0): number => {
+    const num = typeof value === 'number' ? value : Number(value)
+    return Number.isFinite(num) ? num : fallback
+  }
+
   const formatCurrency = (value: number) => {
+    const v = safeNumber(value, 0)
     return new Intl.NumberFormat('en-CA', {
       style: 'currency',
       currency: 'CAD',
       minimumFractionDigits: 0
-    }).format(Math.abs(value))
+    }).format(Math.abs(v))
   }
 
   const getChangeIcon = (value: number) => {
-    return value >= 0 ? (
+    const v = safeNumber(value, 0)
+    return v >= 0 ? (
       <TrendingUp className="w-4 h-4 text-success-500" />
     ) : (
       <TrendingDown className="w-4 h-4 text-danger-500" />
@@ -26,25 +33,26 @@ const CashFlowInsights: React.FC<CashFlowInsightsProps> = ({ data }) => {
   }
 
   const getChangeColor = (value: number) => {
-    return value >= 0 ? 'text-success-600 dark:text-success-400' : 'text-danger-600 dark:text-danger-400'
+    const v = safeNumber(value, 0)
+    return v >= 0 ? 'text-success-600 dark:text-success-400' : 'text-danger-600 dark:text-danger-400'
   }
 
   const insights = [
     {
       title: "Today's Net Cash Flow",
-      value: data.todayNetFlow,
+      value: safeNumber(data.todayNetFlow, 0),
       icon: <DollarSign className="w-5 h-5" />,
       description: "Today's income minus expenses"
     },
     {
       title: "Month-to-Date Net Flow",
-      value: data.monthToDateNetFlow,
+      value: safeNumber(data.monthToDateNetFlow, 0),
       icon: <Calendar className="w-5 h-5" />,
       description: "This month's cumulative cash flow"
     },
     {
       title: "7-Day Rolling Average",
-      value: data.sevenDayAverage,
+      value: safeNumber(data.sevenDayAverage, 0),
       icon: <TrendingUp className="w-5 h-5" />,
       description: "Average daily net flow over 7 days"
     }
@@ -73,7 +81,7 @@ const CashFlowInsights: React.FC<CashFlowInsightsProps> = ({ data }) => {
             
             <div className="mb-1">
               <span className={`text-2xl font-bold ${getChangeColor(insight.value)}`}>
-                {insight.value >= 0 ? '+' : '-'}{formatCurrency(insight.value)}
+                {safeNumber(insight.value, 0) >= 0 ? '+' : '-'}{formatCurrency(insight.value)}
               </span>
             </div>
             

@@ -11,11 +11,13 @@ import {
   getCashFlowAnalysis, 
   getSpendingTrends 
 } from '../controllers/dashboard/analytics.controller';
+import { getEarnings } from '../controllers/dashboard/overview.controller';
 
 const router = express.Router();
 
 // Overview routes
 router.get('/overview', getOverview);
+router.get('/earnings', getEarnings);
 
 // Spending routes
 router.get('/spending-data', getSpendingData);

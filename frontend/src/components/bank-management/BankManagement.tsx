@@ -49,8 +49,9 @@ const BankManagement: React.FC<BankManagementProps> = ({
     })
   }
 
-  const getHealthStatus = (institutionId: string) => {
-    return healthStatuses.find(status => status.institution_id === institutionId)?.status || 'unknown'
+  const getHealthStatus = (institutionId: number | string) => {
+    const key = String(institutionId)
+    return healthStatuses.find(status => String(status.institution_id) === key) || { status: 'unknown', institution_id: key, last_check: new Date().toISOString() }
   }
 
   if (loading) {
@@ -90,7 +91,7 @@ const BankManagement: React.FC<BankManagementProps> = ({
             <BankCard
               key={bank.id}
               bank={bank}
-              healthStatus={getHealthStatus(bank.name) as any}
+              healthStatus={getHealthStatus(bank.id) as any}
               onRemove={(bankId: number) => handleRemoveBank(String(bankId))}
             />
           ))}

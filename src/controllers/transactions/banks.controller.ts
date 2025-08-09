@@ -49,7 +49,8 @@ export const getConnectedBanks = async (_req: Request, res: Response) => {
         
         return {
           ...institution,
-          accountCount: accountCount.count
+          accountCount: accountCount.count,
+          last_sync: institution.updated_at
         };
       })
     );
@@ -173,7 +174,7 @@ export const getHealthCheck = async (_req: Request, res: Response) => {
       healthy,
       unhealthy,
       institutions: institutions.map(inst => ({
-        id: inst.id,
+        id: String(inst.id),
         name: inst.name,
         status: (() => {
           const lastUpdate = new Date(inst.updated_at);
@@ -208,12 +209,18 @@ export const getHealthCheck = async (_req: Request, res: Response) => {
  */
 export const syncTransactions = async (_req: Request, res: Response) => {
   try {
-    // Trigger manual sync
-    await schedulerService.triggerTransactionSync();
+    // Fire-and-forget manual sync to avoid blocking the request
+    (async () => {
+      try {
+        await schedulerService.triggerTransactionSync();
+      } catch (err) {
+        logger.error('Background sync failed:', err);
+      }
+    })();
     
     res.json({ 
       success: true, 
-      message: 'Transaction sync initiated',
+      message: 'Transaction sync started',
       timestamp: new Date().toISOString()
     });
   } catch (error) {

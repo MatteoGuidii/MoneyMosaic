@@ -208,7 +208,7 @@ class ApiService {
 
   // Sync methods for data refresh
   async syncAllData(): Promise<{ success: boolean; message: string; transactionCount?: number }> {
-    const response = await fetch('/api/transactions/fetch', {
+    const response = await fetch('/api/transactions/sync', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

@@ -41,47 +41,35 @@ import { logger } from '../../utils/logger';
 export const fetchTransactions = async (req: Request, res: Response) => {
   try {
     const { days = 30 } = req.body;
-    
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - days);
-    
-    // Get all active institutions
+
+    // Single call that handles all institutions internally
+    const fetchResult = await bankService.fetchAllTransactions(days);
+
+    // Optionally compute per-institution quick summary based on DB counts to keep response informative
     const institutions = await database.all(`
-      SELECT * FROM institutions WHERE is_active = 1
+      SELECT id, name FROM institutions WHERE is_active = 1
     `);
-    
-    let totalTransactions = 0;
+
     const results: any[] = [];
-    
-    for (const institution of institutions) {
+    for (const inst of institutions) {
       try {
-        const accounts = await database.all(`
-          SELECT * FROM accounts WHERE institution_id = ?
-        `, [institution.id]);
-        
-        for (const account of accounts) {
-          const result = await bankService.fetchAllTransactions(days);
-          
-          totalTransactions += result.transactions.length;
-          results.push({
-            institution: institution.name,
-            account: account.name,
-            transactionCount: result.transactions.length
-          });
-        }
-      } catch (error) {
-        logger.error(`Error fetching transactions for ${institution.name}:`, error);
-        results.push({
-          institution: institution.name,
-          error: (error as Error).message
-        });
+        const countRow = await database.get(
+          `SELECT COUNT(*) as count FROM transactions t
+           JOIN accounts a ON t.account_id = a.account_id
+           WHERE a.institution_id = ?
+           AND t.date >= date('now', ?)`,
+          [inst.id, `-${Number(days)} days`]
+        );
+        results.push({ institution: inst.name, transactionCount: countRow?.count || 0 });
+      } catch (err) {
+        results.push({ institution: inst.name, error: (err as Error).message });
       }
     }
-    
+
     res.json({
       success: true,
-      message: `Fetched ${totalTransactions} transactions from ${institutions.length} institutions`,
-      transactionCount: totalTransactions,
+      message: `Fetched ${fetchResult.summary.transactionCount} transactions from ${institutions.length} institutions`,
+      transactionCount: fetchResult.summary.transactionCount,
       results
     });
   } catch (error) {

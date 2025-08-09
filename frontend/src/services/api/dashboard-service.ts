@@ -7,8 +7,8 @@ export class DashboardService {
   }
 
   async fetchEarningsData(): Promise<EarningsData> {
-    // This should map to financial health or another endpoint
-    return httpClient.get<EarningsData>('/api/dashboard/financial-health')
+    // Use the earnings endpoint that matches the Expected EarningsData shape
+    return httpClient.get<EarningsData>('/api/dashboard/earnings')
   }
 
   async fetchBudgetData(month?: string, year?: number): Promise<BudgetData[]> {
